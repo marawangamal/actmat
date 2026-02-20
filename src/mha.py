@@ -75,6 +75,22 @@ def copy_weights_to_pytorch_mha(custom_mha, pt_mha):
             pt_mha.out_proj.bias.copy_(custom_mha.vot.bias[d:])
 
 
+def swap_mha(model):
+    """Recursively replace all nn.MultiheadAttention with our MultiHeadAttention."""
+    for name, module in model.named_children():
+        if isinstance(module, nn.MultiheadAttention):
+            custom = MultiHeadAttention(
+                d_model=module.embed_dim,
+                n_head=module.num_heads,
+                bias=module.in_proj_bias is not None,
+            )
+            copy_weights_from_pytorch_mha(module, custom)
+            setattr(model, name, custom)
+        else:
+            swap_mha(module)
+    return model
+
+
 class TestMultiHeadAttention(unittest.TestCase):
     D_MODEL = 768
     N_HEAD = 4
