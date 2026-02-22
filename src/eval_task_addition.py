@@ -55,6 +55,11 @@ eval_datasets = [
 
 task_vectors = []
 
+if args.mha is not None:
+    mha_suffix = f"_attn{args.mha}"
+else:
+    mha_suffix = ""
+
 for dataset in eval_datasets:
     if args.finetuning_mode == "linear":
         pretrained_checkpoint = f"{args.save}/{dataset}Val/linear_zeroshot.pt"
@@ -63,7 +68,7 @@ for dataset in eval_datasets:
             LinearizedTaskVector(
                 pretrained_checkpoint,
                 finetuned_checkpoint,
-                covariance_path=f"results/{args.model}/covariance_{dataset}_{args.cov_split}_b{args.cov_batch_size}_n{args.cov_num_batches}.npz",
+                covariance_path=f"results/{args.model}/covariance_{dataset}_{args.cov_split}_b{args.cov_batch_size}_n{args.cov_num_batches}{mha_suffix}.npz",
             )
         )
     elif args.finetuning_mode == "lora":
@@ -73,7 +78,7 @@ for dataset in eval_datasets:
             NonLinearTaskVector(
                 pretrained_checkpoint,
                 finetuned_checkpoint,
-                covariance_path=f"results/{args.model}/covariance_{dataset}_{args.cov_split}_b{args.cov_batch_size}_n{args.cov_num_batches}.npz",
+                covariance_path=f"results/{args.model}/covariance_{dataset}_{args.cov_split}_b{args.cov_batch_size}_n{args.cov_num_batches}{mha_suffix}.npz",
             )
         )
     else:
@@ -83,7 +88,7 @@ for dataset in eval_datasets:
             NonLinearTaskVector(
                 pretrained_checkpoint,
                 finetuned_checkpoint,
-                covariance_path=f"results/{args.model}/covariance_{dataset}_{args.cov_split}_b{args.cov_batch_size}_n{args.cov_num_batches}.npz",
+                covariance_path=f"results/{args.model}/covariance_{dataset}_{args.cov_split}_b{args.cov_batch_size}_n{args.cov_num_batches}{mha_suffix}.npz",
             )
         )
 

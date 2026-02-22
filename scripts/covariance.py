@@ -11,7 +11,7 @@ K = 32 (i,j) pairs, randomly sampled with a fixed seed for reproducibility.
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
 python scripts/covariance.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets
-python scripts/covariance.py --cov-split train --cov-num-batches 100 ...
+python scripts/covariance.py --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split ...
 """
 
 import os
@@ -20,6 +20,7 @@ from pathlib import Path
 import torch
 import numpy as np
 from tqdm import tqdm
+
 
 # Add to python path
 # Add project root to path
@@ -31,6 +32,8 @@ from src.heads import get_classification_head
 from src.modeling import ImageClassifier
 from src.args import parse_arguments
 from src.datasets.registry import get_dataset
+import src.mhap as mhap
+import src.mhas as mhas
 
 
 class OnlineCovariance:
@@ -66,8 +69,14 @@ def register_hooks(model, cov_device="cpu"):
     cobjs = {}  # covariance objects
     handles = []
     for name, module in model.named_modules():
-        if not isinstance(module, torch.nn.Linear) and not isinstance(
-            module, torch.nn.MultiheadAttention
+        if not isinstance(
+            module,
+            (
+                torch.nn.Linear,
+                torch.nn.MultiheadAttention,
+                mhap.MultiHeadAttentionPacked,
+                mhas.MultiHeadAttentionSplit,
+            ),
         ):
             # Only collect covariance for linear layers and multihead attention layers
             continue
@@ -162,9 +171,11 @@ if __name__ == "__main__":
     n_suffix = args.cov_num_batches if args.cov_num_batches is not None else "all"
     b = args.cov_batch_size
     for task in tasks:
-        cache_path = (
-            f"{results_dir}/covariance_{task}_{args.cov_split}_b{b}_n{n_suffix}.npz"
-        )
+        if args.mha is not None:
+            mha_suffix = f"_attn{args.mha}"
+        else:
+            mha_suffix = ""
+        cache_path = f"{results_dir}/covariance_{task}_{args.cov_split}_b{b}_n{n_suffix}{mha_suffix}.npz"
         if os.path.exists(cache_path) and not args.overwrite:
             print(f"Skipping {task} (cached)")
             continue
@@ -175,6 +186,14 @@ if __name__ == "__main__":
         )
         encoder = tv.apply_to(pretrained_ckpt, scaling_coef=1.0)
         del tv
+
+        # swap mha
+        if args.mha is not None:
+            swap_fn = {
+                "packed": mhap.swap_mha,
+                "split": mhas.swap_mha,
+            }[args.mha]
+            encoder = swap_fn(encoder)
 
         cobjs = compute_covs(
             encoder,

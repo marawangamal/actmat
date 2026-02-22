@@ -26,6 +26,51 @@ python scripts/disentanglement.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/
 python scripts/interference.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets
 ```
 
+
+### Training
+```sh
+# 1. Setup environment
+pip install -r requirements.txt
+export PYTHONPATH="$PYTHONPATH:$PWD"
+export SSL_CERT_DIR=/etc/ssl/certs
+cp vit_datasets_08.zip $SLURM_TMPDIR
+cd $SLURM_TMPDIR && unzip vit_datasets_08.zip -d ./ && cd -
+
+# 2. Finetune (options: standard,lora)
+python src/finetune.py --finetuning-mode=lora --model=ViT-L-14 --world-size=4 --num-workers 1 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets 
+# end
+```
+
+### Evaluation
+
+```sh
+# Evaluate single task (you need to run this first)
+python src/eval_single_task.py --finetuning-mode=standard --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets --model=ViT-B-32 
+
+# RegMean
+python src/eval_task_addition.py --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets \
+--model=ViT-B-16 --finetuning-mode=standard --merge-func=regmean --coeff-start=1.0 --n-eval-points=1 --mha=split --cov-num-batches=500
+
+# Projected RegMean (with limited covariance set)
+# NOTE: do not try use mha=packed
+python src/eval_task_addition.py --openclip-cachedir=$SCRATCH/openclip --data-location=datasets \
+--model=ViT-B-16 --finetuning-mode=standard  --merge-func=prm --coeff-start=1.0 --n-eval-points=1 --cov-num-batches=10
+
+```
+### Scripts
+```sh
+# Generate covariance matrices
+python scripts/covariance.py --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets \
+--model=ViT-B-16 --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split 
+```
+
+<!-- DIVIDER -->
+<!-- DIVIDER -->
+<!-- DIVIDER -->
+<!-- DIVIDER -->
+<!-- DIVIDER -->
+<!-- DIVIDER -->
+<!-- 
 ## Repository content
 
 This repository is heavily based on the code from [Ilharco et al. (2022)](https://github.com/mlfoundations/task_vectors) and follows the same structure.
@@ -88,4 +133,4 @@ If you find this code useful, please cite the following paper:
   note    = {\url{https://arxiv.org/abs/2305:12827}},
 }
 ```
-
+ -->
