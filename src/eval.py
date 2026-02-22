@@ -23,12 +23,16 @@ def eval_single_dataset(image_encoder, dataset_name, args):
         batch_size=args.batch_size,
         num_workers=args.num_workers,
     )
-    dataloader = get_dataloader(dataset, is_train=False, args=args, image_encoder=None)
+    use_train = getattr(args, "eval_split", "test") == "train"
+    dataloader = get_dataloader(dataset, is_train=use_train, args=args, image_encoder=None)
     device = args.device
 
+    max_batches = getattr(args, "eval_max_batches", None)
     with torch.no_grad():
         top1, correct, n = 0.0, 0.0, 0.0
-        for _, data in enumerate(tqdm.tqdm(dataloader)):
+        for batch_idx, data in enumerate(tqdm.tqdm(dataloader)):
+            if max_batches is not None and batch_idx >= max_batches:
+                break
             data = maybe_dictionarize(data)
             x = data["images"].to(device)
             y = data["labels"].to(device)
@@ -41,7 +45,7 @@ def eval_single_dataset(image_encoder, dataset_name, args):
 
             n += y.size(0)
 
-        top1 = correct / n
+        top1 = correct / n if n > 0 else 0.0
 
     metrics = {"top1": top1}
     print(f"Done evaluating on {dataset_name}. Accuracy: {100*top1:.2f}%")

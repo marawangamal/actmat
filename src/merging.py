@@ -159,8 +159,14 @@ def _param_key_to_module_key(key: str):
 
 # Test normalized accuracy: 0.8934755825227096
 # Test absolute accuracy: 0.6888413285902395
-def merge_regmean(
-    tau: torch.Tensor, key: str, vectors: Sequence[_TaskVector], **kwargs
+def _merge_regmean(
+    tau: torch.Tensor,
+    key: str,
+    vectors: Sequence[_TaskVector],
+    scale_coef=None,
+    max_dim=None,  # default to mean for dim(x) > max_dim
+    sample_cov=False,  # sample covariance instead of population covariance
+    **kwargs,
 ):
     c = []
     km = _param_key_to_module_key(key)
@@ -172,9 +178,38 @@ def merge_regmean(
             if km not in cdict:
                 print(f"[skipped] {km} not found in {cpath}")
                 return tau.mean(dim=0)
-            c.append(cdict[km])
+            ct = cdict[km]
+            if max_dim is not None and ct.shape[1] > max_dim:
+                print(f"[skipped] {km} has shape {cdict[km].shape} > {max_dim}")
+                return tau.mean(dim=0)
+            if sample_cov:
+                ct = (cdict[f"{km}_n"] * ct) / (cdict[f"{km}_n"] - 1)
+            c.append(ct)
     c = torch.stack([torch.as_tensor(x, device=tau.device, dtype=tau.dtype) for x in c])
+
+    if scale_coef is not None:
+        m_diag = (
+            torch.eye(c.shape[1], device=c.device, dtype=c.dtype)
+            .unsqueeze(0)
+            .expand(c.shape[0], -1, -1)
+        )
+        c = scale_coef * c + (1 - scale_coef) * m_diag * c
     return (tau @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
+merge_regmean = lambda *args, **kwargs: _merge_regmean(*args, **kwargs)
+merge_regmean_09 = lambda *args, **kwargs: _merge_regmean(
+    *args, scale_coef=0.9, **kwargs
+)
+merge_regmean_08 = lambda *args, **kwargs: _merge_regmean(
+    *args, scale_coef=0.8, **kwargs
+)
+merge_regmean_mx1000 = lambda *args, **kwargs: _merge_regmean(
+    *args, max_dim=1000, **kwargs
+)
+merge_regmean_sc = lambda *args, **kwargs: _merge_regmean(
+    *args, sample_cov=True, **kwargs
+)
 
 
 # ---------------------------------------------------------------------------

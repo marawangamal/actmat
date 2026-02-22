@@ -204,6 +204,24 @@ def parse_arguments():
         default=None,
         help="Replace nn.MultiheadAttention in the visual encoder with the custom MultiHeadAttention [packed, split] (default: None).",
     )
+    parser.add_argument(
+        "--eval-val-split",
+        choices=["val", "test", "train"],
+        default="val",
+        help="Split for phase 1 (coefficient selection) in eval_task_addition (default: val).",
+    )
+    parser.add_argument(
+        "--eval-test-split",
+        choices=["val", "test", "train"],
+        default="test",
+        help="Split for phase 2 (reported metrics) in eval_task_addition (default: test).",
+    )
+    parser.add_argument(
+        "--eval-val-max-batches",
+        type=int,
+        default=50,
+        help="Max number of batches to use in phase 1 (coefficient selection). Default: 50.",
+    )
     parsed_args = parser.parse_args()
     parsed_args.device = "cuda" if torch.cuda.is_available() else "cpu"
 

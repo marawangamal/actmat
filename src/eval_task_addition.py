@@ -112,13 +112,25 @@ if args.mha is not None:
     }[args.mha]
     task_vector = task_vector.map(copy_fn)
 
-args.eval_datasets = [dataset + "Val" for dataset in eval_datasets]
 args.control_dataset = None
 
-# We use the validation set to choose the optimal coefficient.
+
+def _set_eval_split(split):
+    """Set args.eval_split and args.eval_datasets for the given split (val, test, or train)."""
+    args.eval_split = split
+    if split == "val":
+        args.eval_datasets = [dataset + "Val" for dataset in eval_datasets]
+    else:
+        args.eval_datasets = list(eval_datasets)
+
+
+# Phase 1: coefficient selection on eval-val-split (optionally capped by eval-val-max-batches).
+_set_eval_split(args.eval_val_split)
+args.eval_max_batches = getattr(args, "eval_val_max_batches", None)
 print("=" * 100)
 print(
-    "PHASE 1: VALIDATION — evaluating at multiple coefficients to choose optimal coefficient"
+    f"PHASE 1: SPLIT={args.eval_val_split.upper()} — choosing optimal coefficient"
+    + (f" (max {args.eval_max_batches} batches)" if args.eval_max_batches else "")
 )
 print("=" * 100)
 val_metrics = evaluate_task_vector(
@@ -133,13 +145,16 @@ optimal_coef = find_optimal_coef(
     metric="avg_normalized_top1",
     minimize=False,
 )
-print(f"Optimal coefficient (from validation): {optimal_coef}")
+print(f"Optimal coefficient (from phase 1): {optimal_coef}")
 
-# Evaluate on the test set with the optimal coefficient.
+# Phase 2: evaluate at optimal coefficient on eval-test-split (use all batches).
+_set_eval_split(args.eval_test_split)
+args.eval_max_batches = None
 print("=" * 100)
-print("PHASE 2: TEST — evaluating at optimal coefficient on test splits")
+print(
+    f"PHASE 2: SPLIT={args.eval_test_split.upper()} — evaluating at optimal coefficient"
+)
 print("=" * 100)
-args.eval_datasets = [dataset for dataset in eval_datasets]
 test_metrics = evaluate_task_vector_at_coef(
     task_vector,
     pretrained_checkpoint,

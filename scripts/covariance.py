@@ -204,7 +204,10 @@ if __name__ == "__main__":
         )
         del encoder
 
-        # Convert cobjs to covs (in place)
-        cobjs = {n: cobj.cov.cpu().numpy() for n, cobj in cobjs.items()}
-        np.savez(cache_path, **cobjs)
+        # Convert cobjs to saveable arrays (np.savez can't save tuples of inhomogeneous shapes)
+        save_dict = {}
+        for lname, cobj in cobjs.items():
+            save_dict[lname] = cobj.cov.cpu().numpy()
+            save_dict[f"{lname}_n"] = cobj.n
+        np.savez(cache_path, **save_dict)
         print(f"  Cached to {cache_path}")
