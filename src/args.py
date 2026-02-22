@@ -199,6 +199,11 @@ def parse_arguments():
         help="Batch size for covariance collection (default: 32).",
     )
     parser.add_argument(
+        "--cov-second-moment",
+        action="store_true",
+        help="Compute uncentered second moment E[xx^T] incrementally instead of covariance.",
+    )
+    parser.add_argument(
         "--mha",
         choices=["packed", "split"],
         default=None,

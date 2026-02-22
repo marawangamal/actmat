@@ -37,13 +37,14 @@ import src.mhas as mhas
 
 
 class OnlineCovariance:
-    def __init__(self, dim1, dim2=1, device="cpu"):
+    def __init__(self, dim1, dim2=1, device="cpu", mode="cov"):
         # Store on CPU to avoid GPU memory issues
         self.device = device
         self.meanx = torch.zeros((dim1, dim2), device=device)
         self.meany = torch.zeros((dim1, dim2), device=device)
         self.C = torch.zeros((dim1, dim1), device=device)
         self.n = 0
+        self.add = self._add_cov if mode == "cov" else self._add_second_moment
 
     @property
     def cov(self):
@@ -55,7 +56,7 @@ class OnlineCovariance:
         # Sample covariance
         return self.C / (self.n - 1)
 
-    def add(self, x, y):
+    def _add_cov(self, x, y):
         x = x.to(self.device)
         y = y.to(self.device)
         self.n += 1
@@ -64,8 +65,17 @@ class OnlineCovariance:
         self.meany += (y - self.meany) / self.n
         self.C += self.dx @ (y - self.meany).T
 
+    def _add_second_moment(self, x, y):
+        # x is (D, T), y is (D, T)
+        x = x.to(self.device)
+        y = y.to(self.device)
+        self.n += 1
 
-def register_hooks(model, cov_device="cpu"):
+        # Uncentered second moment: E[X.T X]
+        self.C += x @ y.T
+
+
+def register_hooks(model, cov_device="cpu", mode="cov"):
     cobjs = {}  # covariance objects
     handles = []
     for name, module in model.named_modules():
@@ -88,10 +98,20 @@ def register_hooks(model, cov_device="cpu"):
                     return
                 T, B, D = x.shape  # adjust to your real shape
                 if n not in cobjs:
-                    cobjs[n] = OnlineCovariance(D, T, device=cov_device)
+                    cobjs[n] = OnlineCovariance(D, device=cov_device, mode=mode)
                 cobj = cobjs[n]
                 for b in range(B):
-                    cobj.add(x[:, b].T, x[:, b].T)
+                    j = torch.randint(0, T, (1,)).item()
+                    # Add Dx1 vectors
+                    cobj.add(x[j : j + 1, b].T, x[j : j + 1, b].T)
+                    # cobj.add(x[j, b])
+
+                # for i in range(B):
+                #     j = torch.randint(0, T, (1,)).item()
+                #     v = inp[i, j].cpu().detach().numpy()
+                #     # normalize v
+                #     # v = v / np.linalg.norm(v)
+                #     ocov.add(v)
 
             return hook
 
@@ -103,7 +123,8 @@ def compute_covs(encoder, dataset_name, args, model_device="cuda", cov_device="c
     classification_head = get_classification_head(args, dataset_name)
     model = ImageClassifier(encoder, classification_head)
     model.freeze_head()
-    model.train()
+    # model.train()
+    model.eval()
     model.to(model_device)
 
     dataset = get_dataset(
@@ -119,7 +140,9 @@ def compute_covs(encoder, dataset_name, args, model_device="cuda", cov_device="c
     dataset_size = len(loader.dataset)
     print(f"    {dataset_size} samples (split={split})")
 
-    cobjs, handles = register_hooks(model, cov_device=cov_device)
+    cobjs, handles = register_hooks(
+        model, cov_device=cov_device, mode="sm" if args.cov_second_moment else "cov"
+    )
     loss_fn = torch.nn.CrossEntropyLoss()
 
     total_batches = len(loader) if max_num_batches is None else None
@@ -170,12 +193,13 @@ if __name__ == "__main__":
 
     n_suffix = args.cov_num_batches if args.cov_num_batches is not None else "all"
     b = args.cov_batch_size
+    moment_suffix = "_sm" if args.cov_second_moment else ""
     for task in tasks:
         if args.mha is not None:
             mha_suffix = f"_attn{args.mha}"
         else:
             mha_suffix = ""
-        cache_path = f"{results_dir}/covariance_{task}_{args.cov_split}_b{b}_n{n_suffix}{mha_suffix}.npz"
+        cache_path = f"{results_dir}/covariance_{task}_{args.cov_split}_b{b}_n{n_suffix}{mha_suffix}{moment_suffix}.npz"
         if os.path.exists(cache_path) and not args.overwrite:
             print(f"Skipping {task} (cached)")
             continue
