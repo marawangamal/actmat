@@ -179,6 +179,8 @@ def compute_covs(encoder, dataset_name, args):
     for h in handles:
         h.remove()
     model.cpu()
+    del model, dataset, loader, handles
+    gc.collect()
 
     return cobjs
 
