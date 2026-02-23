@@ -35,104 +35,12 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.task_vectors import NonLinearTaskVector
-from src.heads import get_classification_head
-from src.modeling import ImageClassifier
+from src.vision.heads import get_classification_head
+from src.vision.modeling import ImageClassifier
 from src.args import parse_arguments
-from src.datasets.registry import get_dataset
-import src.mhap as mhap
-import src.mhas as mhas
-
-
-class OnlineCovariance:
-    def __init__(self, dim1, dim2=1, device="cpu", mode="cov"):
-        # Store on CPU to avoid GPU memory issues
-        self.device = device
-        self.meanx = torch.zeros((dim1, dim2), device=device)
-        self.meany = torch.zeros((dim1, dim2), device=device)
-        self.C = torch.zeros((dim1, dim1), device=device)
-        self.n = 0
-        self.add = {
-            "cov": self._add_cov,
-            "sm": self._add_second_moment,
-        }[mode]
-
-    @property
-    def cov(self):
-        # Population covariance
-        return self.C / self.n
-
-    @property
-    def cov_sample(self):
-        # Sample covariance
-        return self.C / (self.n - 1)
-
-    def _add_cov(self, x, y):
-        x = x.to(self.device)
-        y = y.to(self.device)
-        self.n += 1
-        # NOTE: removed as instance attr (self.dx -> dx)
-        dx = x - self.meanx
-        self.meanx += dx / self.n
-        self.meany += (y - self.meany) / self.n
-        self.C += dx @ (y - self.meany).T
-
-    def _add_second_moment(self, x, y):
-        # x is (D, T), y is (D, T)
-        x = x.to(self.device)
-        y = y.to(self.device)
-        self.n += 1
-
-        # Uncentered second moment: E[X.T X]
-        self.C += x @ y.T
-
-
-def register_hooks(model, args):
-    cobjs = {}  # covariance objects
-    handles = []
-    for name, module in model.named_modules():
-        if not isinstance(
-            module,
-            (
-                torch.nn.Linear,
-                torch.nn.MultiheadAttention,
-                mhap.MultiHeadAttentionPacked,
-                mhas.MultiHeadAttentionSplit,
-            ),
-        ):
-            # Only collect covariance for linear layers and multihead attention layers
-            continue
-
-        def make_hook(n):
-            def hook(mod, inp, out):
-                x = inp[0] if isinstance(inp, (tuple, list)) else inp
-                if not isinstance(x, torch.Tensor):
-                    return
-                T, B, D = x.shape  # adjust to your real shape
-
-                if args.cov_estimator == "sampled":
-                    # Add Dx1 vectors (one random token position per sample)
-                    if n not in cobjs:
-                        cobjs[n] = OnlineCovariance(
-                            D, device=args.cov_device, mode=args.cov_type
-                        )
-                    cobj = cobjs[n]
-                    for b in range(B):
-                        j = torch.randint(0, T, (1,)).item()
-                        cobj.add(x[j : j + 1, b].T, x[j : j + 1, b].T)
-                else:
-                    # Add DxT vectors (full sequence per sample)
-                    if n not in cobjs:
-                        cobjs[n] = OnlineCovariance(
-                            D, T, device=args.cov_device, mode=args.cov_type
-                        )
-                    cobj = cobjs[n]
-                    for b in range(B):
-                        cobj.add(x[:, b].T, x[:, b].T)
-
-            return hook
-
-        handles.append(module.register_forward_hook(make_hook(name)))
-    return cobjs, handles
+from src.vision.datasets.registry import get_dataset
+from src.vision import mhap, mhas
+from src.covariance import OnlineCovariance, register_hooks
 
 
 def compute_covs(encoder, dataset_name, args):
@@ -156,7 +64,10 @@ def compute_covs(encoder, dataset_name, args):
     dataset_size = len(loader.dataset)
     print(f"    {dataset_size} samples (split={split})")
 
-    cobjs, handles = register_hooks(model, args)
+    cobjs, handles = register_hooks(
+        model, args,
+        extra_module_types=(mhap.MultiHeadAttentionPacked, mhas.MultiHeadAttentionSplit),
+    )
     loss_fn = torch.nn.CrossEntropyLoss()
 
     total_batches = len(loader) if max_num_batches is None else None

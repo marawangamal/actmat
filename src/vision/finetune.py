@@ -44,13 +44,13 @@ import time
 import torch
 
 from src.args import parse_arguments
-from src.datasets.common import get_dataloader, maybe_dictionarize
-from src.datasets.registry import get_dataset
-from src.distributed import cleanup_ddp, distribute_loader, is_main_process, setup_ddp
-from src.eval import eval_single_dataset
-from src.heads import get_classification_head
-from src.linearize import LinearizedImageEncoder
-from src.modeling import ImageClassifier, ImageEncoder, apply_lora, merge_lora
+from src.vision.datasets.common import get_dataloader, maybe_dictionarize
+from src.vision.datasets.registry import get_dataset
+from src.vision.distributed import cleanup_ddp, distribute_loader, is_main_process, setup_ddp
+from src.vision.eval import eval_single_dataset
+from src.vision.heads import get_classification_head
+from src.vision.linearize import LinearizedImageEncoder
+from src.vision.modeling import ImageClassifier, ImageEncoder, apply_lora, merge_lora
 from src.utils import LabelSmoothing, cosine_lr
 
 

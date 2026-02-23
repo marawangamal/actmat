@@ -2,14 +2,12 @@ import json
 import os
 
 # from mha import copy_from_pytorch_state_dict, copy_to_pytorch_state_dict
-import mhap
-import mhas
-from utils import find_optimal_coef
-
+from src.vision import mhap, mhas
 from src.args import parse_arguments
-from src.eval import evaluate_task_vector, evaluate_task_vector_at_coef
+from src.vision.eval import evaluate_task_vector, evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors
 from src.task_vectors import LinearizedTaskVector, NonLinearTaskVector
+from utils import find_optimal_coef
 
 args = parse_arguments()
 
