@@ -7,7 +7,7 @@ from src.args import parse_arguments
 from src.vision.eval import evaluate_task_vector, evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors
 from src.task_vectors import LinearizedTaskVector, NonLinearTaskVector
-from utils import find_optimal_coef
+from src.utils import find_optimal_coef
 
 args = parse_arguments()
 
@@ -90,6 +90,7 @@ for dataset in eval_datasets:
 #   i)  for projected regmean, mhap will package together orthgonally invariant matrices.
 #   ii) for regmean, mhas will use linear modules for all attention operations to collect covariances.
 if args.mha is not None:
+    print(f"Mapping task vectors dicts to {args.mha} MHA mode")
     copy_fn = {
         "packed": mhap.copy_from_pytorch_state_dict,
         "split": mhas.copy_from_pytorch_state_dict,
@@ -100,6 +101,7 @@ merge_name = getattr(args, "merge_func", "sum")
 task_vector = combine_task_vectors(task_vectors, merge_name, args)
 
 if args.mha is not None:
+    print(f"Mapping task vector back from {args.mha} MHA mode")
     copy_fn = {
         "packed": mhap.copy_to_pytorch_state_dict,
         "split": mhas.copy_to_pytorch_state_dict,

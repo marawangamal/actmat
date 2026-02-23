@@ -56,7 +56,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 python scripts/vision/finetune.py \
   --finetuning-mode=standard \
   --model=ViT-B-16 \
-  --world-size=4 \
+  --world-size=1 \
   --num-workers=1 \
   --openclip-cachedir=$SCRATCH/openclip \
   --data-location=$SLURM_TMPDIR/datasets
