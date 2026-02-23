@@ -54,7 +54,8 @@ python src/eval_single_task.py --finetuning-mode=standard --openclip-cachedir=$S
 
 # RegMean
 python src/eval_task_addition.py --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets \
---model=ViT-B-16 --finetuning-mode=standard --merge-func=regmean --coeff-start=1.0 --n-eval-points=1 --mha=split --cov-num-batches=500
+--model=ViT-B-16 --finetuning-mode=standard --merge-func=regmean --coeff-start=1.0 --n-eval-points=1 --mha=split \
+--cov-dir results/ViT-B-16/covariances_strain_n50_b32_tcov_attnsplit
 
 # Projected RegMean (with limited covariance set)
 # NOTE: do not try use mha=packed

@@ -193,13 +193,12 @@ if __name__ == "__main__":
 
     n_suffix = args.cov_num_batches if args.cov_num_batches is not None else "all"
     b = args.cov_batch_size
-    moment_suffix = "_sm" if args.cov_second_moment else ""
+    t_part = "tsm" if args.cov_second_moment else "tcov"
+    cov_dir = f"{results_dir}/covariances_s{args.cov_split}_n{n_suffix}_b{b}_{t_part}_attn{args.mha}"
+    os.makedirs(cov_dir, exist_ok=True)
+    print(f"Covariance directory: {cov_dir}")
     for task in tasks:
-        if args.mha is not None:
-            mha_suffix = f"_attn{args.mha}"
-        else:
-            mha_suffix = ""
-        cache_path = f"{results_dir}/covariance_{task}_{args.cov_split}_b{b}_n{n_suffix}{mha_suffix}{moment_suffix}.npz"
+        cache_path = f"{cov_dir}/covariance_{task}.npz"
         if os.path.exists(cache_path) and not args.overwrite:
             print(f"Skipping {task} (cached)")
             continue
@@ -234,4 +233,4 @@ if __name__ == "__main__":
             save_dict[lname] = cobj.cov.cpu().numpy()
             save_dict[f"{lname}_n"] = cobj.n
         np.savez(cache_path, **save_dict)
-        print(f"  Cached to {cache_path}")
+        print(f"  Saved to {cache_path}")
