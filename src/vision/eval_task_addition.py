@@ -2,7 +2,7 @@ import json
 import os
 
 # from mha import copy_from_pytorch_state_dict, copy_to_pytorch_state_dict
-from src.vision import mhap, mhas
+from src import mhap, mhas
 from src.args import parse_arguments
 from src.vision.eval import evaluate_task_vector, evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors

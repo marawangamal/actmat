@@ -10,11 +10,11 @@ K = 32 (i,j) pairs, randomly sampled with a fixed seed for reproducibility.
 
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/covariance.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets
-python scripts/covariance.py --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split ...
+python scripts/vision/covariance.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets
+python scripts/vision/covariance.py --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split ...
 
 # Generate covariance matrices
-python scripts/covariance.py --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets \
+python scripts/vision/covariance.py --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets \
 --model=ViT-B-16 --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split 
 
 """
@@ -31,7 +31,7 @@ from tqdm import tqdm
 
 # Add to python path
 # Add project root to path
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.task_vectors import NonLinearTaskVector
@@ -39,7 +39,7 @@ from src.vision.heads import get_classification_head
 from src.vision.modeling import ImageClassifier
 from src.args import parse_arguments
 from src.vision.datasets.registry import get_dataset
-from src.vision import mhap, mhas
+from src import mhap, mhas
 from src.covariance import OnlineCovariance, register_hooks
 
 

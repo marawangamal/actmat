@@ -51,7 +51,7 @@ python src/finetune.py \
 
 ```sh
 # Evaluate single task (you need to run this first)
-python src/eval_single_task.py --finetuning-mode=standard --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets --model=ViT-B-32 
+python src/eval_single_task.py --finetuning-mode=standard --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets --model=ViT-L-14 
 
 # RegMean
 python src/eval_task_addition.py --model=ViT-B-16 --finetuning-mode=standard --merge-func=regmean --coeff-start=1.0 --n-eval-points=1 --mha=split \
