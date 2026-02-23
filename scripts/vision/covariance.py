@@ -65,8 +65,12 @@ def compute_covs(encoder, dataset_name, args):
     print(f"    {dataset_size} samples (split={split})")
 
     cobjs, handles = register_hooks(
-        model, args,
-        extra_module_types=(mhap.MultiHeadAttentionPacked, mhas.MultiHeadAttentionSplit),
+        model,
+        args,
+        extra_module_types=(
+            mhap.MultiHeadAttentionPacked,
+            mhas.MultiHeadAttentionSplit,
+        ),
     )
     loss_fn = torch.nn.CrossEntropyLoss()
 
@@ -102,18 +106,17 @@ if __name__ == "__main__":
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.cov_device = torch.device("cpu")
 
-    # tasks = [
-    #     # "Cars",
-    #     # "DTD",
-    #     # "EuroSAT",
-    #     # from here:
-    #     # "GTSRB",
-    #     # "MNIST",
-    #     # "RESISC45",
-    #     # "SUN397",
-    #     # "SVHN",
-    # ]
-    tasks = args.train_dataset
+    tasks = [
+        "Cars",
+        "DTD",
+        "EuroSAT",
+        "GTSRB",
+        "MNIST",
+        "RESISC45",
+        "SUN397",
+        "SVHN",
+    ]
+    # tasks = args.train_dataset
     pretrained_ckpt = f"checkpoints/{args.model}/{tasks[0]}Val/zeroshot.pt"
 
     ss_num_batches = args.cov_num_batches if args.cov_num_batches is not None else "all"

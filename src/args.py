@@ -211,13 +211,13 @@ def parse_arguments():
     parser.add_argument(
         "--cov-type",
         choices=["cov", "sm"],  # covariance vs second moment (uncentered)
-        default="cov",
+        default="sm",
         help="Type of covariance to collect (default: cov).",
     )
     parser.add_argument(
         "--cov-estimator",
         choices=["sampled", "full"],
-        default="sampled",
+        default="full",
         help=(
             "How to estimate the covariance per layer. "
             "'sampled': add a Dx1 vector per sample (one random token position); "
