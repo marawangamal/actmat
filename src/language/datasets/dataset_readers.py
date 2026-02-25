@@ -5,6 +5,7 @@ import random
 import json
 
 import datasets
+from tqdm import tqdm
 from promptsource.templates import DatasetTemplates, Template
 from datasets import load_dataset
 
@@ -99,7 +100,7 @@ class DatasetReader(object):
 
     def _applyTemplate_toData(self, orig_data, num_templates, template_idx, is_evaluation):
         dataset = []
-        for datapoint_idx, datapoint in enumerate(orig_data):
+        for datapoint_idx, datapoint in enumerate(tqdm(orig_data, desc="Applying templates")):
             if template_idx >= 0:
                 templateIdx_forDatapoint = template_idx
             elif template_idx == -1:

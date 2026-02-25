@@ -121,6 +121,18 @@ def parse_arguments():
         help="Threshold for control metric in task negation.",
     )
     parser.add_argument(
+        "--checkpoint-frequency",
+        type=int,
+        default=1000,
+        help="Evaluate on validation and checkpoint every N gradient steps.",
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=5,
+        help="Stop training after this many checkpoints without validation improvement.",
+    )
+    parser.add_argument(
         "--exp-name",
         type=str,
         default=None,

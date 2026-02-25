@@ -20,9 +20,11 @@ src/                         # Library code (importable modules)
 │   ├── linearize.py         # Taylor-linearized vision encoder
 │   └── datasets/            # MNIST, Cars, DTD, EuroSAT, GTSRB, ...
 │
-└── language/                # Language-specific library code (TODO)
+└── language/                # Language-specific library code (T5 / HuggingFace)
     ├── modeling.py
-    ├── eval.py
+    ├── linearize.py
+    ├── args.py
+    ├── eval/
     └── datasets/
 
 scripts/                     # Entry points (run directly)
@@ -37,7 +39,11 @@ scripts/                     # Entry points (run directly)
 │   ├── interference.py      # Per-layer interference analysis
 │   ├── disentanglement.py
 │   └── gmag.py
-└── language/                # (TODO)
+└── language/
+    ├── finetune.py          # Fine-tune T5 models
+    ├── eval_single_task.py  # Evaluate single fine-tuned model
+    ├── eval_task_addition.py
+    └── eval_task_negation.py
 ```
 
 ## Setup
@@ -66,7 +72,7 @@ python scripts/vision/finetune.py \
 
 Options for `--finetuning-mode`: `standard`, `lora`, `linear`, `posthoc`.
 
-### 2. Evaluate single task
+### 2. Evaluate single task zeroshot / standard / linear
 
 ```sh
 python scripts/vision/eval_single_task.py \
@@ -74,6 +80,13 @@ python scripts/vision/eval_single_task.py \
   --model=ViT-B-16 \
   --openclip-cachedir=$SCRATCH/openclip \
   --data-location=$SLURM_TMPDIR/datasets
+
+python scripts/vision/eval_single_task.py \
+  --finetuning-mode=linear \
+  --model=ViT-B-16 \
+  --openclip-cachedir=$SCRATCH/openclip \
+  --data-location=$SLURM_TMPDIR/datasets
+
 ```
 
 ### 3. Collect covariance matrices
@@ -129,11 +142,65 @@ python scripts/interference.py --model=ViT-B-16 ...
 python scripts/disentanglement.py --model=ViT-B-16 ...
 ```
 
-## Language Experiments (TODO)
+## Language Experiments (t5-base)
 
-`src/language/` contains stubs for language model fine-tuning and evaluation.
-Planned: HuggingFace-based fine-tuning on GLUE / SuperGLUE tasks with the
-same task vector + merging pipeline.
+Datasets: `qasc`, `wiki_qa`, `quartz`, `paws`, `story_cloze`, `winogrande`, `wsc`
+
+### 1. Fine-tune
+
+```sh
+python scripts/language/finetune.py \
+  --finetuning-mode=standard \
+  --model=t5-base \
+  --save=$SCRATCH/eigcov/checkpoints/language \
+  --hf-cache-dir=$SCRATCH/hf_cache
+```
+
+Options for `--finetuning-mode`: `standard`, `linear`.
+
+### 2. Evaluate zero-shot / standard / Linear
+
+```sh
+# Zero-shot (pretrained model, no task vector applied)
+python scripts/language/eval_single_task.py \
+  --finetuning-mode=none \
+  --save=$SCRATCH/eigcov/checkpoints/language
+
+# Fine-tuned
+python scripts/language/eval_single_task.py \
+  --finetuning-mode=standard \
+  --save=$SCRATCH/eigcov/checkpoints/language
+
+# Linear
+python scripts/language/eval_single_task.py \
+  --finetuning-mode=linear \
+  --save=$SCRATCH/eigcov/checkpoints/language
+```
+
+Saves results to `{save}/zeroshot_accuracies.json` or `{save}/ft_accuracies.json`.
+
+### 3. Evaluate task addition (task arithmetic)
+
+Requires `zeroshot_accuracies.json` and `ft_accuracies.json` (or `linear_ft_accuracies.json`) to exist in `--save`.
+
+```sh
+python scripts/language/eval_task_addition.py \
+  --finetuning-mode=standard \
+  --save=$SCRATCH/eigcov/checkpoints/language
+```
+
+Saves results to `{save}/additions.json`.
+
+### 4. Evaluate task negation
+
+```sh
+python scripts/language/eval_task_negation.py \
+  --finetuning-mode=standard \
+  --save=$SCRATCH/eigcov/checkpoints/language \
+  --control-threshold=0.95
+```
+
+Uses `rte` as the control dataset. Saves results to `{save}/negations.json`.
 
 ## Covariance Estimation API
 
@@ -149,3 +216,49 @@ cobjs, handles = register_hooks(
     extra_module_types=(MyCustomAttention,),
 )
 ```
+
+
+## Overview
+
+**Model: T5**(encoder-decoder)                                                                                                                                                  
+
+t5-base is a seq2seq (encoder-decoder) transformer. The encoder reads the input prompt, the decoder generates the output. It's NOT a causal/decoder-only LM like GPT — it was
+  pretrained on span-corruption (masking spans and predicting them), but the lm-adapt variants were further trained on language modeling.                                     
+                
+
+**What's being tested**
+
+All 7 datasets (qasc, wiki_qa, quartz, paws, story_cloze, winogrande, wsc) are multiple-choice classification tasks. During eval, the model doesn't generate text — instead
+it scores each candidate answer by computing the log probability of the decoder producing that answer string given the encoded input:
+
+score(choice_i) = sum of log P(token | context) over all tokens in choice_i
+
+The predicted answer is argmax over all choices. This is called rank classification or closed-form eval — much faster and more reliable than generation.
+
+During training, it's standard cross-entropy on the correct answer text (teacher forcing).
+
+
+**Prompt templating: promptsource, not HF chat templates**
+
+It's completely different from HF chat templates. promptsource (from the BigScience T0 paper) is a library of hand-written Jinja2 templates that convert structured dataset
+fields into natural language. Each dataset has multiple templates written by crowd workers.
+
+For example, for qasc a template might look like:
+
+**Jinja2 template**
+
+{{fact1}} {{fact2}} Based on these facts, {{question}}
+- {{choices[0]}}
+- {{choices[1]}}
+...
+Answer: ||| {{choices[answer_idx]}}
+
+The ||| separator splits input from target. So for a concrete example:
+
+Input:  "Magnets attract certain metals. Iron is a metal. Based on these facts,
+          what do magnets attract? - Iron - Wood - Plastic"
+Target: "Iron"
+
+HF chat templates in contrast add structural tokens (<|system|>, <|user|>, <|assistant|>) and are designed for instruction-tuned conversational models. Promptsource
+templates are purely natural language reformulations with no special tokens — the task is framed as a fill-in-the-blank text completion problem, which fits T5's seq2seq
+pretraining naturally.

@@ -309,6 +309,7 @@ class LanguageNonLinearTaskVector(_TaskVector):
 
     def _load_checkpoint(self, checkpoint):
         from src.language.modeling import T5Wrapper  # noqa: F401
+
         return torch.load(checkpoint, map_location="cpu", weights_only=False)
 
     def apply_to_nonlinear(self, pretrained_nonlinear_checkpoint, scaling_coef=1.0):
@@ -328,6 +329,7 @@ class LanguageLinearizedTaskVector(_TaskVector):
 
     def _load_checkpoint(self, checkpoint):
         from src.language.linearize import LinearizedT5Wrapper
+
         return LinearizedT5Wrapper.load(checkpoint)
 
     def apply_to_nonlinear(
