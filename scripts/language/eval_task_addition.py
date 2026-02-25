@@ -3,7 +3,7 @@ import os
 
 from src.language.args import parse_arguments
 from src.language.eval import evaluate_task_vector, evaluate_task_vector_at_coef
-from src.task_vectors import LanguageLinearizedTaskVector, LanguageNonLinearTaskVector
+from src.language.task_vectors import LanguageLinearizedTaskVector, LanguageNonLinearTaskVector
 from src.utils import find_optimal_coef
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]

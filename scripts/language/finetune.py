@@ -102,10 +102,6 @@ def finetune(args):
     model.train()
     train_start_time = time.time()
     for i in range(num_batches * num_grad_accumulation):
-        # print(
-        #     f"Processing batch {i} of {num_batches * num_grad_accumulation}...",
-        #     flush=True,
-        # )
         start_time = time.time()
 
         train_batch = next(train_iterator)

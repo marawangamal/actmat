@@ -9,7 +9,7 @@ import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from src.task_vectors import NonLinearTaskVector, LinearizedTaskVector
+from src.vision.task_vectors import NonLinearTaskVector, LinearizedTaskVector
 from src.vision.eval import eval_single_dataset
 from src.args import parse_arguments
 

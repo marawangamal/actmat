@@ -5,7 +5,7 @@ echo "=== Language module import tests ==="
 
 python -c "from src.language.modeling import T5Wrapper; print('OK: T5Wrapper')"
 python -c "from src.language.linearize import LinearizedT5Wrapper; print('OK: LinearizedT5Wrapper')"
-python -c "from src.task_vectors import LanguageNonLinearTaskVector, LanguageLinearizedTaskVector; print('OK: Language task vectors')"
+python -c "from src.language.task_vectors import LanguageNonLinearTaskVector, LanguageLinearizedTaskVector; print('OK: Language task vectors')"
 python -c "from src.language.datasets.dataset_readers import get_datasetReader; print('OK: dataset_readers')"
 python -c "from src.language.datasets.dataset_mixture import get_datasetMixtureReader; print('OK: dataset_mixture')"
 python -c "from src.language.datasets.batcher import Batcher; print('OK: Batcher')"

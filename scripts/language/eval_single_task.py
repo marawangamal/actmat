@@ -3,7 +3,7 @@ import os
 
 from src.language.args import parse_arguments
 from src.language.eval import eval_single_dataset
-from src.task_vectors import LanguageLinearizedTaskVector, LanguageNonLinearTaskVector
+from src.language.task_vectors import LanguageLinearizedTaskVector, LanguageNonLinearTaskVector
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
