@@ -1,7 +1,10 @@
 import os
 import time
 
+import numpy as np
 import torch
+import torch.nn.functional as F
+
 
 from src.args import parse_arguments
 from src.vision.datasets.common import get_dataloader, maybe_dictionarize
@@ -168,6 +171,39 @@ def finetune(rank, args):
         )
         ddp_model.module.image_encoder.save(model_path)
 
+    # --- Cosine similarity tracking setup ---
+    _cosine_hooks = []
+    _grad_k = None
+    _grad_k1 = None
+    _cosine_sim_log = []  # list of (step, cos_sim)
+    _last_cos_sim = float("nan")
+
+    if args.cosine_samples > 0 and is_main_process():
+        param_offsets = []
+        offset = 0
+        for p in params:
+            param_offsets.append((offset, offset + p.numel(), p))
+            offset += p.numel()
+        total_grad_elements = offset
+
+        _sampled_indices = torch.randperm(total_grad_elements)[: args.cosine_samples]
+        _grad_k = torch.zeros(args.cosine_samples)
+        _grad_k1 = torch.zeros(args.cosine_samples)
+
+        for start, end, p in param_offsets:
+            mask = (_sampled_indices >= start) & (_sampled_indices < end)
+            if not mask.any():
+                continue
+            positions = torch.where(mask)[0]
+            local_idxs = _sampled_indices[positions] - start
+
+            def _make_hook(pos, lidxs):
+                def _hook(grad):
+                    _grad_k1[pos] += grad.detach().flatten()[lidxs]
+                return _hook
+
+            _cosine_hooks.append(p.register_hook(_make_hook(positions, local_idxs)))
+
     run_start_time = time.perf_counter()
     for epoch in range(args.epochs):
         ddp_model.train()
@@ -196,6 +232,16 @@ def finetune(rank, args):
 
                 torch.nn.utils.clip_grad_norm_(params, 1.0)
                 optimizer.step()
+
+                if args.cosine_samples > 0 and is_main_process():
+                    if _grad_k.norm() > 0:
+                        _last_cos_sim = F.cosine_similarity(
+                            _grad_k1.unsqueeze(0), _grad_k.unsqueeze(0)
+                        ).item()
+                        _cosine_sim_log.append((step, _last_cos_sim))
+                    _grad_k.copy_(_grad_k1)
+                    _grad_k1.zero_()
+
                 optimizer.zero_grad()
 
             batch_time = time.time() - start_time
@@ -222,12 +268,27 @@ def finetune(rank, args):
             ):
                 percent_complete = 100 * i / len(ddp_loader)
                 run_elapsed = time.perf_counter() - run_start_time
+                cos_str = (
+                    f"\tCos sim {_last_cos_sim:.4f}" if args.cosine_samples > 0 else ""
+                )
                 print(
                     f"Train Epoch: {epoch}/{args.epochs} [{percent_complete:.0f}% {i}/{len(dataset.train_loader)}]\t"  # noqa: E501
                     f"Loss: {loss.item():.6f}\tData (t) {data_time:.3f}\tBatch (t) {batch_time:.3f}\t"  # noqa: E501
-                    f"Elapsed {_format_duration(run_elapsed)}",  # noqa: E501
+                    f"Elapsed {_format_duration(run_elapsed)}{cos_str}",  # noqa: E501
                     flush=True,
                 )
+
+    # Cosine sim cleanup and save
+    if args.cosine_samples > 0 and is_main_process():
+        for h in _cosine_hooks:
+            h.remove()
+        if _cosine_sim_log and args.save is not None:
+            steps_arr, sims_arr = zip(*_cosine_sim_log)
+            np.savez(
+                os.path.join(ckpdir, "cosine_sim.npz"),
+                steps=np.array(steps_arr),
+                cosine_sim=np.array(sims_arr),
+            )
 
     # FIXME: Make this work with DDP.
     if is_main_process():

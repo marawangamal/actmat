@@ -52,6 +52,8 @@ scripts/                     # Entry points (run directly)
 pip install -r requirements.txt
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
+cp vit_datasets_08.zip $SLURM_TMPDIR/
+unzip -q $SLURM_TMPDIR/vit_datasets_08.zip -d $SLURM_TMPDIR/
 ```
 
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
@@ -121,8 +123,7 @@ python scripts/vision/eval_task_addition.py \
   --cov-dir=results/ViT-B-16/covariances_strain_n50_b32_tcov_attnsplit_esampled
 
 
-cp $SCRATCH/tangent_task_arithmetic/vit_datasets_08.zip $SLURM_TMPDIR/
-unzip -q $SLURM_TMPDIR/vit_datasets_08.zip -d $SLURM_TMPDIR/
+
 python scripts/vision/eval_task_addition.py  --model=ViT-L-14 --finetuning-mode=standard --merge-func=regmean \
 --coeff-start=1.0 --n-eval-points=1 --mha=split --cov-dir results/ViT-L-14/covariances_strain_n10_b32_tsm_attnsplit_efull
 # next

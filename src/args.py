@@ -39,7 +39,7 @@ def parse_arguments():
     parser.add_argument(
         "--model",
         type=str,
-        default="ViT-B-32",
+        default="ViT-B-16",
         help="The type of model (e.g. RN50, ViT-B-32).",
     )
     parser.add_argument(
@@ -248,6 +248,15 @@ def parse_arguments():
         type=int,
         default=50,
         help="Max number of batches to use in phase 1 (coefficient selection). Default: 50.",
+    )
+    parser.add_argument(
+        "--cosine-samples",
+        type=int,
+        default=0,
+        help=(
+            "If > 0, track cosine similarity between consecutive optimizer-step gradients "
+            "using the first N trainable parameter tensors. Results saved to {ckpdir}/cosine_sim.npz."
+        ),
     )
     parsed_args = parser.parse_args()
     parsed_args.device = "cuda" if torch.cuda.is_available() else "cpu"
