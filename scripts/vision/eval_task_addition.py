@@ -4,6 +4,7 @@ import os
 # from mha import copy_from_pytorch_state_dict, copy_to_pytorch_state_dict
 from src import mhap, mhas
 from src.args import parse_arguments
+from src.results_db import append_result, args_to_dict, record_exists
 from src.vision.eval import evaluate_task_vector, evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
@@ -15,6 +16,12 @@ if args.seed is not None:
     args.save = f"checkpoints_{args.seed}/{args.model}"
 else:
     args.save = f"checkpoints/{args.model}"
+
+if args.results_db:
+    _rec = {"script": "eval_task_addition", **args_to_dict(args)}
+    if record_exists(args.results_db, _rec):
+        print(f"Skipping: matching record already exists in {args.results_db}")
+        exit(0)
 
 
 print("*" * 100)
@@ -179,3 +186,16 @@ elif args.finetuning_mode == "lora":
     save_file = f"{args.save}/lora_additions_{merge_name}.json"
 with open(save_file, "w") as f:
     json.dump(additive_accuracies, f, indent=4)
+
+if args.results_db:
+    append_result(
+        args.results_db,
+        {
+            "script": "eval_task_addition",
+            **args_to_dict(args),
+            "optimal_coef": optimal_coef,
+            **{f"test_{k}": v for k, v in test_metrics.items()},
+            **{f"val_{k}": v for k, v in val_metrics.items()},
+        },
+    )
+    print("Results appended to", args.results_db)
