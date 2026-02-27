@@ -118,9 +118,10 @@ python scripts/vision/eval_task_addition.py \
 
 # RegMean (requires covariance)
 python scripts/vision/eval_task_addition.py \
-  --model=ViT-B-16 --finetuning-mode=standard --merge-func=regmean \
+  --model=ViT-B-16 --finetuning-mode=lora --merge-func=regmean \
   --mha=split \
-  --cov-dir=results/ViT-B-16/covariances_strain_n50_b32_tcov_attnsplit_esampled
+  --cov-dir=results/ViT-B-16/covariances_strain_n10_b32_tsm_attnsplit_efull_ftlora \
+  --coeff-start=0 --n-eval-points=11
 
 
 
