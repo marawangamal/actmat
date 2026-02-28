@@ -36,7 +36,8 @@ python scripts/vision/eval_single_task.py \
   --data-location=$SLURM_TMPDIR/datasets
 ```
 
-### 4. Evaluate merged models
+### 3. Evaluate merged models
+**NOTE:** Must run single task script in (2) first.
 
 ```sh
 # EigenCov (data-free)
@@ -51,7 +52,7 @@ python scripts/vision/eval_task_addition.py \
   --coeff-start=0 --n-eval-points=11
 ```
 
-### 5. Generate covariance matrices
+### 4. Generate covariance matrices (only required for RegMean)
 ```sh
 python scripts/vision/covariance.py \
   --model=ViT-B-32 \
@@ -72,6 +73,30 @@ bash scripts/vision/train.sh
 bash scripts/vision/eval.sh
 ```
 
+## Language Experiments
+### 1. Fine-tune
+
+```sh
+python scripts/language/finetune.py \
+  --finetuning-mode=standard \
+  --model=t5-base \
+  --save=$SCRATCH/eigcov/checkpoints/language \
+  --hf-cache-dir=$SCRATCH/hf_cache
+```
+
+### 2. Evaluate single model (zeroshot / standard / linear / lora)
+```sh
+python scripts/language/eval_single_task.py \
+--finetuning-mode=standard  --save=$SCRATCH/eigcov/checkpoints/language
+```
+
+### 3. Evaluate merged models
+**NOTE:** Must run single task script in (2) first.
+```sh
+python scripts/language/eval_task_addition.py \
+  --finetuning-mode=standard \
+  --save=$SCRATCH/eigcov/checkpoints/language
+```
 
 ## Repository Structure
 
