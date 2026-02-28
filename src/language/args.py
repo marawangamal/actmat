@@ -87,8 +87,8 @@ def parse_arguments():
     parser.add_argument(
         "--finetuning-mode",
         default="standard",
-        choices=["standard", "linear"],
-        help="Whether to use standard or linearized fine-tuning.",
+        choices=["none", "standard", "linear"],
+        help="Whether to use standard or linearized fine-tuning, or 'none' for zeroshot.",
     )
     parser.add_argument(
         "--world-size",
@@ -137,6 +137,42 @@ def parse_arguments():
         type=str,
         default=None,
         help="Name of the experiment, for organization purposes only.",
+    )
+    parser.add_argument(
+        "--merge-func",
+        type=str,
+        default="sum",
+        help="Task vector merge function (e.g. sum, mean, ties, regmean).",
+    )
+    parser.add_argument(
+        "--cov-dir",
+        type=str,
+        default=None,
+        help="Directory containing per-dataset covariance .npz files.",
+    )
+    parser.add_argument(
+        "--results-db",
+        type=str,
+        default=None,
+        help="Path to a JSON-lines results database file.",
+    )
+    parser.add_argument(
+        "--eval-val-split",
+        type=str,
+        default="validation",
+        help="Split used for coefficient selection (validation or train).",
+    )
+    parser.add_argument(
+        "--eval-test-split",
+        type=str,
+        default="test",
+        help="Split used for final evaluation.",
+    )
+    parser.add_argument(
+        "--eval-val-max-batches",
+        type=int,
+        default=None,
+        help="Cap number of batches during coefficient selection (None = all).",
     )
 
     parsed_args = parser.parse_args()

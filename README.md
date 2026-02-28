@@ -113,8 +113,7 @@ python scripts/language/eval_single_task.py \
 **NOTE:** Must run single task script in (2) first.
 ```sh
 python scripts/language/eval_task_addition.py \
-  --finetuning-mode=standard \
-  --save=$SCRATCH/eigcov/checkpoints/language
+  --model=t5-base --finetuning-mode=standard --merge-func=eigcov --save=$SCRATCH/eigcov/checkpoints/language
 ```
 
 ## Repository Structure
