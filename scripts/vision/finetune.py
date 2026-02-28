@@ -57,7 +57,7 @@ def finetune(rank, args):
         ft_path = os.path.join(args.save, train_dataset, "finetuned.pt")
         zs_path = os.path.join(args.save, train_dataset, "zeroshot.pt")
     if os.path.exists(zs_path) and os.path.exists(ft_path):
-        print(f"Skipping fine-tuning because {ft_path} exists.")
+        print(f"Skipping fine-tuning because {ft_path} already exists.")
         return zs_path, ft_path
 
     assert train_dataset is not None, "Please provide a training dataset."
@@ -156,10 +156,7 @@ def finetune(rank, args):
     )
 
     if is_main_process():
-        print(
-            "Total number of steps: ",
-            args.epochs * num_batches // args.num_grad_accumulation,
-        )
+        print(f"Total steps: {args.epochs * num_batches // args.num_grad_accumulation}")
 
     # Saving zero-shot model (LoRA zeroshot is saved before LoRA is applied)
     if args.save is not None and is_main_process() and not lora_finetuning:
@@ -251,7 +248,6 @@ def finetune(rank, args):
                 and step % args.checkpoint_every == 0
                 and is_main_process()
             ):
-                print("Saving checkpoint.")
                 if linearized_finetuning:
                     model_path = os.path.join(ckpdir, f"linear_checkpoint_{step}.pt")
                 elif lora_finetuning:
@@ -259,7 +255,7 @@ def finetune(rank, args):
                 else:
                     model_path = os.path.join(ckpdir, f"checkpoint_{step}.pt")
                 ddp_model.module.image_encoder.save(model_path)
-                print(f"Saved checkpoint to {model_path}")
+                print(f"Saved checkpoint to {model_path}", flush=True)
 
             if (
                 step % print_every == 0
@@ -358,6 +354,6 @@ if __name__ == "__main__":
         else:
             args.save = f"checkpoints/{args.model}"
         print("=" * 100)
-        print(f"Finetuning {args.model} on {dataset}")
+        print(f"Fine-tuning {args.model} on {dataset} ({args.finetuning_mode})")
         print("=" * 100)
         torch.multiprocessing.spawn(finetune, args=(args,), nprocs=args.world_size)

@@ -2,6 +2,16 @@ import os
 import time
 
 import torch
+
+
+def _format_duration(seconds: float) -> str:
+    seconds_int = max(0, int(seconds))
+    hours = seconds_int // 3600
+    minutes = (seconds_int % 3600) // 60
+    secs = seconds_int % 60
+    if hours > 0:
+        return f"{hours:d}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
@@ -123,14 +133,13 @@ def finetune(args):
         step = (i + 1) // num_grad_accumulation
         if (i + 1) % (args.print_every * num_grad_accumulation) == 0:
             percent_complete = 100 * step / num_batches
+            elapsed = time.time() - train_start_time
             print(
-                f"[{i}] Train Iteration: {step}  [{percent_complete:.0f}% {step}/{num_batches}]\t"
+                f"Train Iteration: {step} [{percent_complete:.0f}% {step}/{num_batches}]\t"
                 f"Loss: {loss.item():.6f}\t"
-                f"Data (t) {data_time:.3f}\t"
-                f"Batch (t) {batch_time:.3f}\t"
+                f"Data (t) {data_time:.3f}\tBatch (t) {batch_time:.3f}\t"
                 f"Best val acc: {100 * best_val_acc:.2f}%\t"
-                f"Elapsed (t) {time.time() - train_start_time:.2f}s\t",
-                # f"DEBUG: {(i + 1) % (num_grad_accumulation * args.print_every)}",
+                f"Elapsed {_format_duration(elapsed)}",
                 flush=True,
             )
         if (
