@@ -17,11 +17,34 @@ if args.seed is not None:
 else:
     args.save = f"checkpoints/{args.model}"
 
-_run_hash = make_run_hash("eval_task_addition", args) if args.results_db else None
+# Fields that should NOT affect the run identity:
+#   - training-only hyperparameters (lr, wd, …) — not used during eval
+#   - environment/path args (cache dirs, save dir) — machine-specific
+#   - fields set dynamically *after* this point (eval_datasets, finetuning_accuracies, …)
+#   - metadata (results_db path, exp_name, overwrite flag, …)
+_HASH_IGNORE = {
+    # training-only
+    "lr", "wd", "ls", "warmup_length", "epochs", "num_grad_accumulation", "batch_size",
+    "checkpoint_every", "keep_checkpoints", "port", "world_size", "cosine_samples",
+    "lora_rank", "lora_alpha", "lora_dropout", "lora_target_modules", "lora_target_parameters",
+    # environment / paths
+    "openclip_cachedir", "cache_dir", "save", "data_location",
+    # dynamically set after hash
+    "eval_datasets", "finetuning_accuracies", "control_dataset", "eval_split", "eval_max_batches",
+    # metadata
+    "results_db", "exp_name", "overwrite", "num_workers", "device",
+}
+
+_run_hash = make_run_hash("eval_task_addition", args, ignore=_HASH_IGNORE) if args.results_db else None
 if args.results_db and record_exists(args.results_db, _run_hash):
     print(f"Skipping: matching record already exists in {args.results_db}")
     exit(0)
 
+print("-" * 100)
+print("DEBUG:")
+print(f"Record to be saved: {_run_hash}")
+print(json.dumps({"script": "eval_task_addition", **args_to_dict(args)}, indent=4))
+print("-" * 100)
 
 print("*" * 100)
 if args.finetuning_mode == "standard":

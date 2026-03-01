@@ -20,7 +20,7 @@
 
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 METHODS=(eigcov isoc_mean knots_isoc_mean tsv knots_tsv regmean sum mean)
-FT_MODES=(standard lora)
+FT_MODES=(standard)
 RESULTS_DB="results/results.jsonl"
 NUM_BATCHES=10
 BATCH_SIZE=32
@@ -60,7 +60,7 @@ for MODEL in "${MODELS[@]}"; do
         --finetuning-mode="$FT_MODE" \
         --merge-func="$method" \
         --mha=split \
-        --cov-dir="results/$MODEL/covariances_strain_n$NUM_BATCHES_b$BATCH_SIZE_tsm_attnsplit_efull_ft$FT_MODE" \
+        --cov-dir="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnsplit_efull_ft${FT_MODE}" \
         --results-db="$RESULTS_DB"
 
     done

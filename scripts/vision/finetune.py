@@ -118,7 +118,7 @@ def finetune(rank, args):
         print("===============================\n")
 
     preprocess_fn = model.train_preprocess
-    print_every = 1
+    print_every = 100
 
     dataset = get_dataset(
         train_dataset,

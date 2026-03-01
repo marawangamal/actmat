@@ -109,6 +109,18 @@ def parse_arguments():
         help="Random seed.",
     )
     parser.add_argument(
+        "--coeff-start",
+        type=float,
+        default=0.0,
+        help="Start coefficient for evaluation.",
+    )
+    parser.add_argument(
+        "--coeff-end",
+        type=float,
+        default=1.0,
+        help="End coefficient for evaluation.",
+    )
+    parser.add_argument(
         "--n-eval-points",
         type=int,
         default=21,

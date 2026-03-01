@@ -14,9 +14,18 @@ def args_to_dict(args):
     }
 
 
-def make_run_hash(script, args):
-    """Stable hash of (script, args) used to identify a unique run."""
-    payload = json.dumps({"script": script, **args_to_dict(args)}, sort_keys=True)
+def make_run_hash(script, args, ignore=None):
+    """Stable hash of (script, args) used to identify a unique run.
+
+    Args:
+        ignore: optional set of arg keys to exclude from the hash (e.g.
+                training-only params like lr/wd, environment paths, or fields
+                that are set dynamically after the hash is computed).
+    """
+    d = args_to_dict(args)
+    if ignore:
+        d = {k: v for k, v in d.items() if k not in ignore}
+    payload = json.dumps({"script": script, **d}, sort_keys=True)
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
