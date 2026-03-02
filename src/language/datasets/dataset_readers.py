@@ -351,7 +351,7 @@ class StoryClozeReader(DatasetReader):
         if split not in self.cached_origData:
             huggingFace_data = load_dataset(
                 "csv",
-                data_files=f"datasets_language/cloze_{load_split}_{self.dataset_stash[1]}.csv",
+                data_files=f"datasets/language/cloze_{load_split}_{self.dataset_stash[1]}.csv",
                 trust_remote_code=True,
                 split="train",
             )
