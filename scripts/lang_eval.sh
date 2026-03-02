@@ -16,8 +16,8 @@
 # export SSL_CERT_DIR=/etc/ssl/certs
 
 MODELS=(t5-base)
-METHODS=(regmean sum mean isoc_mean)
-FT_MODES=(standard)
+METHODS=(regmean)
+FT_MODES=(lora)
 RESULTS_DB="results/results.jsonl"
 NUM_BATCHES=10
 BATCH_SIZE=32
@@ -25,18 +25,18 @@ BATCH_SIZE=32
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
 
-    # # 1a. Evaluate single task
-    # echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
-    # python scripts/language/eval_single_task.py \
-    #   --finetuning-mode="$FT_MODE" \
-    #   --hf-cache-dir=$SCRATCH/hf_cache \
-    #   --model="$MODEL" 
+    # 1a. Evaluate single task
+    echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
+    python scripts/language/eval_single_task.py \
+      --finetuning-mode="$FT_MODE" \
+      --hf-cache-dir=$SCRATCH/hf_cache \
+      --model="$MODEL" 
 
-    # # 1b. Evaluate single task (zeroshot)
-    # python scripts/language/eval_single_task.py \
-    #     --finetuning-mode="none" \
-    #     --hf-cache-dir=$SCRATCH/hf_cache \
-    #     --model="$MODEL" 
+    # 1b. Evaluate single task (zeroshot)
+    python scripts/language/eval_single_task.py \
+        --finetuning-mode="none" \
+        --hf-cache-dir=$SCRATCH/hf_cache \
+        --model="$MODEL" 
 
     # 2. Evaluate task addition w/ diff merge methods
     for method in "${METHODS[@]}"; do
@@ -87,9 +87,9 @@ done
 #   --openclip-cachedir=$SCRATCH/openclip \
 #   --data-location=$SLURM_TMPDIR/datasets \
 
-# Prototype evaluation
-python scripts/language/eval_task_addition.py \
---model=t5-base \
---finetuning-mode=standard \
---merge-func=regmean \
---cov-dir="results/t5-base/covariances_strain_n10_b32_tsm_efull_ftstandard" 
+# # Prototype evaluation
+# python scripts/language/eval_task_addition.py \
+# --model=t5-base \
+# --finetuning-mode=standard \
+# --merge-func=regmean \
+# --cov-dir="results/t5-base/covariances_strain_n10_b32_tsm_efull_ftstandard" 

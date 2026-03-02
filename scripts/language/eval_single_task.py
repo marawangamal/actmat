@@ -37,6 +37,9 @@ for dataset in T5_DATASETS:
     elif args.finetuning_mode == "none":
         pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
         finetuned_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
+    elif args.finetuning_mode == "lora":
+        pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
+        finetuned_checkpoint = f"{args.save}/{dataset}/lora_finetuned.pt"
     else:
         pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
         finetuned_checkpoint = f"{args.save}/{dataset}/finetuned.pt"

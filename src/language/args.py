@@ -87,8 +87,17 @@ def parse_arguments():
     parser.add_argument(
         "--finetuning-mode",
         default="standard",
-        choices=["none", "standard", "linear"],
+        choices=["none", "standard", "linear", "lora"],
         help="Whether to use standard or linearized fine-tuning, or 'none' for zeroshot.",
+    )
+    parser.add_argument("--lora-rank", type=int, default=16, help="LoRA rank.")
+    parser.add_argument("--lora-alpha", type=float, default=16, help="LoRA alpha.")
+    parser.add_argument("--lora-dropout", type=float, default=0.0, help="LoRA dropout.")
+    parser.add_argument(
+        "--lora-target-modules",
+        type=str,
+        default="all-linear",
+        help="Comma-separated list of target modules for LoRA.",
     )
     parser.add_argument(
         "--world-size",

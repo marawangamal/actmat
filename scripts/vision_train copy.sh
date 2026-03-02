@@ -7,28 +7,32 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-# set -euo pipefail
-# mkdir -p logs
+set -euo pipefail
+mkdir -p logs
 
 # 0. Setup environment
 source "$SCRATCH/eigcov/.venv/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-MODELS=(t5-base)
-FT_MODES=(lora)
+cp vit_datasets_08.zip "$SLURM_TMPDIR/"
+unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
+
+MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+FT_MODES=(standard lora linear)
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
 
     # 1. Finetune model
     echo "[BASH] Running finetune.py | model: $MODEL | ft mode: $FT_MODE"
-    python scripts/language/finetune.py \
+    python scripts/vision/finetune.py \
     --finetuning-mode="$FT_MODE" \
     --model="$MODEL" \
     --world-size=1 \
-    --hf-cache-dir=$SCRATCH/hf_cache 
+    --num-workers=1 \
+    --openclip-cachedir="$SCRATCH/openclip" \
+    --data-location="$SLURM_TMPDIR/datasets"
 
   done
 done
-
