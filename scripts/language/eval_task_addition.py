@@ -3,7 +3,10 @@ import os
 
 from src.language.args import parse_arguments
 from src.language.eval import evaluate_task_vector, evaluate_task_vector_at_coef
-from src.language.task_vectors import LanguageLinearizedTaskVector, LanguageNonLinearTaskVector
+from src.language.task_vectors import (
+    LanguageLinearizedTaskVector,
+    LanguageNonLinearTaskVector,
+)
 from src.merging import combine_task_vectors
 from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
 from src.utils import find_optimal_coef
@@ -11,21 +14,54 @@ from src.utils import find_optimal_coef
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
 args = parse_arguments()
+if args.seed is not None:
+    args.save = f"checkpoints_{args.seed}/{args.model}"
+else:
+    args.save = f"checkpoints/{args.model}"
 
 _HASH_IGNORE = {
     # training-only
-    "lr", "wd", "ls", "warmup_length", "epochs", "num_grad_accumulation", "batch_size",
-    "checkpoint_every", "keep_checkpoints", "port", "world_size", "cosine_samples",
-    "lora_rank", "lora_alpha", "lora_dropout", "lora_target_modules", "lora_target_parameters",
+    "lr",
+    "wd",
+    "ls",
+    "warmup_length",
+    "epochs",
+    "num_grad_accumulation",
+    "batch_size",
+    "checkpoint_every",
+    "keep_checkpoints",
+    "port",
+    "world_size",
+    "cosine_samples",
+    "lora_rank",
+    "lora_alpha",
+    "lora_dropout",
+    "lora_target_modules",
+    "lora_target_parameters",
     # environment / paths
-    "hf_cache_dir", "cache_dir", "save", "data_location",
+    "hf_cache_dir",
+    "cache_dir",
+    "save",
+    "data_location",
     # dynamically set after hash
-    "eval_datasets", "finetuning_accuracies", "control_dataset", "eval_split", "eval_max_batches",
+    "eval_datasets",
+    "finetuning_accuracies",
+    "control_dataset",
+    "eval_split",
+    "eval_max_batches",
     # metadata
-    "results_db", "exp_name", "overwrite", "num_workers", "device",
+    "results_db",
+    "exp_name",
+    "overwrite",
+    "num_workers",
+    "device",
 }
 
-_run_hash = make_run_hash("eval_task_addition", args, ignore=_HASH_IGNORE) if args.results_db else None
+_run_hash = (
+    make_run_hash("eval_task_addition", args, ignore=_HASH_IGNORE)
+    if args.results_db
+    else None
+)
 if args.results_db and record_exists(args.results_db, _run_hash):
     print(f"Skipping: matching record already exists in {args.results_db}")
     exit(0)
@@ -39,7 +75,9 @@ elif args.finetuning_mode == "linear":
     ft_accuracies_path = os.path.join(args.save, "linear_ft_accuracies.json")
 else:
     print(f"Evaluating {args.finetuning_mode} models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, f"{args.finetuning_mode}_ft_accuracies.json")
+    ft_accuracies_path = os.path.join(
+        args.save, f"{args.finetuning_mode}_ft_accuracies.json"
+    )
 print("*" * 100)
 
 with open(ft_accuracies_path) as f:
@@ -113,7 +151,9 @@ print(f"Optimal coefficient (from phase 1): {optimal_coef}")
 _set_eval_split(args.eval_test_split)
 args.eval_max_batches = None
 print("=" * 100)
-print(f"PHASE 2: SPLIT={args.eval_test_split.upper()} — evaluating at optimal coefficient")
+print(
+    f"PHASE 2: SPLIT={args.eval_test_split.upper()} — evaluating at optimal coefficient"
+)
 print("=" * 100)
 test_metrics = evaluate_task_vector_at_coef(
     args.eval_test_split,

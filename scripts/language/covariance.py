@@ -66,7 +66,15 @@ def compute_covs(model, dataset_name, args):
         split, template_idx=0, is_evaluation=(split != "train")
     )
 
-    cobjs, handles = register_hooks(model, args)
+    mask_ref = [None, None]
+    cobjs, handles = register_hooks(
+        model,
+        cov_device=args.cov_device,
+        cov_type=args.cov_type,
+        cov_estimator=args.cov_estimator,
+        mask_ref=mask_ref,
+        batch_first=True,
+    )
 
     n_batches = 0
     with torch.no_grad():
@@ -77,6 +85,8 @@ def compute_covs(model, dataset_name, args):
         ):
             if max_num_batches is not None and n_batches >= max_num_batches:
                 break
+            mask_ref[0] = batch.get("input_mask")
+            mask_ref[1] = batch.get("target_mask")
             model(batch)
             n_batches += 1
 

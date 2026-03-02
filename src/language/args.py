@@ -111,7 +111,7 @@ def parse_arguments():
     parser.add_argument(
         "--coeff-start",
         type=float,
-        default=0.0,
+        default=1.0,
         help="Start coefficient for evaluation.",
     )
     parser.add_argument(
@@ -123,7 +123,7 @@ def parse_arguments():
     parser.add_argument(
         "--n-eval-points",
         type=int,
-        default=21,
+        default=1,
         help="Number of evaluation points for coefficient search in task arithmetic.",
     )
     parser.add_argument(
