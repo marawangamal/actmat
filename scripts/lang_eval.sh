@@ -15,11 +15,8 @@
 # export PYTHONPATH="$PYTHONPATH:$PWD"
 # export SSL_CERT_DIR=/etc/ssl/certs
 
-# cp vit_datasets_08.zip "$SLURM_TMPDIR/"
-# unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
-
 MODELS=(t5-base)
-METHODS=(eigcov isoc_mean tsv sum mean)
+METHODS=(regmean sum mean isoc_mean)
 FT_MODES=(standard)
 RESULTS_DB="results/results.jsonl"
 NUM_BATCHES=10
@@ -28,18 +25,18 @@ BATCH_SIZE=32
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
 
-    # 1a. Evaluate single task
-    echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
-    python scripts/language/eval_single_task.py \
-      --finetuning-mode="$FT_MODE" \
-      --hf-cache-dir=$SCRATCH/hf_cache \
-      --model="$MODEL" 
+    # # 1a. Evaluate single task
+    # echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
+    # python scripts/language/eval_single_task.py \
+    #   --finetuning-mode="$FT_MODE" \
+    #   --hf-cache-dir=$SCRATCH/hf_cache \
+    #   --model="$MODEL" 
 
-    # 1b. Evaluate single task (zeroshot)
-    python scripts/language/eval_single_task.py \
-        --finetuning-mode="none" \
-        --hf-cache-dir=$SCRATCH/hf_cache \
-        --model="$MODEL" 
+    # # 1b. Evaluate single task (zeroshot)
+    # python scripts/language/eval_single_task.py \
+    #     --finetuning-mode="none" \
+    #     --hf-cache-dir=$SCRATCH/hf_cache \
+    #     --model="$MODEL" 
 
     # 2. Evaluate task addition w/ diff merge methods
     for method in "${METHODS[@]}"; do
@@ -52,19 +49,24 @@ for MODEL in "${MODELS[@]}"; do
           --cov-split=train \
           --cov-num-batches="$NUM_BATCHES" \
           --cov-batch-size="$BATCH_SIZE" \
-          --mha=split \
           --cov-type=sm \
           --cov-estimator=full
       fi
 
-      # 2b. Evaluate task addition
-      echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
-      python scripts/language/eval_task_addition.py \
-        --model="$MODEL" \
-        --finetuning-mode="$FT_MODE" \
-        --merge-func="$method" \
-        --cov-dir="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_efull_ft${FT_MODE}" \
-        --results-db="$RESULTS_DB"
+      if [ "$method" = "regmean" ]; then
+        python scripts/language/eval_task_addition.py \
+          --model="$MODEL" \
+          --finetuning-mode="$FT_MODE" \
+          --merge-func="$method" \
+          --cov-dir="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_efull_ft${FT_MODE}" \
+          --results-db="$RESULTS_DB"
+      else
+        python scripts/language/eval_task_addition.py \
+          --model="$MODEL" \
+          --finetuning-mode="$FT_MODE" \
+          --merge-func="$method" \
+          --results-db="$RESULTS_DB"
+      fi
 
     done
   done
@@ -84,3 +86,10 @@ done
 #   --model=ViT-L-14 \
 #   --openclip-cachedir=$SCRATCH/openclip \
 #   --data-location=$SLURM_TMPDIR/datasets \
+
+# Prototype evaluation
+python scripts/language/eval_task_addition.py \
+--model=t5-base \
+--finetuning-mode=standard \
+--merge-func=regmean \
+--cov-dir="results/t5-base/covariances_strain_n10_b32_tsm_efull_ftstandard" 

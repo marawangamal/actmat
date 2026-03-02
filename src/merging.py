@@ -214,8 +214,8 @@ pinv = torch.linalg.pinv
 # ---------------------------------------------------------------------------
 # RegMean
 # ---------------------------------------------------------------------------
-def _param_key_to_module_key(key: str):
-    return "image_encoder." + key.replace(".weight", "")
+# def _param_key_to_module_key(key: str):
+#     return "image_encoder." + key.replace(".weight", "")
 
 
 # Test normalized accuracy: 0.8934755825227096
@@ -230,8 +230,9 @@ def _merge_regmean(
     **kwargs,
 ):
     c = []
-    km = _param_key_to_module_key(key)
+    # km = v.param_key_to_cov_key(key)
     for v in vectors:
+        km = v.param_key_to_cov_key(key)
         cpath = v.covariance_path
         if cpath is None:
             raise ValueError(f"No covariance path provided for task vector {v}")
