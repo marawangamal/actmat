@@ -187,6 +187,45 @@ def parse_arguments():
         help="Cap number of batches during coefficient selection (None = all).",
     )
 
+    # Covariance collection arguments
+    parser.add_argument(
+        "--cov-split",
+        type=str,
+        default="train",
+        help="Dataset split to use for covariance collection.",
+    )
+    parser.add_argument(
+        "--cov-num-batches",
+        type=int,
+        default=None,
+        help="Max number of batches for covariance collection (None = all).",
+    )
+    parser.add_argument(
+        "--cov-batch-size",
+        type=int,
+        default=32,
+        help="Batch size for covariance collection.",
+    )
+    parser.add_argument(
+        "--cov-type",
+        type=str,
+        default="sm",
+        choices=["cov", "sm"],
+        help="Covariance type: centered ('cov') or uncentered second moment ('sm').",
+    )
+    parser.add_argument(
+        "--cov-estimator",
+        type=str,
+        default="sampled",
+        choices=["sampled", "full"],
+        help="Covariance estimator: 'sampled' (one token) or 'full' (all tokens).",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing covariance files.",
+    )
+
     parsed_args = parser.parse_args()
     parsed_args.device = "cuda" if torch.cuda.is_available() else "cpu"
 

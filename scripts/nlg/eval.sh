@@ -15,3 +15,6 @@ for FT_MODE in "${FT_MODES[@]}"; do
     --limit 1 \
     --output-dir ~/scratch/results
 done
+
+
+# olmes   --model pmahdavi/Llama-3.1-8B-math-reasoning   --task gsm8k::tulu drop::llama3 minerva_math::tulu codex_humaneval::tulu codex_humanevalplus::tulu ifeval::tulu popqa::tulu "bbh:cot-v1::tulu"   --task-args '{"limit": 2}'   --output-dir ~/scratch/results-nlg 

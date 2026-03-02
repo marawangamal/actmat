@@ -183,12 +183,18 @@ def finetune(args):
 if __name__ == "__main__":
     args = parse_arguments()
 
-    # Set default training hyperparameters matching ties-merging t5_base config
+    # Set default training hyperparameters matching ties-merging configs
     args.lr = 1e-4
     args.wd = 0.0
-    args.batch_size = 256
-    args.num_grad_accumulation = 4
     args.max_seq_len = 128
+    # Keep effective batch size ~1024 regardless of model size
+    _batch_defaults = {
+        "t5-base": (256, 4),
+        "t5-large": (64, 16),
+    }
+    _bs, _ga = _batch_defaults.get(args.model, (64, 16))
+    args.batch_size = _bs
+    args.num_grad_accumulation = _ga
     args.num_batches = 75000
     args.checkpoint_frequency = 100
     args.print_every = 10

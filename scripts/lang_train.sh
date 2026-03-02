@@ -37,11 +37,11 @@ for MODEL in "${MODELS[@]}"; do
   done
 done
 
-# Prototype:
-python scripts/language/finetune.py \
---finetuning-mode="standard" \
---model="t5-base" \
---world-size=1 \
---num-workers=1 \
---openclip-cachedir="$SCRATCH/openclip" \
---data-location="$SLURM_TMPDIR/datasets"
+# # Prototype:
+# python scripts/language/finetune.py \
+# --finetuning-mode="standard" \
+# --model="t5-base" \
+# --world-size=1 \
+# --num-workers=1 \
+# --openclip-cachedir="$SCRATCH/openclip" \
+# --data-location="$SLURM_TMPDIR/datasets"

@@ -18,9 +18,9 @@
 # cp vit_datasets_08.zip "$SLURM_TMPDIR/"
 # unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
 
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+MODELS=(ViT-L-14)
 METHODS=(eigcov isoc_mean knots_isoc_mean tsv knots_tsv regmean sum mean)
-FT_MODES=(standard)
+FT_MODES=(lora)
 RESULTS_DB="results/results.jsonl"
 NUM_BATCHES=10
 BATCH_SIZE=32
@@ -68,3 +68,17 @@ for MODEL in "${MODELS[@]}"; do
 done
 
 
+
+# Prototype evaluation
+python scripts/vision/eval_task_addition.py \
+        --model=ViT-B-16 \
+        --finetuning-mode=lora \
+        --merge-func=mean \
+        --mha=split
+
+
+python scripts/vision/eval_single_task.py \
+  --finetuning-mode=lora \
+  --model=ViT-L-14 \
+  --openclip-cachedir=$SCRATCH/openclip \
+  --data-location=$SLURM_TMPDIR/datasets \
