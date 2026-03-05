@@ -8,7 +8,7 @@
 #SBATCH --error=logs/%x_%j.err
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-MODEL="ViT-B-16"
+MODEL="ViT-L-14"
 DATASET="Cars"
 ROOTDIR="$SCRATCH/eigcov"   # repo root on the cluster
 
@@ -43,6 +43,7 @@ for ckpt in "$CKPT_DIR"/checkpoint_*.pt; do
     python scripts/vision/covariance.py \
         --model="$MODEL" \
         --load="$ckpt" \
+        --eval-datasets="$DATASET" \
         --cov-split="$SPLIT" \
         --cov-num-batches="$NUM_BATCHES" \
         --cov-batch-size="$BATCH_SIZE" \
