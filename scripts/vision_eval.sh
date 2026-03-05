@@ -30,7 +30,7 @@ BATCH_SIZE=32
 # default runs.
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 METHODS=(sum)
-FT_MODES=(standard)
+FT_MODES=(lora)
 RESULTS_DB="results/results-hpopt.jsonl"
 COEFF_START=0.0
 COEFF_END=1.0

@@ -124,7 +124,7 @@ if __name__ == "__main__":
     ss_attn = args.mha
     ss_split = args.cov_split
     ss_estimator = args.cov_estimator
-    ss_fm = args.finetuning_mode
+    ss_fm = Path(args.load).stem if args.load is not None else args.finetuning_mode
     cov_dir = f"results/{args.model}/covariances_s{ss_split}_n{ss_num_batches}_b{ss_batch_size}_t{ss_type}_attn{ss_attn}_e{ss_estimator}_ft{ss_fm}"
     os.makedirs(cov_dir, exist_ok=True)
 
@@ -143,7 +143,10 @@ if __name__ == "__main__":
             continue
 
         print(f"\nCollecting covariance for {task}")
-        if args.finetuning_mode == "linear":
+        if args.load is not None:
+            # Direct checkpoint path supplied via --load; skip task-vector construction.
+            encoder = torch.load(args.load, map_location="cpu", weights_only=False)
+        elif args.finetuning_mode == "linear":
             pretrained_checkpoint = f"{args.save}/{task}Val/linear_zeroshot.pt"
             finetuned_checkpoint = f"{args.save}/{task}Val/linear_finetuned.pt"
             pretrained_nonlinear_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
@@ -163,6 +166,7 @@ if __name__ == "__main__":
             encoder = tv.apply_to_nonlinear(
                 pretrained_nonlinear_checkpoint, param_names, scaling_coef=1.0
             )
+            del tv
         elif args.finetuning_mode == "lora":
             pretrained_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
             finetuned_checkpoint = f"{args.save}/{task}Val/lora_finetuned.pt"
@@ -171,6 +175,7 @@ if __name__ == "__main__":
                 finetuned_checkpoint,
             )
             encoder = tv.apply_to(pretrained_checkpoint, scaling_coef=1.0)
+            del tv
         else:
             pretrained_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
             finetuned_checkpoint = f"{args.save}/{task}Val/finetuned.pt"
@@ -179,8 +184,7 @@ if __name__ == "__main__":
                 finetuned_checkpoint,
             )
             encoder = tv.apply_to(pretrained_checkpoint, scaling_coef=1.0)
-
-        del tv
+            del tv
 
         # swap mha
         if args.mha is not None:
