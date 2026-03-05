@@ -73,7 +73,7 @@ for MODEL in "${MODELS[@]}"; do
     # 2. Evaluate task addition w/ diff merge methods
     for method in "${METHODS[@]}"; do
 
-      # 2a. Run covariance.py if regmean method is used
+      # 2a. Run covariance/fisher script if needed
       if [ "$method" = "regmean" ]; then
         echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
         python scripts/vision/covariance.py \
@@ -83,7 +83,27 @@ for MODEL in "${MODELS[@]}"; do
           --cov-batch-size="$BATCH_SIZE" \
           --mha=split \
           --cov-type=sm \
-          --cov-estimator=full
+          --cov-estimator=full \
+          --finetuning-mode="$FT_MODE" \
+          --openclip-cachedir="$SCRATCH/openclip" \
+          --data-location="$SLURM_TMPDIR/datasets"
+      elif [ "$method" = "fisher" ]; then
+        echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
+        python scripts/vision/fisher.py \
+          --model="$MODEL" \
+          --cov-split=train \
+          --cov-num-batches="$NUM_BATCHES" \
+          --cov-batch-size="$BATCH_SIZE" \
+          --finetuning-mode="$FT_MODE" \
+          --openclip-cachedir="$SCRATCH/openclip" \
+          --data-location="$SLURM_TMPDIR/datasets"
+      fi
+
+      # 2b. Set cov-dir based on method
+      if [ "$method" = "fisher" ]; then
+        COV_DIR="results/$MODEL/fisher_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_ft${FT_MODE}"
+      else
+        COV_DIR="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnsplit_efull_ft${FT_MODE}"
       fi
 
       # 2c. Evaluate task addition (fixed coeff)
@@ -93,7 +113,7 @@ for MODEL in "${MODELS[@]}"; do
         --finetuning-mode="$FT_MODE" \
         --merge-func="$method" \
         --mha=split \
-        --cov-dir="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnsplit_efull_ft${FT_MODE}" \
+        --cov-dir="$COV_DIR" \
         --results-db="$RESULTS_DB" \
         --coeff-start="$COEFF_START" \
         --coeff-end="$COEFF_END" \
@@ -116,7 +136,7 @@ done
 # python scripts/vision/eval_task_addition.py \
 #   --model=ViT-B-16 \
 #   --finetuning-mode=standard \
-#   --merge-func=sum \
-#   --coeff-start=0.0 \
-#   --coeff-end=1.0 \
-#   --n-eval-points=11
+#   --merge-func=fisher \
+#   --cov-dir="results/ViT-B-16/fisher_strain_n10_b32_ftstandard"
+
+# fisher_strain_n10_b32_ftstandard
