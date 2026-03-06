@@ -170,16 +170,25 @@ def finetune(rank, args):
     # Per-layer matrix gradient cross-term tracking (condition i)
     if args.grad_cross_matrix and is_main_process():
         _linear_layers = [
-            (name, module) for name, module in ddp_model.module.image_encoder.named_modules()
+            (name, module)
+            for name, module in ddp_model.module.image_encoder.named_modules()
             if isinstance(module, torch.nn.Linear)
         ]
         n = len(_linear_layers)
         num_tracked = min(8, n)
-        _tracked_indices = [round(i * (n - 1) / (num_tracked - 1)) for i in range(num_tracked)] if num_tracked > 1 else [0]
-        _tracked_layers = {_linear_layers[i][0]: _linear_layers[i][1] for i in _tracked_indices}
+        _tracked_indices = (
+            [round(i * (n - 1) / (num_tracked - 1)) for i in range(num_tracked)]
+            if num_tracked > 1
+            else [0]
+        )
+        _tracked_layers = {
+            _linear_layers[i][0]: _linear_layers[i][1] for i in _tracked_indices
+        }
 
-        _M = {name: None for name in _tracked_layers}      # Σ_k G^(k), shape (d_out, d_in)
-        _S_sum = {name: None for name in _tracked_layers}   # Σ_k S^(k), shape (d_in, d_in)
+        _M = {name: None for name in _tracked_layers}  # Σ_k G^(k), shape (d_out, d_in)
+        _S_sum = {
+            name: None for name in _tracked_layers
+        }  # Σ_k S^(k), shape (d_in, d_in)
         _mat_K = 0
 
         print(f"\n=== Tracking {len(_tracked_layers)} layers for grad cross-matrix ===")
@@ -219,8 +228,8 @@ def finetune(rank, args):
 
                 for b in range(B):
                     base_model.zero_grad()
-                    logits_b = base_model(inputs[b:b+1])
-                    loss_b = loss_fn(logits_b, labels[b:b+1])
+                    logits_b = base_model(inputs[b : b + 1])
+                    loss_b = loss_fn(logits_b, labels[b : b + 1])
                     loss_b.backward()
 
                     for lname, module in _tracked_layers.items():
@@ -328,7 +337,13 @@ def finetune(rank, args):
             print(f"    ||S_sum||_F    = {S.norm().item():.6e}")
             print(f"    rel error      = {rel_error.item():.6e}")
             torch.save(
-                {"K": _mat_K, "M": M, "S_sum": S, "M_T_M": M_T_M, "rel_error": rel_error.item()},
+                {
+                    "K": _mat_K,
+                    "M": M,
+                    "S_sum": S,
+                    "M_T_M": M_T_M,
+                    "rel_error": rel_error.item(),
+                },
                 os.path.join(ckpdir, f"grad_cross_matrix_{lname.replace('.', '_')}.pt"),
             )
         print()
