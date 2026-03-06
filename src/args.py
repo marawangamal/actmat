@@ -268,6 +268,12 @@ def parse_arguments():
         ),
     )
     parser.add_argument(
+        "--grad-cross-matrix",
+        action="store_true",
+        default=False,
+        help="Per-layer matrix measurement of gradient cross-term condition (i).",
+    )
+    parser.add_argument(
         "--mid-checkpoint-step",
         type=int,
         default=None,

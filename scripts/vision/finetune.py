@@ -167,6 +167,26 @@ def finetune(rank, args):
         )
         ddp_model.module.image_encoder.save(model_path)
 
+    # Per-layer matrix gradient cross-term tracking (condition i)
+    if args.grad_cross_matrix and is_main_process():
+        _linear_layers = [
+            (name, module) for name, module in ddp_model.module.image_encoder.named_modules()
+            if isinstance(module, torch.nn.Linear)
+        ]
+        n = len(_linear_layers)
+        num_tracked = min(8, n)
+        _tracked_indices = [round(i * (n - 1) / (num_tracked - 1)) for i in range(num_tracked)] if num_tracked > 1 else [0]
+        _tracked_layers = {_linear_layers[i][0]: _linear_layers[i][1] for i in _tracked_indices}
+
+        _M = {name: None for name in _tracked_layers}      # Σ_k G^(k), shape (d_out, d_in)
+        _S_sum = {name: None for name in _tracked_layers}   # Σ_k S^(k), shape (d_in, d_in)
+        _mat_K = 0
+
+        print(f"\n=== Tracking {len(_tracked_layers)} layers for grad cross-matrix ===")
+        for name in _tracked_layers:
+            print(f"  {name}: weight {tuple(_tracked_layers[name].weight.shape)}")
+        print()
+
     # Cross-sample gradient IP tracking (condition i of Covariance Estimation Theorem)
     if args.grad_cross_ip and is_main_process():
         _grad_sum = None  # lazily initialized on first step (size = #params with grad)
@@ -191,6 +211,29 @@ def finetune(rank, args):
             inputs = batch["images"].cuda()
             labels = batch["labels"].cuda()
             data_time = time.time() - start_time
+
+            # Per-sample gradient loop for matrix cross-term measurement
+            if args.grad_cross_matrix and is_main_process():
+                B = inputs.shape[0]
+                base_model = ddp_model.module
+
+                for b in range(B):
+                    base_model.zero_grad()
+                    logits_b = base_model(inputs[b:b+1])
+                    loss_b = loss_fn(logits_b, labels[b:b+1])
+                    loss_b.backward()
+
+                    for lname, module in _tracked_layers.items():
+                        g = module.weight.grad.detach().float()  # (d_out, d_in)
+                        if _M[lname] is None:
+                            d_in = g.shape[1]
+                            _M[lname] = torch.zeros_like(g, device="cpu")
+                            _S_sum[lname] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                        _M[lname] += g.cpu() / B
+                        _S_sum[lname] += (g.T @ g).cpu() / B
+
+                _mat_K += 1
+                base_model.zero_grad()
 
             logits = ddp_model(inputs)
 
@@ -272,6 +315,24 @@ def finetune(rank, args):
             os.path.join(ckpdir, "grad_cross_ip.pt"),
         )
 
+    if args.grad_cross_matrix and is_main_process() and _mat_K > 1:
+        print(f"\n=== Per-layer gradient cross-term condition (i) [K={_mat_K}] ===")
+        os.makedirs(ckpdir, exist_ok=True)
+        for lname in _tracked_layers:
+            M = _M[lname]
+            S = _S_sum[lname]
+            M_T_M = M.T @ M
+            rel_error = (M_T_M - S).norm() ** 2 / S.norm() ** 2
+            print(f"  {lname}:")
+            print(f"    ||M^T M||_F    = {M_T_M.norm().item():.6e}")
+            print(f"    ||S_sum||_F    = {S.norm().item():.6e}")
+            print(f"    rel error      = {rel_error.item():.6e}")
+            torch.save(
+                {"K": _mat_K, "M": M, "S_sum": S, "M_T_M": M_T_M, "rel_error": rel_error.item()},
+                os.path.join(ckpdir, f"grad_cross_matrix_{lname.replace('.', '_')}.pt"),
+            )
+        print()
+
     # FIXME: Make this work with DDP.
     if is_main_process():
         # We only need to evaluate the model on the first GPU.
@@ -339,7 +400,7 @@ if __name__ == "__main__":
     for dataset in train_datasets:
         # HACK: Some command line arguments are overwritten by defaults here.
         args.lr = 1e-5
-        if not args.grad_cross_ip:
+        if not args.grad_cross_ip and not args.grad_cross_matrix:
             args.epochs = epochs[dataset]
         args.train_dataset = dataset + "Val"
 

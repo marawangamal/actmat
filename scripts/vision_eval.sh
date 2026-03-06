@@ -111,6 +111,7 @@ for MODEL in "${MODELS[@]}"; do
       python scripts/vision/eval_task_addition.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
+        --data-location="$SLURM_TMPDIR/datasets" \
         --merge-func="$method" \
         --mha=split \
         --cov-dir="$COV_DIR" \
@@ -125,18 +126,19 @@ done
 
 
 
-# # Prototype evaluation
-# python scripts/vision/eval_task_addition.py \
-#         --model=ViT-B-16 \
-#         --finetuning-mode=lora \
-#         --merge-func=mean \
-#         --mha=split
-
+# Example:
+# python scripts/vision/eval_single_task.py \
+#   --model=ViT-B-16 \
+#   --finetuning-mode=standard \
+#   --data-location $SLURM_TMPDIR/datasets \
+#   --openclip-cachedir="$SCRATCH/openclip" 
 
 # python scripts/vision/eval_task_addition.py \
 #   --model=ViT-B-16 \
 #   --finetuning-mode=standard \
-#   --merge-func=fisher \
-#   --cov-dir="results/ViT-B-16/fisher_strain_n10_b32_ftstandard"
+#   --merge-func=regmean \
+#   --data-location $SLURM_TMPDIR/datasets \
+#   --openclip-cachedir="$SCRATCH/openclip" \
+#   --cov-dir="results/ViT-B-16/covariances_eigcov_k1000_ftstandard"
 
 # fisher_strain_n10_b32_ftstandard

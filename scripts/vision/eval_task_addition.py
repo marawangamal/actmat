@@ -37,6 +37,7 @@ _HASH_IGNORE = {
     "world_size",
     "cosine_samples",
     "grad_cross_ip",
+    "grad_cross_matrix",
     "lora_rank",
     "lora_alpha",
     "lora_dropout",
