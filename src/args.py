@@ -259,19 +259,22 @@ def parse_arguments():
         ),
     )
     parser.add_argument(
-        "--grad-cross-ip",
+        "--grad-cross-matrix",
         action="store_true",
         default=False,
-        help=(
-            "Track cross-sample gradient inner product E[g_k^T g_k'] for k!=k' during training. "
-            "Requires batch_size=1. Saves results to {ckpdir}/grad_cross_ip.pt."
-        ),
+        help="Per-layer matrix measurement of gradient cross-term condition (i).",
     )
     parser.add_argument(
         "--mid-checkpoint-step",
         type=int,
         default=None,
         help="Training step of the intermediate checkpoint used for eigcov covariance (e.g. 500).",
+    )
+    parser.add_argument(
+        "--eigcov-reverse",
+        action="store_true",
+        default=False,
+        help="Use Delta = W_k - W_0 instead of Delta = W_T - W_k for eigcov covariance.",
     )
     parsed_args = parser.parse_args()
     parsed_args.device = "cuda" if torch.cuda.is_available() else "cpu"
