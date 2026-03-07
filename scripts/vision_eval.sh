@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=eval_vision_models
+#SBATCH --partition=main
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
@@ -7,15 +8,18 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-# set -euo pipefail
-# mkdir -p logs
+set -euo pipefail
+mkdir -p logs
 
-# # 0. Setup environment
-# source "$SCRATCH/eigcov/.venv/bin/activate"
+# 0. Setup environment
+source "$SCRATCH/eigcov/.venv/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-if [ ! -d "$SLURM_TMPDIR/datasets" ]; then
+DATA_DIR="$SLURM_TMPDIR/datasets"
+OPENCLIP_DIR="$SCRATCH/openclip"
+
+if [ ! -d "$DATA_DIR" ]; then
   cp vit_datasets_08.zip "$SLURM_TMPDIR/"
   unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
 fi
@@ -51,22 +55,36 @@ N_EVAL_POINTS=11
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
 
-    # 1. Evaluate single task
+    # 1a. Evaluate single task (finetuned)
     case "$FT_MODE" in
-      lora)    _ST_JSON="checkpoints/$MODEL/lora_ft_accuracies.json" ;;
-      linear)  _ST_JSON="checkpoints/$MODEL/linear_ft_accuracies.json" ;;
-      posthoc) _ST_JSON="checkpoints/$MODEL/posthoc_ft_accuracies.json" ;;
-      *)       _ST_JSON="checkpoints/$MODEL/ft_accuracies.json" ;;
+      lora)    _ST_FT="checkpoints/$MODEL/lora_ft_accuracies.json" ;;
+      linear)  _ST_FT="checkpoints/$MODEL/linear_ft_accuracies.json" ;;
+      posthoc) _ST_FT="checkpoints/$MODEL/posthoc_ft_accuracies.json" ;;
+      *)       _ST_FT="checkpoints/$MODEL/ft_accuracies.json" ;;
     esac
-    if [ -f "$_ST_JSON" ]; then
-      echo "[BASH] Skipping eval_single_task.py | $_ST_JSON already exists"
+    if [ -f "$_ST_FT" ]; then
+      echo "[BASH] Skipping eval_single_task.py | $_ST_FT already exists"
     else
       echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
       python scripts/vision/eval_single_task.py \
         --finetuning-mode="$FT_MODE" \
         --model="$MODEL" \
-        --openclip-cachedir="$SCRATCH/openclip" \
-        --data-location="$SLURM_TMPDIR/datasets" \
+        --openclip-cachedir="$OPENCLIP_DIR" \
+        --data-location="$DATA_DIR" \
+        --results-db="$RESULTS_DB"
+    fi
+
+    # 1b. Evaluate single task (zeroshot)
+    _ST_ZS="checkpoints/$MODEL/zeroshot_accuracies.json"
+    if [ -f "$_ST_ZS" ]; then
+      echo "[BASH] Skipping eval_single_task.py (zeroshot) | $_ST_ZS already exists"
+    else
+      echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: none"
+      python scripts/vision/eval_single_task.py \
+        --finetuning-mode="none" \
+        --model="$MODEL" \
+        --openclip-cachedir="$OPENCLIP_DIR" \
+        --data-location="$DATA_DIR" \
         --results-db="$RESULTS_DB"
     fi
 
@@ -85,8 +103,8 @@ for MODEL in "${MODELS[@]}"; do
           --cov-type=sm \
           --cov-estimator=full \
           --finetuning-mode="$FT_MODE" \
-          --openclip-cachedir="$SCRATCH/openclip" \
-          --data-location="$SLURM_TMPDIR/datasets"
+          --openclip-cachedir="$OPENCLIP_DIR" \
+          --data-location="$DATA_DIR"
       elif [ "$method" = "fisher" ]; then
         echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
         python scripts/vision/fisher.py \
@@ -95,23 +113,25 @@ for MODEL in "${MODELS[@]}"; do
           --cov-num-batches="$NUM_BATCHES" \
           --cov-batch-size="$BATCH_SIZE" \
           --finetuning-mode="$FT_MODE" \
-          --openclip-cachedir="$SCRATCH/openclip" \
-          --data-location="$SLURM_TMPDIR/datasets"
+          --openclip-cachedir="$OPENCLIP_DIR" \
+          --data-location="$DATA_DIR"
       fi
 
-      # 2b. Set cov-dir based on method
+      # 2b. Set cov-dir (only meaningful for regmean/fisher)
       if [ "$method" = "fisher" ]; then
         COV_DIR="results/$MODEL/fisher_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_ft${FT_MODE}"
-      else
+      elif [ "$method" = "regmean" ]; then
         COV_DIR="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnsplit_efull_ft${FT_MODE}"
+      else
+        COV_DIR="None"
       fi
 
-      # 2c. Evaluate task addition (fixed coeff)
+      # 2c. Evaluate task addition
       echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | coeff start: $COEFF_START | coeff end: $COEFF_END | n eval points: $N_EVAL_POINTS"
       python scripts/vision/eval_task_addition.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
-        --data-location="$SLURM_TMPDIR/datasets" \
+        --data-location="$DATA_DIR" \
         --merge-func="$method" \
         --mha=split \
         --cov-dir="$COV_DIR" \
@@ -123,22 +143,3 @@ for MODEL in "${MODELS[@]}"; do
     done
   done
 done
-
-
-
-# Example:
-# python scripts/vision/eval_single_task.py \
-#   --model=ViT-B-16 \
-#   --finetuning-mode=standard \
-#   --data-location $SLURM_TMPDIR/datasets \
-#   --openclip-cachedir="$SCRATCH/openclip" 
-
-# python scripts/vision/eval_task_addition.py \
-#   --model=ViT-B-16 \
-#   --finetuning-mode=standard \
-#   --merge-func=regmean \
-#   --data-location $SLURM_TMPDIR/datasets \
-#   --openclip-cachedir="$SCRATCH/openclip" \
-#   --cov-dir="results/ViT-B-16/covariances_eigcov_k1000_ftstandard"
-
-# fisher_strain_n10_b32_ftstandard
