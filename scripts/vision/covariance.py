@@ -107,7 +107,16 @@ if __name__ == "__main__":
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.cov_device = torch.device("cpu")
 
-    all_tasks = ["Cars", "DTD", "EuroSAT", "GTSRB", "MNIST", "RESISC45", "SUN397", "SVHN"]
+    all_tasks = [
+        "Cars",
+        "DTD",
+        "EuroSAT",
+        "GTSRB",
+        "MNIST",
+        "RESISC45",
+        "SUN397",
+        "SVHN",
+    ]
     tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
 
     ss_num_batches = max(args.cov_num_batches)
