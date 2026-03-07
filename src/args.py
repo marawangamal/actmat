@@ -259,15 +259,6 @@ def parse_arguments():
         ),
     )
     parser.add_argument(
-        "--grad-cross-ip",
-        action="store_true",
-        default=False,
-        help=(
-            "Track cross-sample gradient inner product E[g_k^T g_k'] for k!=k' during training. "
-            "Requires batch_size=1. Saves results to {ckpdir}/grad_cross_ip.pt."
-        ),
-    )
-    parser.add_argument(
         "--grad-cross-matrix",
         action="store_true",
         default=False,

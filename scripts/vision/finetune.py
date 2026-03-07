@@ -16,6 +16,86 @@ from src.vision.modeling import ImageClassifier, ImageEncoder, apply_lora, merge
 from src.utils import LabelSmoothing, cosine_lr
 
 
+class GradCrossTermTracker:
+    """Measures per-layer gradient cross-term error during training.
+
+    For a subset of evenly-spaced linear layers, accumulates per-sample
+    gradient statistics across batches:
+      - grad_sum:  batch-mean of per-sample gradients, summed over batches  (Σ_k G^(k))
+      - gram_sum:  batch-mean of per-sample G^T G, summed over batches      (Σ_k S^(k))
+
+    At the end of training, compares cosine distance between grad_sum^T @ grad_sum and gram_sum.
+    """
+
+    def __init__(self, model, max_layers=8):
+        linear_layers = [
+            (name, module)
+            for name, module in model.named_modules()
+            if isinstance(module, torch.nn.Linear)
+        ]
+        n = len(linear_layers)
+        num_tracked = min(max_layers, n)
+        indices = (
+            [round(i * (n - 1) / (num_tracked - 1)) for i in range(num_tracked)]
+            if num_tracked > 1
+            else [0]
+        )
+        self.layers = {linear_layers[i][0]: linear_layers[i][1] for i in indices}
+        self.grad_sum = {name: None for name in self.layers}
+        self.gram_sum = {name: None for name in self.layers}
+        self.num_batches = 0
+
+        print(f"\n=== Tracking {len(self.layers)} layers for grad cross-terms ===")
+        for name, module in self.layers.items():
+            print(f"  {name}: weight {tuple(module.weight.shape)}")
+        print()
+
+    def step(self, model, inputs, labels, loss_fn):
+        """Compute per-sample gradients for one batch and accumulate statistics."""
+        batch_size = inputs.shape[0]
+        for b in range(batch_size):
+            model.zero_grad()
+            logits = model(inputs[b : b + 1])
+            loss = loss_fn(logits, labels[b : b + 1])
+            loss.backward()
+
+            for name, module in self.layers.items():
+                g = module.weight.grad.detach().float()  # (d_out, d_in)
+                if self.grad_sum[name] is None:
+                    d_in = g.shape[1]
+                    self.grad_sum[name] = torch.zeros_like(g, device="cpu")
+                    self.gram_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                self.grad_sum[name] += g.cpu() / batch_size
+                self.gram_sum[name] += (g.T @ g).cpu() / batch_size
+
+        self.num_batches += 1
+        model.zero_grad()
+
+    def save(self, ckpdir):
+        """Print summary and save per-layer results to disk."""
+        if self.num_batches <= 1:
+            return
+        K = self.num_batches
+        print(f"\n=== Per-layer gradient cross-term error [K={K}] ===")
+        os.makedirs(ckpdir, exist_ok=True)
+        for name in self.layers:
+            M = self.grad_sum[name]
+            S = self.gram_sum[name]
+            MtM = M.T @ M
+            a, b = MtM.flatten(), S.flatten()
+            cos_dist = 1 - torch.dot(a, b).abs() / (a.norm() * b.norm())
+            print(f"  {name}:")
+            print(f"    ||M^T M||_F  = {MtM.norm().item():.6e}")
+            print(f"    ||S||_F      = {S.norm().item():.6e}")
+            print(f"    cos distance = {cos_dist.item():.6e}")
+            fname = f"grad_cross_matrix_{name.replace('.', '_')}.pt"
+            torch.save(
+                {"K": K, "M": M, "S_sum": S, "M_T_M": MtM, "cos_dist": cos_dist.item()},
+                os.path.join(ckpdir, fname),
+            )
+        print()
+
+
 def _format_duration(seconds: float) -> str:
     seconds_int = max(0, int(seconds))
     hours = seconds_int // 3600
@@ -168,48 +248,15 @@ def finetune(rank, args):
         )
         ddp_model.module.image_encoder.save(model_path)
 
-    # Per-layer matrix gradient cross-term tracking (condition i)
+    grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
-        _linear_layers = [
-            (name, module)
-            for name, module in ddp_model.module.image_encoder.named_modules()
-            if isinstance(module, torch.nn.Linear)
-        ]
-        n = len(_linear_layers)
-        num_tracked = min(8, n)
-        _tracked_indices = (
-            [round(i * (n - 1) / (num_tracked - 1)) for i in range(num_tracked)]
-            if num_tracked > 1
-            else [0]
-        )
-        _tracked_layers = {
-            _linear_layers[i][0]: _linear_layers[i][1] for i in _tracked_indices
-        }
-
-        _M = {name: None for name in _tracked_layers}  # Σ_k G^(k), shape (d_out, d_in)
-        _S_sum = {
-            name: None for name in _tracked_layers
-        }  # Σ_k S^(k), shape (d_in, d_in)
-        _mat_K = 0
-
-        print(f"\n=== Tracking {len(_tracked_layers)} layers for grad cross-matrix ===")
-        for name in _tracked_layers:
-            print(f"  {name}: weight {tuple(_tracked_layers[name].weight.shape)}")
-        print()
-
-    # Cross-sample gradient IP tracking (condition i of Covariance Estimation Theorem)
-    if args.grad_cross_ip and is_main_process():
-        _grad_sum = None  # lazily initialized on first step (size = #params with grad)
-        _grad_sq_norm_sum = 0.0  # sum_k ||g_k||^2
-        _K = 0
+        grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
 
     run_start_time = time.perf_counter()
     for epoch in range(args.epochs):
         ddp_model.train()
 
         for i, batch in enumerate(ddp_loader):
-            # if args.grad_cross_ip and i >= 100:
-            #     break
             start_time = time.time()
 
             step = (
@@ -222,48 +269,14 @@ def finetune(rank, args):
             labels = batch["labels"].cuda()
             data_time = time.time() - start_time
 
-            # Per-sample gradient loop for matrix cross-term measurement
-            if args.grad_cross_matrix and is_main_process():
-                B = inputs.shape[0]
-                base_model = ddp_model.module
-
-                for b in range(B):
-                    base_model.zero_grad()
-                    logits_b = base_model(inputs[b : b + 1])
-                    loss_b = loss_fn(logits_b, labels[b : b + 1])
-                    loss_b.backward()
-
-                    for lname, module in _tracked_layers.items():
-                        g = module.weight.grad.detach().float()  # (d_out, d_in)
-                        if _M[lname] is None:
-                            d_in = g.shape[1]
-                            _M[lname] = torch.zeros_like(g, device="cpu")
-                            _S_sum[lname] = torch.zeros(d_in, d_in, dtype=torch.float32)
-                        _M[lname] += g.cpu() / B
-                        _S_sum[lname] += (g.T @ g).cpu() / B
-
-                _mat_K += 1
-                base_model.zero_grad()
+            if grad_cross_tracker is not None:
+                grad_cross_tracker.step(ddp_model.module, inputs, labels, loss_fn)
 
             logits = ddp_model(inputs)
 
             loss = loss_fn(logits, labels)
 
             loss.backward()
-
-            if args.grad_cross_ip and is_main_process():
-                g = torch.cat(
-                    [
-                        p.grad.detach().cpu().view(-1).float()
-                        for p in ddp_model.module.parameters()
-                        if p.requires_grad and p.grad is not None
-                    ]
-                )
-                if _grad_sum is None:
-                    _grad_sum = torch.zeros_like(g)
-                _grad_sum += g
-                _grad_sq_norm_sum += g.dot(g).item()
-                _K += 1
 
             if (i + 1) % args.num_grad_accumulation == 0:
                 scheduler(step)
@@ -302,52 +315,8 @@ def finetune(rank, args):
                     flush=True,
                 )
 
-    if args.grad_cross_ip and is_main_process() and _K > 1:
-        grad_sum_sq = _grad_sum.dot(_grad_sum).item()
-        mean_self_ip = _grad_sq_norm_sum / _K
-        mean_cross_ip = (grad_sum_sq - _grad_sq_norm_sum) / (_K * (_K - 1))
-        normalized = mean_cross_ip / mean_self_ip
-        print("\n=== Cross-sample gradient orthogonality (condition i) ===")
-        print(f"  Steps K                  : {_K}")
-        print(f"  mean ||g_k||^2           : {mean_self_ip:.6e}   <- self IP")
-        print(f"  mean g_k^T g_k' (k!=k') : {mean_cross_ip:.6e}   <- cross IP")
-        print(f"  normalized cross-IP      : {normalized:.6e}   <- ~0 if orthogonal")
-        os.makedirs(ckpdir, exist_ok=True)
-        torch.save(
-            {
-                "K": _K,
-                "mean_self_ip": mean_self_ip,
-                "mean_cross_ip": mean_cross_ip,
-                "normalized_cross_ip": normalized,
-                "grad_sum": _grad_sum,
-                "grad_sq_norm_sum": _grad_sq_norm_sum,
-            },
-            os.path.join(ckpdir, "grad_cross_ip.pt"),
-        )
-
-    if args.grad_cross_matrix and is_main_process() and _mat_K > 1:
-        print(f"\n=== Per-layer gradient cross-term condition (i) [K={_mat_K}] ===")
-        os.makedirs(ckpdir, exist_ok=True)
-        for lname in _tracked_layers:
-            M = _M[lname]
-            S = _S_sum[lname]
-            M_T_M = M.T @ M
-            rel_error = (M_T_M - S).norm() ** 2 / S.norm() ** 2
-            print(f"  {lname}:")
-            print(f"    ||M^T M||_F    = {M_T_M.norm().item():.6e}")
-            print(f"    ||S_sum||_F    = {S.norm().item():.6e}")
-            print(f"    rel error      = {rel_error.item():.6e}")
-            torch.save(
-                {
-                    "K": _mat_K,
-                    "M": M,
-                    "S_sum": S,
-                    "M_T_M": M_T_M,
-                    "rel_error": rel_error.item(),
-                },
-                os.path.join(ckpdir, f"grad_cross_matrix_{lname.replace('.', '_')}.pt"),
-            )
-        print()
+    if grad_cross_tracker is not None:
+        grad_cross_tracker.save(ckpdir)
 
     # FIXME: Make this work with DDP.
     if is_main_process():
@@ -417,7 +386,7 @@ if __name__ == "__main__":
     for dataset in train_datasets:
         # HACK: Some command line arguments are overwritten by defaults here.
         args.lr = 1e-5
-        if not args.grad_cross_ip and not args.grad_cross_matrix:
+        if not args.grad_cross_matrix:
             args.epochs = epochs[dataset]
         args.train_dataset = dataset + "Val"
 
