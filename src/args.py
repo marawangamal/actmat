@@ -182,7 +182,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--cov-dir",
-        type=str,
+        type=lambda x: None if x == "None" else x,
         default=None,
         help=(
             "Directory of per-dataset covariance .npz files produced by scripts/covariance.py. "
