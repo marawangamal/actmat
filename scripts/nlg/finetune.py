@@ -6,9 +6,12 @@ which can later be merged using scripts/nlg/merge.py.
 Uses allenai/tulu-3-sft-mixture (939k examples with 'messages' + 'source' columns),
 filtered by source to isolate each capability.
 
+
 Usage:
-    python scripts/nlg/finetune.py --capability math --output-dir checkpoints/nlg
-    python scripts/nlg/finetune.py --capability all --output-dir checkpoints/nlg
+    pip install datasets transformers trl peft
+    export HF_HOME=$SCRATCH/huggingface
+    python scripts/nlg/finetune.py --capability all --output-dir checkpoints/nlg --hf-cache-dir $SCRATCH/huggingface
+    python scripts/nlg/finetune.py --capability math --output-dir checkpoints/nlg --hf-cache-dir $SCRATCH/huggingface
     python scripts/nlg/finetune.py --capability coding --use-lora --hf-cache-dir $SCRATCH/huggingface
 """
 
