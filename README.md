@@ -3,12 +3,51 @@
 ## Setup
 
 ```sh
-pip install -r requirements.txt
-export PYTHONPATH="$PYTHONPATH:$PWD"
-export SSL_CERT_DIR=/etc/ssl/certs
-cp vit_datasets_08.zip $SLURM_TMPDIR/
-unzip -q $SLURM_TMPDIR/vit_datasets_08.zip -d $SLURM_TMPDIR/
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv new_venv --python 3.11
+source .new_venv/bin/activate
+uv pip install -r requirements.txt
+cd ../olmes
+uv pip install -e . 
 ```
+
+```
+olmes --model pmahdavi/Llama-3.1-8B-math-reasoning --task tulu_3_dev --limit 1 --output-dir results_tulu --batch-size 4
+```
+
+# Merging
+```
+python3 scripts/nlg/merge_param_folders.py \
+  --pretrained-dir ~/projects/aip-craffel/dtam/olmes/models/meta-llama/Llama-3.1-8B \
+  --finetuned-dirs \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-math-reasoning \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-coding \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-coding-tulu3-ebs128-lr5e6-wsdcr0p4 \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-precise-if \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-general \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-knowledge-recall \
+  --methods average \
+  --output-root ~/projects/aip-craffel/dtam/olmes/models/pmahdavi \
+  --output-prefix Llama-3.1-8B-merged
+```
+```
+python3 scripts/nlg/param_folder_to_hf.py \
+  --param-folder /home/dtam/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-average \
+  --output-dir /home/dtam/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-average-hf \
+  --tokenizer-source-dir /home/dtam/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-math-reasoning \
+  --trust-remote-code
+```
+
+# Evaluating 
+```
+olmes \
+  --model /home/dtam/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-average-hf \
+  --task tulu_3_dev_fast \
+  --limit 1 \
+  --output-dir results_tulu_average
+
+```
+
 
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 
@@ -96,6 +135,11 @@ python scripts/language/eval_single_task.py \
 python scripts/language/eval_task_addition.py \
   --model=t5-base --finetuning-mode=standard --merge-func=eigcov --save=$SCRATCH/eigcov/checkpoints/language
 ```
+
+## NLG (Llama) Experiments 
+### 1 
+olmes --model pmahdavi/Llama-3.1-8B-math-reasoning --task tulu_3_dev --limit 1 --output-dir results_tulu --batch-size 8        
+
 
 ## Repository Structure
 
