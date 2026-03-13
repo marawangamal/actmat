@@ -23,8 +23,10 @@ class GradCrossTermTracker:
     gradient statistics across batches:
       - grad_sum:  batch-mean of per-sample gradients, summed over batches  (Σ_k G^(k))
       - gram_sum:  batch-mean of per-sample G^T G, summed over batches      (Σ_k S^(k))
+      - stilde_sum: Σ_k E[zz^T] * E[||g||^2], the uncorrelated second moment
 
-    At the end of training, compares cosine distance between grad_sum^T @ grad_sum and gram_sum.
+    At the end of training, compares cosine distance between grad_sum^T @ grad_sum and gram_sum,
+    and between gram_sum (S_bar) and stilde_sum (S_tilde).
     """
 
     def __init__(self, model, max_layers=8):
@@ -43,16 +45,45 @@ class GradCrossTermTracker:
         self.layers = {linear_layers[i][0]: linear_layers[i][1] for i in indices}
         self.grad_sum = {name: None for name in self.layers}
         self.gram_sum = {name: None for name in self.layers}
+        self.stilde_sum = {name: None for name in self.layers}
         self.num_batches = 0
+
+        # Hook storage
+        self._activations = {}
+        self._output_grads = {}
+        self._hooks = []
+
+        for name, module in self.layers.items():
+            self._hooks.append(module.register_forward_hook(self._make_fwd_hook(name)))
+            self._hooks.append(
+                module.register_full_backward_hook(self._make_bwd_hook(name))
+            )
 
         print(f"\n=== Tracking {len(self.layers)} layers for grad cross-terms ===")
         for name, module in self.layers.items():
             print(f"  {name}: weight {tuple(module.weight.shape)}")
         print()
 
+    def _make_fwd_hook(self, name):
+        def hook(module, input, output):
+            self._activations[name] = input[0].detach()
+
+        return hook
+
+    def _make_bwd_hook(self, name):
+        def hook(module, grad_input, grad_output):
+            self._output_grads[name] = grad_output[0].detach()
+
+        return hook
+
     def step(self, model, inputs, labels, loss_fn):
         """Compute per-sample gradients for one batch and accumulate statistics."""
         batch_size = inputs.shape[0]
+
+        # Accumulators for batch-mean E[zz^T] and E[||gy||^2]
+        zzT_sum = {name: None for name in self.layers}
+        gynorm_sum = {name: 0.0 for name in self.layers}
+
         for b in range(batch_size):
             model.zero_grad()
             logits = model(inputs[b : b + 1])
@@ -65,8 +96,25 @@ class GradCrossTermTracker:
                     d_in = g.shape[1]
                     self.grad_sum[name] = torch.zeros_like(g, device="cpu")
                     self.gram_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    self.stilde_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
                 self.grad_sum[name] += g.cpu() / batch_size
                 self.gram_sum[name] += (g.T @ g).cpu() / batch_size
+
+                # Accumulate z and gy statistics from hooks
+                z = self._activations[name].float().squeeze(0)  # (d_in,)
+                gy = self._output_grads[name].float().squeeze(0)  # (d_out,)
+                if zzT_sum[name] is None:
+                    d_in = z.shape[0]
+                    zzT_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                zzT_sum[name] += (
+                    z.cpu().unsqueeze(1) @ z.cpu().unsqueeze(0)
+                ) / batch_size
+                gynorm_sum[name] += (gy.norm() ** 2).cpu().item() / batch_size
+
+        # S_tilde_k = E[zz^T] * E[||gy||^2]
+        for name in self.layers:
+            if zzT_sum[name] is not None:
+                self.stilde_sum[name] += zzT_sum[name] * gynorm_sum[name]
 
         self.num_batches += 1
         model.zero_grad()
@@ -81,19 +129,47 @@ class GradCrossTermTracker:
         for name in self.layers:
             M = self.grad_sum[name]
             S = self.gram_sum[name]
+            St = self.stilde_sum[name]
             MtM = M.T @ M
+
+            # cross-term error: cos_dist(M^T M, S)
             a, b = MtM.flatten(), S.flatten()
-            cos_dist = 1 - torch.dot(a, b).abs() / (a.norm() * b.norm())
+            cos_dist_cross = 1 - torch.dot(a, b).abs() / (a.norm() * b.norm())
+
+            # correlation error: cos_dist(S_bar, S_tilde)
+            a2, b2 = S.flatten(), St.flatten()
+            cos_dist_corr = 1 - torch.dot(a2, b2).abs() / (a2.norm() * b2.norm())
+
+            # arcsin bound: ||S_bar - S_tilde|| / ||S_bar||
+            corr_diff_ratio = (S - St).norm() / S.norm()
+
             print(f"  {name}:")
-            print(f"    ||M^T M||_F  = {MtM.norm().item():.6e}")
-            print(f"    ||S||_F      = {S.norm().item():.6e}")
-            print(f"    cos distance = {cos_dist.item():.6e}")
+            print(f"    ||M^T M||_F       = {MtM.norm().item():.6e}")
+            print(f"    ||S_bar||_F       = {S.norm().item():.6e}")
+            print(f"    ||S_tilde||_F     = {St.norm().item():.6e}")
+            print(f"    cos_dist(cross)   = {cos_dist_cross.item():.6e}")
+            print(f"    cos_dist(corr)    = {cos_dist_corr.item():.6e}")
+            print(f"    ||S-St||/||S||    = {corr_diff_ratio.item():.6e}")
             fname = f"grad_cross_matrix_{name.replace('.', '_')}.pt"
             torch.save(
-                {"K": K, "M": M, "S_sum": S, "M_T_M": MtM, "cos_dist": cos_dist.item()},
+                {
+                    "K": K,
+                    "M": M,
+                    "S_bar": S,
+                    "S_tilde": St,
+                    "M_T_M": MtM,
+                    "cos_dist_cross": cos_dist_cross.item(),
+                    "cos_dist_corr": cos_dist_corr.item(),
+                    "corr_diff_ratio": corr_diff_ratio.item(),
+                },
                 os.path.join(ckpdir, fname),
             )
         print()
+
+    def remove_hooks(self):
+        for h in self._hooks:
+            h.remove()
+        self._hooks.clear()
 
 
 def _format_duration(seconds: float) -> str:

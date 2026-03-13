@@ -87,17 +87,17 @@ bash scripts/vision/vision_train.sh
 bash scripts/vision/vision_eval.sh
 ```
 
-### Generate gradient accumulators
+### Generate gradient cross-term matrices
 ```sh
 python scripts/vision/finetune.py \
     --model ViT-B-16 \
-    --train-dataset MNIST \
     --finetuning-mode standard \
     --batch-size 1 \
-    --epochs 1 \
-    --grad-cross-ip \
+    --epochs 2 \
+    --grad-cross-matrix \
     --data-location $SLURM_TMPDIR/datasets \
-    --save checkpoints-accum
+    --save checkpoints-accum-e2-new \
+    --openclip-cachedir $SCRATCH/openclip
 ```
 
 ## Language Experiments
