@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 
@@ -13,6 +14,7 @@ from src.vision.eval import eval_single_dataset
 from src.vision.heads import get_classification_head
 from src.vision.linearize import LinearizedImageEncoder
 from src.vision.modeling import ImageClassifier, ImageEncoder, apply_lora, merge_lora
+from src.mhas import swap_mha, unswap_mha
 from src.utils import LabelSmoothing, cosine_lr
 
 
@@ -100,15 +102,15 @@ class GradCrossTermTracker:
                 self.grad_sum[name] += g.cpu() / batch_size
                 self.gram_sum[name] += (g.T @ g).cpu() / batch_size
 
-                # Accumulate z and gy statistics from hooks
-                z = self._activations[name].float().squeeze(0)  # (d_in,)
-                gy = self._output_grads[name].float().squeeze(0)  # (d_out,)
+                # Accumulate z and gy statistics from hooks.
+                # Activations may be (T, B, d_in), (B, T, d_in), or (B, d_in);
+                # flatten everything except the feature dim.
+                z = self._activations[name].float().reshape(-1, self._activations[name].shape[-1])   # (N, d_in)
+                gy = self._output_grads[name].float().reshape(-1, self._output_grads[name].shape[-1])  # (N, d_out)
                 if zzT_sum[name] is None:
-                    d_in = z.shape[0]
+                    d_in = z.shape[-1]
                     zzT_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
-                zzT_sum[name] += (
-                    z.cpu().unsqueeze(1) @ z.cpu().unsqueeze(0)
-                ) / batch_size
+                zzT_sum[name] += (z.cpu().T @ z.cpu()) / batch_size
                 gynorm_sum[name] += (gy.norm() ** 2).cpu().item() / batch_size
 
         # S_tilde_k = E[zz^T] * E[||gy||^2]
@@ -255,6 +257,23 @@ def finetune(rank, args):
     model = ImageClassifier(image_encoder, classification_head)
 
     model.freeze_head()
+
+    # Save zeroshot before MHA swap so checkpoint is in standard format.
+    # (LoRA zeroshot is already saved above, before LoRA is applied.)
+    if args.save is not None and is_main_process() and not lora_finetuning:
+        os.makedirs(ckpdir, exist_ok=True)
+        model_path = (
+            os.path.join(ckpdir, "linear_zeroshot.pt")
+            if linearized_finetuning
+            else os.path.join(ckpdir, "zeroshot.pt")
+        )
+        model.image_encoder.save(model_path)
+
+    # Swap nn.MultiheadAttention -> MultiHeadAttentionSplit so forward hooks
+    # fire on per-projection Linear layers (needed for grad cross-term tracking).
+    if args.grad_cross_matrix:
+        swap_mha(model.image_encoder)
+
     model = model.cuda()
 
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -314,16 +333,6 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {args.epochs * num_batches // args.num_grad_accumulation}")
 
-    # Saving zero-shot model (LoRA zeroshot is saved before LoRA is applied)
-    if args.save is not None and is_main_process() and not lora_finetuning:
-        os.makedirs(ckpdir, exist_ok=True)
-        model_path = (
-            os.path.join(ckpdir, "linear_zeroshot.pt")
-            if linearized_finetuning
-            else os.path.join(ckpdir, "zeroshot.pt")
-        )
-        ddp_model.module.image_encoder.save(model_path)
-
     grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
         grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
@@ -374,7 +383,11 @@ def finetune(rank, args):
                     model_path = os.path.join(ckpdir, f"lora_checkpoint_{step}.pt")
                 else:
                     model_path = os.path.join(ckpdir, f"checkpoint_{step}.pt")
-                ddp_model.module.image_encoder.save(model_path)
+                enc = ddp_model.module.image_encoder
+                if args.grad_cross_matrix:
+                    enc = copy.deepcopy(enc).cpu()
+                    unswap_mha(enc)
+                enc.save(model_path)
                 print(f"Saved checkpoint to {model_path}", flush=True)
 
             if (
@@ -415,7 +428,11 @@ def finetune(rank, args):
         else:
             zs_path = os.path.join(ckpdir, "zeroshot.pt")
             ft_path = os.path.join(ckpdir, "finetuned.pt")
-        image_encoder.save(ft_path)
+        enc_to_save = image_encoder
+        if args.grad_cross_matrix:
+            enc_to_save = copy.deepcopy(image_encoder).cpu()
+            unswap_mha(enc_to_save)
+        enc_to_save.save(ft_path)
         cleanup_ddp()
         return zs_path, ft_path
 

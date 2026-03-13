@@ -220,6 +220,22 @@ def swap_mha(model):
     return model
 
 
+def unswap_mha(model):
+    """Recursively replace all MultiHeadAttentionSplit with nn.MultiheadAttention."""
+    for name, module in model.named_children():
+        if isinstance(module, MultiHeadAttentionSplit):
+            pt = nn.MultiheadAttention(
+                embed_dim=module.d_model,
+                num_heads=module.n_head,
+                bias=module.q.bias is not None,
+            )
+            copy_weights_to_pytorch_mha(module, pt)
+            setattr(model, name, pt)
+        else:
+            unswap_mha(module)
+    return model
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
