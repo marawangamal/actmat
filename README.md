@@ -11,12 +11,11 @@ cd ../olmes
 uv pip install -e . 
 ```
 
-```
-olmes --model pmahdavi/Llama-3.1-8B-math-reasoning --task tulu_3_dev --limit 1 --output-dir results_tulu --batch-size 4
-```
 
 # Merging
-```
+
+
+```sh
 python3 scripts/nlg/merge_param_folders.py \
   --pretrained-dir ~/projects/aip-craffel/dtam/olmes/models/meta-llama/Llama-3.1-8B \
   --finetuned-dirs \
@@ -26,15 +25,23 @@ python3 scripts/nlg/merge_param_folders.py \
     ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-precise-if \
     ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-general \
     ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-knowledge-recall \
-  --methods average \
+  --covariance-dirs \
+    /scratch/dtam/eigcov_models/pmahdavi/Llama-3.1-8B-math-gram/Llama-3.1-8B-math \
+    /scratch/dtam/eigcov_models/pmahdavi/Llama-3.1-8B-coding-gram/Llama-3.1-8B-coding \
+    /scratch/dtam/eigcov_models/pmahdavi/Llama-3.1-8B-coding-2-gram/Llama-3.1-8B-coding \
+    /scratch/dtam/eigcov_models/pmahdavi/Llama-3.1-8B-precise-if-gram/Llama-3.1-8B-precise_if \
+    /scratch/dtam/eigcov_models/pmahdavi/Llama-3.1-8B-general-gram/Llama-3.1-8B-general \
+    /scratch/dtam/eigcov_models/pmahdavi/Llama-3.1-8B-knowledge-gram/Llama-3.1-8B-knowledge \
+  --methods regmean \
   --output-root ~/projects/aip-craffel/dtam/olmes/models/pmahdavi \
   --output-prefix Llama-3.1-8B-merged
 ```
+Map merged model to HF model for evaluating 
 ```
 python3 scripts/nlg/param_folder_to_hf.py \
-  --param-folder /home/dtam/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-average \
-  --output-dir /home/dtam/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-average-hf \
-  --tokenizer-source-dir /home/dtam/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-math-reasoning \
+  --param-folder ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-regmean \
+  --output-dir ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-regmean-hf \
+  --tokenizer-source-dir ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-math-reasoning \
   --trust-remote-code
 ```
 
@@ -45,9 +52,26 @@ olmes \
   --task tulu_3_dev_fast \
   --limit 1 \
   --output-dir results_tulu_average
+```
+# L2 Distance 
+```
+python3 scripts/nlg/compute_param_folder_l2.py \
+  --merged-dirs \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-regmean \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-average \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-eigcov \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-isoc \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-merged-tsv \
+  --finetuned-dirs \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-math-reasoning \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-coding \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-coding-tulu3-ebs128-lr5e6-wsdcr0p4 \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-precise-if \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-general \
+    ~/projects/aip-craffel/dtam/olmes/models/pmahdavi/Llama-3.1-8B-knowledge-recall \
+  --output-csv results/nlg_param_folder_l2.csv
 
 ```
-
 
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 

@@ -1,0 +1,2 @@
+export PROJ_ROOT=`pwd`
+export PYTHONPATH=$PROJ_ROOT:$PYTHONPATH

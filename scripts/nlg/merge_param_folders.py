@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge param-folder models block-by-block (average / tsv / isoc).
+"""Merge param-folder models block-by-block (average / tsv / isoc / regmean).
 
 Input folders must follow the olmes param-folder format:
 - config + tokenizer files in folder root
@@ -12,12 +12,12 @@ import hashlib
 import json
 import shutil
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import torch
 from tqdm import tqdm
 
-from src.merging import merge_eigcov, merge_isoc_mean, merge_tsv
+from src.merging import _merge_regmean_from_tensors, merge_eigcov, merge_isoc_mean, merge_tsv
 
 
 def _safe_file_stem(param_name: str) -> str:
@@ -95,6 +95,23 @@ def _merge_delta(deltas: torch.Tensor, method: str) -> torch.Tensor:
     raise ValueError(f"Unsupported method: {method}")
 
 
+def _is_regmean_excluded_param(param_name: str) -> bool:
+    return (
+        param_name == "lm_head.weight"
+        or param_name.endswith(".lm_head.weight")
+        or "embed_tokens" in param_name
+        or "embedding" in param_name
+    )
+
+
+def _should_use_regmean(param_name: str, tensor: torch.Tensor) -> bool:
+    return (
+        torch.is_floating_point(tensor)
+        and tensor.ndim == 2
+        and not _is_regmean_excluded_param(param_name)
+    )
+
+
 def _validate_keys(base_manifest: Dict, ft_manifests: List[Dict]) -> List[str]:
     keys = list(base_manifest["params"].keys())
     base_set = set(keys)
@@ -114,12 +131,48 @@ def _build_param_file_path(model_dir: Path, manifest: Dict, param_name: str) -> 
     return model_dir / "params" / filename
 
 
+def _param_name_to_covariance_key(param_name: str) -> str:
+    if param_name.endswith(".weight"):
+        return param_name[: -len(".weight")]
+    return param_name
+
+
+def _load_covariances_for_param(
+    cov_dirs: List[Path],
+    cov_manifests: List[Dict],
+    param_name: str,
+    expected_dim: int,
+) -> List[torch.Tensor]:
+    covariances = []
+    cov_key = _param_name_to_covariance_key(param_name)
+    for cov_dir, cov_manifest in zip(cov_dirs, cov_manifests):
+        if cov_key not in cov_manifest["params"]:
+            raise ValueError(
+                f"Missing covariance for parameter '{param_name}' "
+                f"(expected covariance key '{cov_key}') in {cov_dir}"
+            )
+        cov = _load_single_tensor(_build_param_file_path(cov_dir, cov_manifest, cov_key))
+        if cov.ndim != 2:
+            raise ValueError(
+                f"Covariance for parameter '{param_name}' in {cov_dir} must be 2D, got {cov.ndim}D"
+            )
+        if cov.shape != (expected_dim, expected_dim):
+            raise ValueError(
+                f"Covariance shape mismatch for '{param_name}' in {cov_dir}: "
+                f"expected {(expected_dim, expected_dim)}, got {tuple(cov.shape)}"
+            )
+        covariances.append(cov)
+    return covariances
+
+
 def merge_one_method(
     method: str,
     base_dir: Path,
     base_manifest: Dict,
     ft_dirs: List[Path],
     ft_manifests: List[Dict],
+    cov_dirs: List[Path],
+    cov_manifests: List[Dict],
     out_dir: Path,
     use_safetensors: bool,
     fp32_merge: bool,
@@ -185,6 +238,21 @@ def merge_one_method(
             if method == "average":
                 # Explicitly average original finetuned model parameters.
                 merged_tensor = ft_stack.mean(dim=0).to(base_tensor.dtype)
+            elif method == "regmean":
+                if _should_use_regmean(key, base_tensor):
+                    covariances = _load_covariances_for_param(
+                        cov_dirs,
+                        cov_manifests,
+                        key,
+                        expected_dim=base_tensor.shape[1],
+                    )
+                    base_for_merge = base_tensor.to(merge_dtype)
+                    deltas = ft_stack - base_for_merge
+                    cov_stack = torch.stack([c.to(merge_dtype) for c in covariances], dim=0)
+                    merged_delta = _merge_regmean_from_tensors(deltas, cov_stack)
+                    merged_tensor = (base_for_merge + merged_delta).to(base_tensor.dtype)
+                else:
+                    merged_tensor = ft_stack.mean(dim=0).to(base_tensor.dtype)
             else:
                 base_for_merge = base_tensor.to(merge_dtype)
                 deltas = ft_stack - base_for_merge
@@ -209,7 +277,7 @@ def merge_one_method(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Merge param-folder models block-by-block (average, tsv, isoc, eigcov)."
+        description="Merge param-folder models block-by-block (average, tsv, isoc, eigcov, regmean)."
     )
     parser.add_argument(
         "--pretrained-dir",
@@ -223,10 +291,16 @@ def parse_args() -> argparse.Namespace:
         help="Finetuned param-folder directories to merge.",
     )
     parser.add_argument(
+        "--covariance-dirs",
+        nargs="+",
+        default=None,
+        help="Covariance/gram param-folder directories for RegMean, aligned with --finetuned-dirs.",
+    )
+    parser.add_argument(
         "--methods",
         nargs="+",
         default=["average", "tsv", "isoc"],
-        choices=["average", "tsv", "isoc", "eigcov"],
+        choices=["average", "tsv", "isoc", "eigcov", "regmean"],
         help="Merge methods to run.",
     )
     parser.add_argument(
@@ -258,9 +332,22 @@ def main() -> None:
     base_dir = Path(args.pretrained_dir).expanduser().resolve()
     ft_dirs = [Path(p).expanduser().resolve() for p in args.finetuned_dirs]
     out_root = Path(args.output_root).expanduser().resolve()
+    cov_dirs = (
+        [Path(p).expanduser().resolve() for p in args.covariance_dirs]
+        if args.covariance_dirs is not None
+        else []
+    )
 
     base_manifest = _load_manifest(base_dir)
     ft_manifests = [_load_manifest(d) for d in ft_dirs]
+    cov_manifests: List[Dict] = []
+
+    if "regmean" in args.methods:
+        if args.covariance_dirs is None:
+            raise ValueError("--covariance-dirs is required when using method 'regmean'")
+        if len(cov_dirs) != len(ft_dirs):
+            raise ValueError("--covariance-dirs must match --finetuned-dirs in count and order")
+        cov_manifests = [_load_manifest(d) for d in cov_dirs]
 
     if args.save_format == "pt":
         use_safetensors = False
@@ -283,6 +370,8 @@ def main() -> None:
             base_manifest=base_manifest,
             ft_dirs=ft_dirs,
             ft_manifests=ft_manifests,
+            cov_dirs=cov_dirs,
+            cov_manifests=cov_manifests,
             out_dir=out_dir,
             use_safetensors=use_safetensors,
             fp32_merge=not args.no_fp32_merge,
