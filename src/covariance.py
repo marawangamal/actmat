@@ -62,7 +62,8 @@ def register_hooks(
         cov_device: Device to store covariance matrices on.
         cov_type: Covariance mode passed to OnlineCovariance ("sm" or "cov").
         cov_estimator: "full" for full-sequence DxT vectors, "sampled" for a
-            single random token position per sample.
+            single random token position per sample, "avg" to treat every
+            token as an independent D-dim sample (seq dim becomes batch dim).
         mask_ref: A list of mask tensors (each shape (B, T)) that the caller
             updates each batch before the forward pass. The hook matches the
             mask whose T dimension equals the activation's T. Pass None to
@@ -110,9 +111,7 @@ def register_hooks(
                 if cov_estimator == "sampled":
                     # Dx1 vector: one random token position per sample
                     if n not in cobjs:
-                        cobjs[n] = OnlineCovariance(
-                            D, device=cov_device, mode=cov_type
-                        )
+                        cobjs[n] = OnlineCovariance(D, device=cov_device, mode=cov_type)
                     cobj = cobjs[n]
                     for b in range(B):
                         j = torch.randint(0, T, (1,)).item()
@@ -120,6 +119,17 @@ def register_hooks(
                             cobj.add(x[b, j : j + 1].T, x[b, j : j + 1].T)
                         else:
                             cobj.add(x[j : j + 1, b].T, x[j : j + 1, b].T)
+                elif cov_estimator == "avg":
+                    # Treat each token as an independent D-dim sample
+                    if n not in cobjs:
+                        cobjs[n] = OnlineCovariance(D, device=cov_device, mode=cov_type)
+                    cobj = cobjs[n]
+                    for b in range(B):
+                        for t in range(T):
+                            if batch_first:
+                                cobj.add(x[b, t : t + 1].T, x[b, t : t + 1].T)
+                            else:
+                                cobj.add(x[t : t + 1, b].T, x[t : t + 1, b].T)
                 else:
                     # DxT vector: full sequence per sample
                     if n not in cobjs:

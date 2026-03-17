@@ -217,7 +217,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--cov-estimator",
-        choices=["sampled", "full"],
+        choices=["sampled", "full", "avg"],
         default="full",
         help=(
             "How to estimate the covariance per layer. "

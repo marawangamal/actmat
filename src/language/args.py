@@ -226,7 +226,7 @@ def parse_arguments():
         "--cov-estimator",
         type=str,
         default="sampled",
-        choices=["sampled", "full"],
+        choices=["sampled", "full", "avg"],
         help="Covariance estimator: 'sampled' (one token) or 'full' (all tokens).",
     )
     parser.add_argument(

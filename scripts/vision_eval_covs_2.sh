@@ -30,7 +30,7 @@ FT_MODES=(standard)
 BATCH_SIZE=1
 NUM_BATCHES_LIST=(1 10 100 500 1000)
 RESULTS_DB="results/results.jsonl"
-ESTIMATOR=avg
+ESTIMATOR=sampled
 # ─────────────────────────────────────────────────────────────────────────
 
 for MODEL in "${MODELS[@]}"; do
@@ -43,7 +43,6 @@ for MODEL in "${MODELS[@]}"; do
       --finetuning-mode="$FT_MODE" \
       --data-location="$DATA_DIR" \
       --merge-func=eigcov \
-      --mha=split \
       --cov-dir=None \
       --results-db="$RESULTS_DB" \
       --coeff-start=1.0 \
@@ -58,7 +57,6 @@ for MODEL in "${MODELS[@]}"; do
       --cov-split=train \
       --cov-num-batches="$NUM_BATCHES_CSV" \
       --cov-batch-size="$BATCH_SIZE" \
-      --mha=split \
       --cov-type=sm \
       --cov-estimator="$ESTIMATOR" \
       --finetuning-mode="$FT_MODE" \
@@ -67,7 +65,7 @@ for MODEL in "${MODELS[@]}"; do
 
     # 3. Evaluate RegMean at each sample count
     for NUM_BATCHES in "${NUM_BATCHES_LIST[@]}"; do
-      COV_DIR="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnsplit_e${ESTIMATOR}_ft${FT_MODE}"
+      COV_DIR="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnNone_e${ESTIMATOR}_ft${FT_MODE}"
 
       echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: regmean | n: $NUM_BATCHES"
       python scripts/vision/eval_task_addition.py \
@@ -75,7 +73,6 @@ for MODEL in "${MODELS[@]}"; do
         --finetuning-mode="$FT_MODE" \
         --data-location="$DATA_DIR" \
         --merge-func=regmean \
-        --mha=split \
         --cov-dir="$COV_DIR" \
         --results-db="$RESULTS_DB" \
         --coeff-start=1.0 \
