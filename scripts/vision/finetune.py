@@ -1,5 +1,7 @@
+import copy
 import os
 import time
+from typing import Dict, Optional
 
 import torch
 
@@ -13,6 +15,7 @@ from src.vision.eval import eval_single_dataset
 from src.vision.heads import get_classification_head
 from src.vision.linearize import LinearizedImageEncoder
 from src.vision.modeling import ImageClassifier, ImageEncoder, apply_lora, merge_lora
+from src.mhas import swap_mha, unswap_mha
 from src.utils import LabelSmoothing, cosine_lr
 
 
@@ -23,8 +26,10 @@ class GradCrossTermTracker:
     gradient statistics across batches:
       - grad_sum:  batch-mean of per-sample gradients, summed over batches  (Σ_k G^(k))
       - gram_sum:  batch-mean of per-sample G^T G, summed over batches      (Σ_k S^(k))
+      - stilde_sum: Σ_k E[zz^T] * E[||g||^2], the uncorrelated second moment
 
-    At the end of training, compares cosine distance between grad_sum^T @ grad_sum and gram_sum.
+    At the end of training, compares cosine distance between grad_sum^T @ grad_sum and gram_sum,
+    and between gram_sum (S_bar) and stilde_sum (S_tilde).
     """
 
     def __init__(self, model, max_layers=8):
@@ -41,32 +46,154 @@ class GradCrossTermTracker:
             else [0]
         )
         self.layers = {linear_layers[i][0]: linear_layers[i][1] for i in indices}
-        self.grad_sum = {name: None for name in self.layers}
-        self.gram_sum = {name: None for name in self.layers}
+
+        # V1:
+        # self.grad_sum = {name: None for name in self.layers}
+        # self.gram_sum = {name: None for name in self.layers}
+        # self.stilde_sum = {name: None for name in self.layers}
+        # self.zzT_total = {name: None for name in self.layers}
+
+        # V2:
+        self.gbar = dict()
+        self.sbar = dict()
+        self.stilde = dict()
+        self.stilde_zzT = dict()
+        self.stilde_gtg = dict()
+
         self.num_batches = 0
+
+        # Hook storage
+        self._activations = {}
+        self._output_grads = {}
+        self._hooks = []
+
+        for name, module in self.layers.items():
+            self._hooks.append(module.register_forward_hook(self._make_fwd_hook(name)))
+            self._hooks.append(
+                module.register_full_backward_hook(self._make_bwd_hook(name))
+            )
 
         print(f"\n=== Tracking {len(self.layers)} layers for grad cross-terms ===")
         for name, module in self.layers.items():
             print(f"  {name}: weight {tuple(module.weight.shape)}")
         print()
 
+    def _make_fwd_hook(self, name):
+        def hook(module, input, output):
+            self._activations[name] = input[0].detach()
+
+        return hook
+
+    def _make_bwd_hook(self, name):
+        def hook(module, grad_input, grad_output):
+            self._output_grads[name] = grad_output[0].detach()
+
+        return hook
+
+    # V1:
+    # def step(self, model, inputs, labels, loss_fn):
+    #     """Compute per-sample gradients for one batch and accumulate statistics."""
+    #     batch_size = inputs.shape[0]
+
+    #     # Accumulators for batch-mean E[zz^T] and E[||gy||^2]
+    #     zzT_sum = {name: None for name in self.layers}
+    #     gynorm_sum = {name: 0.0 for name in self.layers}
+
+    #     for b in range(batch_size):
+    #         model.zero_grad()
+    #         logits = model(inputs[b : b + 1])
+    #         loss = loss_fn(logits, labels[b : b + 1])
+    #         loss.backward()
+
+    #         for name, module in self.layers.items():
+    #             g = module.weight.grad.detach().float()  # (d_out, d_in)
+    #             if self.grad_sum[name] is None:
+    #                 d_in = g.shape[1]
+    #                 self.grad_sum[name] = torch.zeros_like(g, device="cpu")
+    #                 self.gram_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+    #                 self.stilde_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+    #                 self.zzT_total[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+    #             self.grad_sum[name] += g.cpu() / batch_size
+    #             self.gram_sum[name] += (g.T @ g).cpu() / batch_size
+
+    #             # Accumulate z and gy statistics from hooks.
+    #             # Activations may be (T, B, d_in), (B, T, d_in), or (B, d_in);
+    #             # flatten everything except the feature dim.
+    #             z = (
+    #                 self._activations[name]
+    #                 .float()
+    #                 .reshape(-1, self._activations[name].shape[-1])
+    #             )  # (N, d_in)
+    #             gy = (
+    #                 self._output_grads[name]
+    #                 .float()
+    #                 .reshape(-1, self._output_grads[name].shape[-1])
+    #             )  # (N, d_out)
+    #             if zzT_sum[name] is None:
+    #                 d_in = z.shape[-1]
+    #                 zzT_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+    #             zzT_sum[name] += (z.cpu().T @ z.cpu()) / batch_size
+    #             gynorm_sum[name] += (gy.norm() ** 2).cpu().item() / batch_size
+    #             self.zzT_total[name] += (z.cpu().T @ z.cpu()) / batch_size
+
+    #     # S_tilde_k = E[zz^T] * E[||gy||^2]
+    #     for name in self.layers:
+    #         if zzT_sum[name] is not None:
+    #             self.stilde_sum[name] += zzT_sum[name] * gynorm_sum[name]
+
+    #     self.num_batches += 1
+    #     model.zero_grad()
+
     def step(self, model, inputs, labels, loss_fn):
         """Compute per-sample gradients for one batch and accumulate statistics."""
-        batch_size = inputs.shape[0]
-        for b in range(batch_size):
+        B = inputs.shape[0]
+
+        # Create accumulators for the iteration.
+        stilde_zzT = dict()
+        stilde_gtg = dict()
+
+        for b in range(B):
             model.zero_grad()
             logits = model(inputs[b : b + 1])
             loss = loss_fn(logits, labels[b : b + 1])
             loss.backward()
 
             for name, module in self.layers.items():
-                g = module.weight.grad.detach().float()  # (d_out, d_in)
-                if self.grad_sum[name] is None:
-                    d_in = g.shape[1]
-                    self.grad_sum[name] = torch.zeros_like(g, device="cpu")
-                    self.gram_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
-                self.grad_sum[name] += g.cpu() / batch_size
-                self.gram_sum[name] += (g.T @ g).cpu() / batch_size
+                gw = module.weight.grad.detach().float()  # (d_out, d_in)
+                d_out, d_in = gw.shape
+                if name not in self.sbar:  # init
+                    self.sbar[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    self.gbar[name] = torch.zeros(d_out, d_in, dtype=torch.float32)
+                    self.stilde[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    self.stilde_zzT[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    self.stilde_gtg[name] = torch.tensor(0.0, dtype=torch.float32)
+                if name not in stilde_zzT:  # init per-batch local accumulators
+                    stilde_zzT[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    stilde_gtg[name] = torch.tensor(0.0, dtype=torch.float32)
+
+                z = self._activations[name]  # (T, B, d_in)
+                gy = self._output_grads[name]  # (T, B, d_out)
+                # print(f"z.shape: {z.shape}, gy.shape: {gy.shape}")
+
+                # NOTE: B dim is equal to 1 here because we loop over samples in the batch.
+                # Shapes: (Di, Di) and (,)
+                stilde_zzT_k = torch.einsum("tbi,tbj->tbij", z, z).mean(dim=(0, 1))
+                stilde_gtg_k = torch.einsum("tbi,tbj->tb", gy, gy).mean(dim=(0, 1))
+
+                self.gbar[name] += (1 / B) * gw.cpu()
+                self.sbar[name] += (1 / B) * (gw.T @ gw).cpu()
+
+                # NOTE: self.stilde_zzT tracks across iterations and samples, but
+                # stilde_zzT only tracks across samples for single iteration.
+                self.stilde_zzT[name] += (1 / B) * stilde_zzT_k.cpu()
+                self.stilde_gtg[name] += (1 / B) * stilde_gtg_k.cpu()
+                stilde_zzT[name] += (1 / B) * stilde_zzT_k.cpu()
+                stilde_gtg[name] += (1 / B) * stilde_gtg_k.cpu()
+
+        # S_tilde_k = E[zz^T] * E[||gy||^2]
+        for name in self.layers:
+            if name in stilde_zzT and name in stilde_gtg:
+                self.stilde[name] += stilde_zzT[name] * stilde_gtg[name]
 
         self.num_batches += 1
         model.zero_grad()
@@ -79,21 +206,54 @@ class GradCrossTermTracker:
         print(f"\n=== Per-layer gradient cross-term error [K={K}] ===")
         os.makedirs(ckpdir, exist_ok=True)
         for name in self.layers:
-            M = self.grad_sum[name]
-            S = self.gram_sum[name]
-            MtM = M.T @ M
-            a, b = MtM.flatten(), S.flatten()
-            cos_dist = 1 - torch.dot(a, b).abs() / (a.norm() * b.norm())
+            gbar = self.gbar[name]
+            sbar = self.sbar[name]
+            stilde = self.stilde[name]
+            stilde_zzT = self.stilde_zzT[name]
+            stilde_gtg = self.stilde_gtg[name]
+            gbar_T_gbar = gbar.T @ gbar
+
+            # cross-term error: cos_dist(gbar^T gbar, sbar)
+            a, b = gbar_T_gbar.flatten(), sbar.flatten()
+            cos_dist_cross = 1 - torch.dot(a, b).abs() / (a.norm() * b.norm())
+
+            # correlation error: cos_dist(sbar, stilde)
+            a2, b2 = sbar.flatten(), stilde.flatten()
+            cos_dist_corr = 1 - torch.dot(a2, b2).abs() / (a2.norm() * b2.norm())
+
+            # arcsin bound: ||sbar - stilde|| / ||sbar||
+            corr_diff_ratio = (sbar - stilde).norm() / sbar.norm()
+
             print(f"  {name}:")
-            print(f"    ||M^T M||_F  = {MtM.norm().item():.6e}")
-            print(f"    ||S||_F      = {S.norm().item():.6e}")
-            print(f"    cos distance = {cos_dist.item():.6e}")
+            print(f"    ||gbar^T gbar||_F = {gbar_T_gbar.norm().item():.6e}")
+            print(f"    ||sbar||_F        = {sbar.norm().item():.6e}")
+            print(f"    ||stilde||_F      = {stilde.norm().item():.6e}")
+            print(f"    ||stilde_zzT||_F  = {stilde_zzT.norm().item():.6e}")
+            print(f"    cos_dist(cross)   = {cos_dist_cross.item():.6e}")
+            print(f"    cos_dist(corr)    = {cos_dist_corr.item():.6e}")
+            print(f"    ||S-St||/||S||    = {corr_diff_ratio.item():.6e}")
             fname = f"grad_cross_matrix_{name.replace('.', '_')}.pt"
             torch.save(
-                {"K": K, "M": M, "S_sum": S, "M_T_M": MtM, "cos_dist": cos_dist.item()},
+                {
+                    "K": K,
+                    "gbar": gbar,
+                    "sbar": sbar,
+                    "stilde_zzT": stilde_zzT,
+                    "stilde_gtg": stilde_gtg,
+                    "stilde": stilde,
+                    "gbar_T_gbar": gbar_T_gbar,
+                    "cos_dist_cross": cos_dist_cross.item(),
+                    "cos_dist_corr": cos_dist_corr.item(),
+                    "corr_diff_ratio": corr_diff_ratio.item(),
+                },
                 os.path.join(ckpdir, fname),
             )
         print()
+
+    def remove_hooks(self):
+        for h in self._hooks:
+            h.remove()
+        self._hooks.clear()
 
 
 def _format_duration(seconds: float) -> str:
@@ -179,6 +339,23 @@ def finetune(rank, args):
     model = ImageClassifier(image_encoder, classification_head)
 
     model.freeze_head()
+
+    # Save zeroshot before MHA swap so checkpoint is in standard format.
+    # (LoRA zeroshot is already saved above, before LoRA is applied.)
+    if args.save is not None and is_main_process() and not lora_finetuning:
+        os.makedirs(ckpdir, exist_ok=True)
+        model_path = (
+            os.path.join(ckpdir, "linear_zeroshot.pt")
+            if linearized_finetuning
+            else os.path.join(ckpdir, "zeroshot.pt")
+        )
+        model.image_encoder.save(model_path)
+
+    # Swap nn.MultiheadAttention -> MultiHeadAttentionSplit so forward hooks
+    # fire on per-projection Linear layers (needed for grad cross-term tracking).
+    if args.grad_cross_matrix:
+        swap_mha(model.image_encoder)
+
     model = model.cuda()
 
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -238,16 +415,6 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {args.epochs * num_batches // args.num_grad_accumulation}")
 
-    # Saving zero-shot model (LoRA zeroshot is saved before LoRA is applied)
-    if args.save is not None and is_main_process() and not lora_finetuning:
-        os.makedirs(ckpdir, exist_ok=True)
-        model_path = (
-            os.path.join(ckpdir, "linear_zeroshot.pt")
-            if linearized_finetuning
-            else os.path.join(ckpdir, "zeroshot.pt")
-        )
-        ddp_model.module.image_encoder.save(model_path)
-
     grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
         grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
@@ -285,6 +452,9 @@ def finetune(rank, args):
                 optimizer.step()
                 optimizer.zero_grad()
 
+            if args.max_steps is not None and step >= args.max_steps:
+                break
+
             batch_time = time.time() - start_time
 
             if (
@@ -298,7 +468,14 @@ def finetune(rank, args):
                     model_path = os.path.join(ckpdir, f"lora_checkpoint_{step}.pt")
                 else:
                     model_path = os.path.join(ckpdir, f"checkpoint_{step}.pt")
-                ddp_model.module.image_encoder.save(model_path)
+                enc = ddp_model.module.image_encoder
+                if args.grad_cross_matrix:
+                    enc = copy.deepcopy(enc).cpu()
+                    for m in enc.modules():
+                        m._forward_hooks.clear()
+                        m._backward_hooks.clear()
+                    unswap_mha(enc)
+                enc.save(model_path)
                 print(f"Saved checkpoint to {model_path}", flush=True)
 
             if (
@@ -314,6 +491,9 @@ def finetune(rank, args):
                     f"Elapsed {_format_duration(run_elapsed)}",  # noqa: E501
                     flush=True,
                 )
+
+        if args.max_steps is not None and step >= args.max_steps:
+            break
 
     if grad_cross_tracker is not None:
         grad_cross_tracker.save(ckpdir)
@@ -339,7 +519,14 @@ def finetune(rank, args):
         else:
             zs_path = os.path.join(ckpdir, "zeroshot.pt")
             ft_path = os.path.join(ckpdir, "finetuned.pt")
-        image_encoder.save(ft_path)
+        enc_to_save = image_encoder
+        if args.grad_cross_matrix:
+            enc_to_save = copy.deepcopy(image_encoder).cpu()
+            for m in enc_to_save.modules():
+                m._forward_hooks.clear()
+                m._backward_hooks.clear()
+            unswap_mha(enc_to_save)
+        enc_to_save.save(ft_path)
         cleanup_ddp()
         return zs_path, ft_path
 
@@ -379,6 +566,10 @@ if __name__ == "__main__":
     # Append seed to save directory
     if args.seed is not None:
         args.save = os.path.join(args.save, f"seed_{args.seed}")
+
+    # Append max_steps to save directory
+    if args.max_steps is not None:
+        args.save = os.path.join(args.save, f"max_steps_{args.max_steps}")
 
     if args.train_dataset is not None:
         train_datasets = [ds.strip() for ds in args.train_dataset]

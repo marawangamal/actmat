@@ -87,17 +87,18 @@ bash scripts/vision/vision_train.sh
 bash scripts/vision/vision_eval.sh
 ```
 
-### Generate gradient accumulators
+### Generate gradient cross-term matrices
 ```sh
 python scripts/vision/finetune.py \
     --model ViT-B-16 \
-    --train-dataset MNIST \
     --finetuning-mode standard \
     --batch-size 1 \
-    --epochs 1 \
-    --grad-cross-ip \
+    --epochs 2 \
+    --grad-cross-matrix \
     --data-location $SLURM_TMPDIR/datasets \
-    --save checkpoints-accum
+    --save checkpoints-accum-e2-v2-2026-06-15 \
+    --openclip-cachedir $SCRATCH/openclip \
+    --max-steps 10
 ```
 
 ## Language Experiments
@@ -123,6 +124,50 @@ python scripts/language/eval_single_task.py \
 python scripts/language/eval_task_addition.py \
   --model=t5-base --finetuning-mode=standard --merge-func=eigcov --save=$SCRATCH/eigcov/checkpoints/language
 ```
+
+### Generate covariance matrices at multiple sample counts
+```sh
+python scripts/language/covariance.py \
+  --model=t5-large \
+  --cov-split=train \
+  --cov-num-batches=1,10,100,500,1000 \
+  --cov-batch-size=1 \
+  --cov-type=sm \
+  --cov-estimator=full 
+```
+
+
+
+## NLG Experiments
+
+### 1. Fine-tune
+```sh
+# Setup.
+module load cuda/12.6 arrow python/3.12 httpproxy
+export HF_HOME=$SCRATCH/huggingface
+source .venv/bin/activate
+
+# Multi-GPU full fine-tune with FSDP (required for 8B full fine-tune)
+torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
+  --capability precise_if --fsdp \
+  --output-dir $SCRATCH/eigcov/checkpoints/nlg
+
+torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
+  --capability general --fsdp \
+  --output-dir $SCRATCH/eigcov/checkpoints/nlg \
+  --save-strategy steps
+
+```
+
+### Setup (olmes evaluation)
+```bash
+module load cuda/12.6 arrow python/3.12 httpproxy
+git clone https://github.com/allenai/olmes.git
+cd olmes
+uv sync
+uv sync --group gpu # for vLLM support
+```
+
 
 ## Repository Structure
 
@@ -164,36 +209,4 @@ scripts/                      # Entry points (run directly)
     ├── eval_single_task.py   # Evaluate single fine-tuned model
     ├── eval_task_addition.py
     └── eval_task_negation.py
-```
-
-
-## NLG Experiments
-
-### 1. Fine-tune
-```sh
-# Multi-GPU full fine-tune with FSDP (required for 8B full fine-tune)
-torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
-  --capability math --fsdp \
-  --output-dir $SCRATCH/eigcov/checkpoints/nlg \
-  --hf-cache-dir $SCRATCH/huggingface
-
-# All capabilities
-torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
-  --capability all --fsdp \
-  --output-dir $SCRATCH/eigcov/checkpoints/nlg \
-  --hf-cache-dir $SCRATCH/huggingface
-
-# Single GPU with LoRA (lower memory)
-python scripts/nlg/finetune.py \
-  --capability math --use-lora \
-  --hf-cache-dir $SCRATCH/huggingface
-```
-
-### Setup (olmes evaluation)
-```bash
-module load cuda/12.6 arrow python/3.12 httpproxy
-git clone https://github.com/allenai/olmes.git
-cd olmes
-uv sync
-uv sync --group gpu # for vLLM support
 ```

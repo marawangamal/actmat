@@ -22,29 +22,29 @@ HF_CACHE_DIR="$SCRATCH/hf_cache"
 NUM_BATCHES=10
 BATCH_SIZE=32
 
-# # ===== Hyperparameter-optimized experiments =====
-# # Only evaluate TA (sum) since other methods do not require HP tuning.
-# # Results are written to a separate database to avoid mixing with the
-# # default runs.
-# MODELS=(t5-base)
-# METHODS=(sum)
-# FT_MODES=(lora)
-# RESULTS_DB="results/results-hpopt.jsonl"
-# COEFF_START=0.0
-# COEFF_END=1.0
-# N_EVAL_POINTS=11
-
-# ===== Default experiments (no hyperparameter tuning) =====
-# Evaluate all merging methods using their default settings.
-# Results are stored in the main results database.
+# ===== Hyperparameter-optimized experiments =====
+# Only evaluate TA (sum) since other methods do not require HP tuning.
+# Results are written to a separate database to avoid mixing with the
+# default runs.
 MODELS=(t5-base t5-large)
-# METHODS=(eigcov isoc_mean tsv regmean sum mean)
-METHODS=(eigcov isoc_mean knots_isoc_mean tsv knots_tsv regmean sum mean)
+METHODS=(sum)
 FT_MODES=(lora)
-RESULTS_DB="results/results.jsonl"
-COEFF_START=1.0
+RESULTS_DB="results/results-hpopt.jsonl"
+COEFF_START=0.0
 COEFF_END=1.0
-N_EVAL_POINTS=1
+N_EVAL_POINTS=11
+
+# # ===== Default experiments (no hyperparameter tuning) =====
+# # Evaluate all merging methods using their default settings.
+# # Results are stored in the main results database.
+# MODELS=(t5-large)
+# # METHODS=(eigcov isoc_mean tsv regmean sum mean)
+# METHODS=(eigcov isoc_mean knots_isoc_mean tsv knots_tsv regmean sum mean)
+# FT_MODES=(lora)
+# RESULTS_DB="results/results.jsonl"
+# COEFF_START=1.0
+# COEFF_END=1.0
+# N_EVAL_POINTS=1
 
 
 for MODEL in "${MODELS[@]}"; do

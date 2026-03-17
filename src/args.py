@@ -217,7 +217,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--cov-estimator",
-        choices=["sampled", "full"],
+        choices=["sampled", "full", "avg"],
         default="full",
         help=(
             "How to estimate the covariance per layer. "
@@ -257,6 +257,12 @@ def parse_arguments():
             "If > 0, track cosine similarity between consecutive optimizer-step gradients "
             "using the first N trainable parameter tensors. Results saved to {ckpdir}/cosine_sim.npz."
         ),
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Max number of optimizer steps for training. None means train for all epochs.",
     )
     parser.add_argument(
         "--grad-cross-matrix",

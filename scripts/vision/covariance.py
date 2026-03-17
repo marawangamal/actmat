@@ -103,7 +103,8 @@ def compute_covs(encoder, dataset_name, args, on_batch=None, on_end=None):
 
 if __name__ == "__main__":
     args = parse_arguments()
-    args.save = f"checkpoints/{args.model}"
+    if args.save is None:
+        args.save = f"checkpoints/{args.model}"
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.cov_device = torch.device("cpu")
 
@@ -126,11 +127,11 @@ if __name__ == "__main__":
     ss_split = args.cov_split
     ss_estimator = args.cov_estimator
     ss_fm = Path(args.load).stem if args.load is not None else args.finetuning_mode
-    cov_dir = f"results/{args.model}/covariances_s{ss_split}_n{ss_num_batches}_b{ss_batch_size}_t{ss_type}_attn{ss_attn}_e{ss_estimator}_ft{ss_fm}"
+    cov_dir = f"{args.save}/covariances_s{ss_split}_n{ss_num_batches}_b{ss_batch_size}_t{ss_type}_attn{ss_attn}_e{ss_estimator}_ft{ss_fm}"
     os.makedirs(cov_dir, exist_ok=True)
 
     def make_cov_dir(n):
-        return f"results/{args.model}/covariances_s{ss_split}_n{n}_b{ss_batch_size}_t{ss_type}_attn{ss_attn}_e{ss_estimator}_ft{ss_fm}"
+        return f"{args.save}/covariances_s{ss_split}_n{n}_b{ss_batch_size}_t{ss_type}_attn{ss_attn}_e{ss_estimator}_ft{ss_fm}"
 
     print(f"Covariance directory: {cov_dir}")
     for task in tasks:

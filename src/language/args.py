@@ -205,9 +205,9 @@ def parse_arguments():
     )
     parser.add_argument(
         "--cov-num-batches",
-        type=int,
-        default=None,
-        help="Max number of batches for covariance collection (None = all).",
+        type=lambda x: [int(v) for v in x.split(",")],
+        default=[10],
+        help="Max number of batches for covariance collection. Comma-separated list for multiple snapshots, e.g. '1,10,100,500,1000' (default: 10).",
     )
     parser.add_argument(
         "--cov-batch-size",
@@ -226,7 +226,7 @@ def parse_arguments():
         "--cov-estimator",
         type=str,
         default="sampled",
-        choices=["sampled", "full"],
+        choices=["sampled", "full", "avg"],
         help="Covariance estimator: 'sampled' (one token) or 'full' (all tokens).",
     )
     parser.add_argument(

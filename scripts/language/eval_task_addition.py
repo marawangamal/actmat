@@ -105,6 +105,17 @@ for dataset in eval_datasets:
                 fisher_path=fisher_path,
             )
         )
+    elif args.finetuning_mode == "lora":
+        pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
+        finetuned_checkpoint = f"{args.save}/{dataset}/lora_finetuned.pt"
+        task_vectors.append(
+            LanguageNonLinearTaskVector(
+                pretrained_checkpoint,
+                finetuned_checkpoint,
+                covariance_path=cov_path,
+                fisher_path=fisher_path,
+            )
+        )
     else:
         pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
         finetuned_checkpoint = f"{args.save}/{dataset}/finetuned.pt"
@@ -132,23 +143,28 @@ def _set_eval_split(split):
 _set_eval_split(args.eval_val_split)
 args.eval_max_batches = getattr(args, "eval_val_max_batches", None)
 print("=" * 100)
-print(
-    f"PHASE 1: SPLIT={args.eval_val_split.upper()} — choosing optimal coefficient"
-    + (f" (max {args.eval_max_batches} batches)" if args.eval_max_batches else "")
-)
-print("=" * 100)
-val_metrics = evaluate_task_vector(
-    args.eval_val_split,
-    task_vector,
-    pretrained_checkpoint,
-    args,
-)
+if args.coeff_start == args.coeff_end:
+    optimal_coef = args.coeff_start
+    val_metrics = {}
+    print(f"PHASE 1: SKIPPED (single coefficient {optimal_coef})")
+else:
+    print(
+        f"PHASE 1: SPLIT={args.eval_val_split.upper()} — choosing optimal coefficient"
+        + (f" (max {args.eval_max_batches} batches)" if args.eval_max_batches else "")
+    )
+    print("=" * 100)
+    val_metrics = evaluate_task_vector(
+        args.eval_val_split,
+        task_vector,
+        pretrained_checkpoint,
+        args,
+    )
 
-optimal_coef = find_optimal_coef(
-    val_metrics,
-    metric="avg_normalized_top1",
-    minimize=False,
-)
+    optimal_coef = find_optimal_coef(
+        val_metrics,
+        metric="avg_normalized_top1",
+        minimize=False,
+    )
 print(f"Optimal coefficient (from phase 1): {optimal_coef}")
 
 # Phase 2: evaluate at optimal coefficient on eval-test-split
