@@ -1,9 +1,9 @@
 import itertools
 import json
 import os
+import time
 
 from src.language.args import parse_arguments
-from src.language.eval import evaluate_task_vector_at_coef
 from src.language.task_vectors import (
     LanguageLinearizedTaskVector,
     LanguageNonLinearTaskVector,
@@ -58,7 +58,7 @@ _HASH_IGNORE = {
 }
 
 _run_hash = (
-    make_run_hash("eval_task_addition", args, ignore=_HASH_IGNORE)
+    make_run_hash("eval_merge_time", args, ignore=_HASH_IGNORE)
     if args.results_db
     else None
 )
@@ -68,24 +68,14 @@ if args.results_db and record_exists(args.results_db, _run_hash):
 
 print("*" * 100)
 if args.finetuning_mode == "standard":
-    print(f"Evaluating non-linear FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "ft_accuracies.json")
+    print(f"Timing merge for non-linear FT models. ({args.merge_func})")
 elif args.finetuning_mode == "linear":
-    print(f"Evaluating linear FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "linear_ft_accuracies.json")
+    print(f"Timing merge for linear FT models. ({args.merge_func})")
 else:
-    print(f"Evaluating {args.finetuning_mode} models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(
-        args.save, f"{args.finetuning_mode}_ft_accuracies.json"
-    )
+    print(f"Timing merge for {args.finetuning_mode} models. ({args.merge_func})")
 print("*" * 100)
 
-with open(ft_accuracies_path) as f:
-    args.finetuning_accuracies = json.load(f)
-
-with open(os.path.join(args.save, "zeroshot_accuracies.json")) as f:
-    pretrained_accuracies = json.load(f)
-
+# Load task vectors
 eval_datasets = list(T5_DATASETS)
 task_vectors = []
 merge_name = getattr(args, "merge_func", "sum")
@@ -129,7 +119,7 @@ for dataset in eval_datasets:
         )
     print(f"Task vector {dataset} loaded")
 
-# Build HP grid
+# Build HP grid — use first combo only (no grid search)
 hpo = args.hpo or {}
 hp_names = list(hpo.keys())
 hp_value_lists = list(hpo.values())
@@ -137,98 +127,40 @@ hp_combos = (
     [dict(zip(hp_names, combo)) for combo in itertools.product(*hp_value_lists)]
     if hp_names else [{}]
 )
+merge_kwargs = hp_combos[0] if hp_combos else {}
 
-args.control_dataset = None
-
-
-def _set_eval_split(split):
-    args.eval_datasets = list(eval_datasets)
-    args.eval_max_batches = None
-
-
-# Phase 1: HP grid search on eval-val-split
-best_val_score = -float("inf")
-best_merge_kwargs = {}
-best_val_metrics = {}
-
-_set_eval_split(args.eval_val_split)
-args.eval_max_batches = getattr(args, "eval_val_max_batches", None)
+# Time the merge
 print("=" * 100)
-if len(hp_combos) <= 1:
-    best_merge_kwargs = hp_combos[0] if hp_combos else {}
-    print(f"PHASE 1: SKIPPED (single HP combo: {best_merge_kwargs})")
-else:
-    print(
-        f"PHASE 1: SPLIT={args.eval_val_split.upper()} — grid search over {len(hp_combos)} HP combos"
-        + (f" (max {args.eval_max_batches} batches)" if args.eval_max_batches else "")
-    )
-    print("=" * 100)
-    for merge_kwargs in hp_combos:
-        task_vector = combine_task_vectors(task_vectors, merge_name, **merge_kwargs)
-        metrics = evaluate_task_vector_at_coef(
-            args.eval_val_split,
-            task_vector,
-            pretrained_checkpoint,
-            args,
-            1.0,
-        )
-        score = metrics["avg_normalized_top1"]
-        print(f"  {merge_kwargs} -> avg_normalized_top1={score:.4f}")
-        if score > best_val_score:
-            best_val_score = score
-            best_merge_kwargs = merge_kwargs
-            best_val_metrics = metrics
-
-print(f"Best merge HP (from phase 1): {best_merge_kwargs}")
-
-# Phase 2: evaluate at best HP combo on eval-test-split
-_set_eval_split(args.eval_test_split)
-args.eval_max_batches = None
+print(f"Merging with {merge_name}, kwargs={merge_kwargs}")
 print("=" * 100)
-print(
-    f"PHASE 2: SPLIT={args.eval_test_split.upper()} — evaluating at best HP combo"
-)
-print("=" * 100)
-task_vector = combine_task_vectors(task_vectors, merge_name, **best_merge_kwargs)
-test_metrics = evaluate_task_vector_at_coef(
-    args.eval_test_split,
-    task_vector,
-    pretrained_checkpoint,
-    args,
-    1.0,
-)
 
-print("=" * 100)
-print(f"Test normalized accuracy: {test_metrics['avg_normalized_top1']}")
-print(f"Test absolute accuracy: {test_metrics['avg_top1']}")
+start = time.time()
+task_vector = combine_task_vectors(task_vectors, merge_name, **merge_kwargs)
+merge_time = time.time() - start
 
-additive_accuracies = {
-    "test": test_metrics,
-    "val": best_val_metrics,
-    "optimal_merge_hp": best_merge_kwargs,
+print(f"Merge time: {merge_time:.4f} seconds")
+
+# Save results
+result = {
+    "merge_func": merge_name,
+    "merge_kwargs": merge_kwargs,
+    "merge_time_seconds": merge_time,
 }
 
-if args.finetuning_mode == "standard":
-    save_file = f"{args.save}/additions_{merge_name}.json"
-elif args.finetuning_mode == "linear":
-    save_file = f"{args.save}/linear_additions_{merge_name}.json"
-else:
-    save_file = f"{args.save}/{args.finetuning_mode}_additions_{merge_name}.json"
-
+save_file = f"{args.save}/merge_time_{merge_name}.json"
 with open(save_file, "w") as f:
-    json.dump(additive_accuracies, f, indent=4)
-print("Results saved to", save_file)
+    json.dump(result, f, indent=4)
+print(f"Results saved to {save_file}")
 
 if args.results_db:
     append_result(
         args.results_db,
         {
-            "script": "eval_task_addition",
+            "script": "eval_merge_time",
             **args_to_dict(args),
-            "optimal_merge_hp": best_merge_kwargs,
-            **{f"test_{k}": v for k, v in test_metrics.items()},
-            **{f"val_{k}": v for k, v in best_val_metrics.items()},
+            "merge_kwargs": merge_kwargs,
+            "merge_time_seconds": merge_time,
         },
         _run_hash,
     )
-    print("Results appended to", args.results_db)
+    print(f"Results appended to {args.results_db}")

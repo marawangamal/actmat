@@ -36,21 +36,25 @@ BATCH_SIZE=32
 # METHODS=(sum)
 # FT_MODES=(lora)
 # RESULTS_DB="results/results-hpopt.jsonl"
-# COEFF_START=0.0
-# COEFF_END=1.0
-# N_EVAL_POINTS=11
+# HPO='{"alpha": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]}'
 
-# ===== Default experiments (no hyperparameter tuning) =====
-# Evaluate all merging methods using their default settings.
-# Results are stored in the main results database.
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-METHODS=(tsv isoc_mean sum mean)
-# METHODS=(knots_isoc_mean knots_tsv)
+# ===== EigCov General sweep =====
+# Sweep lam with alpha_weighted + cov_weighted enabled.
+MODELS=(ViT-B-16)
+METHODS=(eigcov_general)
 FT_MODES=(standard)
 RESULTS_DB="results/results.jsonl"
-COEFF_START=1.0
-COEFF_END=1.0
-N_EVAL_POINTS=1
+HPO='{"lam": [0.0001, 0.001, 0.01], "alpha_weighted": [true], "cov_weighted": [true]}'
+
+# # ===== Default experiments (no hyperparameter tuning) =====
+# # Evaluate all merging methods using their default settings.
+# # Results are stored in the main results database.
+# MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+# METHODS=(tsv isoc_mean sum mean)
+# # METHODS=(knots_isoc_mean knots_tsv)
+# FT_MODES=(standard)
+# RESULTS_DB="results/results.jsonl"
+# HPO=""
 
 
 for MODEL in "${MODELS[@]}"; do
@@ -71,7 +75,7 @@ for MODEL in "${MODELS[@]}"; do
         --finetuning-mode="$FT_MODE" \
         --model="$MODEL" \
         --openclip-cachedir="$OPENCLIP_DIR" \
-        --data-location="$DATA_DIR" 
+        --data-location="$DATA_DIR"
     fi
 
     # 1b. Evaluate single task (zeroshot)
@@ -84,7 +88,7 @@ for MODEL in "${MODELS[@]}"; do
         --finetuning-mode="none" \
         --model="$MODEL" \
         --openclip-cachedir="$OPENCLIP_DIR" \
-        --data-location="$DATA_DIR" 
+        --data-location="$DATA_DIR"
     fi
 
     # 2. Evaluate task addition w/ diff merge methods
@@ -126,7 +130,7 @@ for MODEL in "${MODELS[@]}"; do
       fi
 
       # 2c. Evaluate task addition
-      echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | coeff start: $COEFF_START | coeff end: $COEFF_END | n eval points: $N_EVAL_POINTS"
+      echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
       python scripts/vision/eval_task_addition.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
@@ -135,9 +139,7 @@ for MODEL in "${MODELS[@]}"; do
         --mha=split \
         --cov-dir="$COV_DIR" \
         --results-db="$RESULTS_DB" \
-        --coeff-start="$COEFF_START" \
-        --coeff-end="$COEFF_END" \
-        --n-eval-points="$N_EVAL_POINTS"
+        ${HPO:+--hpo="$HPO"}
 
     done
   done
