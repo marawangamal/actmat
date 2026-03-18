@@ -19,7 +19,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 HF_CACHE_DIR="$SCRATCH/hf_cache"
 
 # ── Configuration ────────────────────────────────────────────────────────
-MODEL=t5-base
+MODEL=t5-large
 METHOD=eigcov_general
 FT_MODE=standard
 RESULTS_DB="results/results-hpopt-v2.jsonl"
@@ -29,19 +29,19 @@ HPOS=(
   # '{"alpha_weighted": [false]}'
   # # Regularized experiments.
   # # EigCov (default)
-  # '{"alpha_weighted": [false], "cov_weighted": [false], "lam": [0.00001, 0.0001, 0.001, 0.01]}'
+  # '{"alpha_weighted": [false], "cov_weighted": [false], "lam": [0.01]}'
   # # EigCov (normalized covariance)
-  # '{"alpha_weighted": [false], "cov_weighted": [true], "lam": [0.00001, 0.0001, 0.001, 0.01]}'
-  # # EigCov (normalized objective)
-  # '{"alpha_weighted": [true], "cov_weighted": [false], "lam": [0.00001, 0.0001, 0.001, 0.01]}'
+  # '{"alpha_weighted": [false], "cov_weighted": [true], "lam": [0.01]}'
+  # EigCov (normalized objective)
+  '{"alpha_weighted": [true], "cov_weighted": [false], "lam": [0.01], "solver": ["lstsq"]}'
 
   # # Unregularized experiments.
   # # EigCov (default)
   # '{"alpha_weighted": [false], "cov_weighted": [false]}'
   # # EigCov (normalized covariance)
   # '{"alpha_weighted": [false], "cov_weighted": [true]}'
-  # EigCov (normalized objective)
-  '{"alpha_weighted": [true], "cov_weighted": [false]}'
+  # # EigCov (normalized objective)
+  # '{"alpha_weighted": [true], "cov_weighted": [false]}'
 )
 # ─────────────────────────────────────────────────────────────────────────
 

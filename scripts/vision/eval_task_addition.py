@@ -218,6 +218,7 @@ else:
     )
     print("=" * 100)
     for merge_kwargs in hp_combos:
+        print(f"  {merge_kwargs}")
         task_vector = _merge_and_remap(merge_kwargs)
         metrics = evaluate_task_vector_at_coef(
             task_vector,

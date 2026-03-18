@@ -270,7 +270,13 @@ def merge_eigcov(d: torch.Tensor, *args, **kwargs):
 
 
 def merge_eigcov_general(
-    d: torch.Tensor, lam=0.0, alpha_weighted=False, cov_weighted=False, **kwargs
+    d: torch.Tensor,
+    lam=0.0,
+    alpha_weighted=False,
+    cov_weighted=False,
+    solver="lstsq",
+    max_cond=42,
+    **kwargs,
 ):
     # # DEBUG:
     # print(f"lam: {lam}, alpha_weighted: {alpha_weighted}, cov_weighted: {cov_weighted}")
@@ -301,8 +307,24 @@ def merge_eigcov_general(
         A = torch.cat([A, lam**0.5 * torch.eye(Di, Di, device=A.device)], dim=0)
         B = torch.cat([B, torch.zeros(Di, Do, device=B.device)], dim=0)
 
-    # Solve A @ X = B where X = W^T
-    result = torch.linalg.lstsq(A, B)
-    W = result.solution.T  # (Do, Di)
+    # Condition-number guard: skip expensive solve for ill-conditioned A
+    # s = torch.linalg.svdvals(A)
+    # cond = s[0] / s[-1].clamp(min=1e-12)
+    # if cond > max_cond:
+    #     print(
+    #         f"[fallback] cond={cond:.1e} > {max_cond:.1e} for shape {d.shape}, using mean"
+    #     )
+    #     return d.mean(dim=0)
 
-    return W
+    print(f"d.shape: {d.shape}, A.shape: {A.shape}, B.shape: {B.shape}")
+    # Solve A @ X = B where X = W^T
+    try:
+        if solver == "lstsq":
+            result = torch.linalg.lstsq(A, B)
+            W = result.solution.T  # (Do, Di)
+        elif solver == "solve":
+            W = torch.linalg.solve(A.transpose(-2, -1) @ A, A.transpose(-2, -1) @ B).T
+        return W
+    except Exception as e:
+        print(f"[fallback] solve failed ({e}), using mean")
+        return d.mean(dim=0)

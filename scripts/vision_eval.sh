@@ -38,23 +38,23 @@ BATCH_SIZE=32
 # RESULTS_DB="results/results-hpopt.jsonl"
 # HPO='{"alpha": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]}'
 
-# ===== EigCov General sweep =====
-# Sweep lam with alpha_weighted + cov_weighted enabled.
-MODELS=(ViT-B-16)
-METHODS=(eigcov_general)
-FT_MODES=(standard)
-RESULTS_DB="results/results.jsonl"
-HPO='{"lam": [0.0001, 0.001, 0.01], "alpha_weighted": [true], "cov_weighted": [true]}'
-
-# # ===== Default experiments (no hyperparameter tuning) =====
-# # Evaluate all merging methods using their default settings.
-# # Results are stored in the main results database.
-# MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-# METHODS=(tsv isoc_mean sum mean)
-# # METHODS=(knots_isoc_mean knots_tsv)
+# # ===== EigCov General sweep =====
+# # Sweep lam with alpha_weighted + cov_weighted enabled.
+# MODELS=(ViT-B-16)
+# METHODS=(eigcov_general)
 # FT_MODES=(standard)
 # RESULTS_DB="results/results.jsonl"
-# HPO=""
+# HPO='{"lam": [0.0001, 0.001, 0.01], "alpha_weighted": [true], "cov_weighted": [true]}'
+
+# ===== Default experiments (no hyperparameter tuning) =====
+# Evaluate all merging methods using their default settings.
+# Results are stored in the main results database.
+MODELS=(ViT-B-16)
+METHODS=(tsv eigcov)
+# METHODS=(knots_isoc_mean knots_tsv)
+FT_MODES=(standard)
+RESULTS_DB="results/results.jsonl"
+HPO=""
 
 
 for MODEL in "${MODELS[@]}"; do

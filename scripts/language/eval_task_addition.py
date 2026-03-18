@@ -92,8 +92,14 @@ merge_name = getattr(args, "merge_func", "sum")
 
 for dataset in eval_datasets:
     is_fisher = merge_name == "fisher"
-    cov_path = f"{args.cov_dir}/covariance_{dataset}.npz" if args.cov_dir and not is_fisher else None
-    fisher_path = f"{args.cov_dir}/fisher_{dataset}.npz" if args.cov_dir and is_fisher else None
+    cov_path = (
+        f"{args.cov_dir}/covariance_{dataset}.npz"
+        if args.cov_dir and not is_fisher
+        else None
+    )
+    fisher_path = (
+        f"{args.cov_dir}/fisher_{dataset}.npz" if args.cov_dir and is_fisher else None
+    )
     if args.finetuning_mode == "linear":
         pretrained_checkpoint = f"{args.save}/{dataset}/linear_zeroshot.pt"
         finetuned_checkpoint = f"{args.save}/{dataset}/linear_finetuned.pt"
@@ -135,7 +141,8 @@ hp_names = list(hpo.keys())
 hp_value_lists = list(hpo.values())
 hp_combos = (
     [dict(zip(hp_names, combo)) for combo in itertools.product(*hp_value_lists)]
-    if hp_names else [{}]
+    if hp_names
+    else [{}]
 )
 
 args.control_dataset = None
@@ -164,6 +171,7 @@ else:
     )
     print("=" * 100)
     for merge_kwargs in hp_combos:
+        print(f"  {merge_kwargs}")
         task_vector = combine_task_vectors(task_vectors, merge_name, **merge_kwargs)
         metrics = evaluate_task_vector_at_coef(
             args.eval_val_split,
@@ -185,9 +193,7 @@ print(f"Best merge HP (from phase 1): {best_merge_kwargs}")
 _set_eval_split(args.eval_test_split)
 args.eval_max_batches = None
 print("=" * 100)
-print(
-    f"PHASE 2: SPLIT={args.eval_test_split.upper()} — evaluating at best HP combo"
-)
+print(f"PHASE 2: SPLIT={args.eval_test_split.upper()} — evaluating at best HP combo")
 print("=" * 100)
 task_vector = combine_task_vectors(task_vectors, merge_name, **best_merge_kwargs)
 test_metrics = evaluate_task_vector_at_coef(
