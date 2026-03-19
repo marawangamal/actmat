@@ -8,8 +8,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-set -euo pipefail
-mkdir -p logs
+# set -euo pipefail
+# mkdir -p logs
 
 # 0. Setup environment
 source "$SCRATCH/eigcov/.venv/bin/activate"
@@ -25,17 +25,18 @@ if [ ! -d "$DATA_DIR" ]; then
 fi
 
 # ── Configuration ────────────────────────────────────────────────────────
-MODEL=ViT-B-16
-METHOD=eigcov_gd
-FT_MODE=standard
+MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+METHODS=(eigcov_general)
+FT_MODES=(standard)
 RESULTS_DB="results/results.jsonl"
 SAVE="checkpoints"
 
 HPOS=(
+  # Regularized experiments.
   # EigCov (default)
   '{"alpha_weighted": [false], "cov_weighted": [false], "lam": [0.00001, 0.0001, 0.001, 0.01]}'
   # EigCov (normalized covariance)
-  '{"alpha_weighted": [false], "cov_weighted": [true], "lam": [0.01]}'
+  '{"alpha_weighted": [false], "cov_weighted": [true], "lam": [0.00001, 0.0001, 0.001, 0.01]}'
   # # EigCov (normalized objective)
   '{"alpha_weighted": [true], "cov_weighted": [false], "lam": [0.00001, 0.0001, 0.001, 0.01]}'
 
@@ -49,48 +50,56 @@ HPOS=(
 )
 # ─────────────────────────────────────────────────────────────────────────
 
-# 1a. Evaluate single task (finetuned)
-case "$FT_MODE" in
-  lora)    _ST_FT="$SAVE/$MODEL/lora_ft_accuracies.json" ;;
-  linear)  _ST_FT="$SAVE/$MODEL/linear_ft_accuracies.json" ;;
-  posthoc) _ST_FT="$SAVE/$MODEL/posthoc_ft_accuracies.json" ;;
-  *)       _ST_FT="$SAVE/$MODEL/ft_accuracies.json" ;;
-esac
-if [ -f "$_ST_FT" ]; then
-  echo "[BASH] Skipping eval_single_task.py | $_ST_FT already exists"
-else
-  echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
-  python scripts/vision/eval_single_task.py \
-    --finetuning-mode="$FT_MODE" \
-    --model="$MODEL" \
-    --openclip-cachedir="$OPENCLIP_DIR" \
-    --data-location="$DATA_DIR" \ 
-    --save="$SAVE"
-fi
+for MODEL in "${MODELS[@]}"; do
+  for FT_MODE in "${FT_MODES[@]}"; do
 
-# 1b. Evaluate single task (zeroshot)
-_ST_ZS="$SAVE/$MODEL/zeroshot_accuracies.json"
-if [ -f "$_ST_ZS" ]; then
-  echo "[BASH] Skipping eval_single_task.py (zeroshot) | $_ST_ZS already exists"
-else
-  echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: none"
-  python scripts/vision/eval_single_task.py \
-    --finetuning-mode="none" \
-    --model="$MODEL" \
-    --openclip-cachedir="$OPENCLIP_DIR" \
-    --data-location="$DATA_DIR" \
-    --save="$SAVE"
-fi
+    # 1a. Evaluate single task (finetuned)
+    case "$FT_MODE" in
+      lora)    _ST_FT="$SAVE/$MODEL/lora_ft_accuracies.json" ;;
+      linear)  _ST_FT="$SAVE/$MODEL/linear_ft_accuracies.json" ;;
+      posthoc) _ST_FT="$SAVE/$MODEL/posthoc_ft_accuracies.json" ;;
+      *)       _ST_FT="$SAVE/$MODEL/ft_accuracies.json" ;;
+    esac
+    if [ -f "$_ST_FT" ]; then
+      echo "[BASH] Skipping eval_single_task.py | $_ST_FT already exists"
+    else
+      echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
+      python scripts/vision/eval_single_task.py \
+        --finetuning-mode="$FT_MODE" \
+        --model="$MODEL" \
+        --openclip-cachedir="$OPENCLIP_DIR" \
+        --data-location="$DATA_DIR" \
+        --save="$SAVE"
+    fi
 
-# 2. Loop over HPO configs
-for HPO in "${HPOS[@]}"; do
-  echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $METHOD | hpo: $HPO"
-  python scripts/vision/eval_task_addition.py \
-    --model="$MODEL" \
-    --finetuning-mode="$FT_MODE" \
-    --data-location="$DATA_DIR" \
-    --merge-func="$METHOD" \
-    --results-db="$RESULTS_DB" \
-    --hpo="$HPO" \
-    --save="$SAVE"
+    # 1b. Evaluate single task (zeroshot)
+    _ST_ZS="$SAVE/$MODEL/zeroshot_accuracies.json"
+    if [ -f "$_ST_ZS" ]; then
+      echo "[BASH] Skipping eval_single_task.py (zeroshot) | $_ST_ZS already exists"
+    else
+      echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: none"
+      python scripts/vision/eval_single_task.py \
+        --finetuning-mode="none" \
+        --model="$MODEL" \
+        --openclip-cachedir="$OPENCLIP_DIR" \
+        --data-location="$DATA_DIR" \
+        --save="$SAVE"
+    fi
+
+    # 2. Loop over methods and HPO configs
+    for METHOD in "${METHODS[@]}"; do
+      for HPO in "${HPOS[@]}"; do
+        echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $METHOD | hpo: $HPO"
+        python scripts/vision/eval_task_addition.py \
+          --model="$MODEL" \
+          --finetuning-mode="$FT_MODE" \
+          --data-location="$DATA_DIR" \
+          --merge-func="$METHOD" \
+          --results-db="$RESULTS_DB" \
+          --hpo="$HPO" \
+          --save="$SAVE"
+      done
+    done
+
+  done
 done
