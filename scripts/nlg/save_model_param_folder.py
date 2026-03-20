@@ -39,6 +39,7 @@ def _parse_dtype(dtype_name: str):
 # python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-precise-if --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-precise-if
 # python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-general --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-general
 # python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-knowledge-recall --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-knowledge-recall
+# python scripts/nlg/save_model_param_folder.py --model meta-llama/Meta-Llama-3.1-8B --output-dir checkpoints/nlg/meta-llama-Meta-Llama-3.1-8B
 
 
 def main():
