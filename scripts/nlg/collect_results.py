@@ -1,7 +1,7 @@
 """Collect olmes evaluation results and compute domain averages.
 
 Usage:
-    python scripts/nlg/collect_results.py --dir results-nlg-4096-eigcov
+    python scripts/nlg/collect_results.py --dirs results-nlg-4096-eigcov results-nlg-4096-mean
 """
 
 import argparse
@@ -68,32 +68,43 @@ def parse_args():
         description="Collect olmes results and compute averages."
     )
     parser.add_argument(
-        "--dir",
+        "--dirs",
+        nargs="+",
         required=True,
-        help="olmes output directory containing *-metrics.json files.",
+        help="One or more olmes output directories containing *-metrics.json files.",
     )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    results_dir = Path(args.dir)
-    scores = load_results(results_dir)
 
-    print(f"{'Benchmark':<15} {'Score':>10}")
-    print("-" * 26)
+    all_results: dict[str, dict[str, float]] = {}
+    for d in args.dirs:
+        p = Path(d)
+        name = p.name.replace("results-nlg-", "")
+        all_results[name] = load_results(p)
+
+    methods = list(all_results.keys())
+    col_w = max(15, *(len(m) + 2 for m in methods))
+
+    header = f"{'Benchmark':<15}" + "".join(f"{m:>{col_w}}" for m in methods)
+    print(header)
+    print("-" * len(header))
 
     for bench in DISPLAY_ORDER:
-        val = scores.get(bench)
-        if val is not None:
-            print(f"{bench:<15} {val:>10.3f}")
-        else:
-            print(f"{bench:<15} {'—':>10}")
+        row = f"{bench:<15}"
+        for m in methods:
+            val = all_results[m].get(bench)
+            row += f"{val:{col_w}.3f}" if val is not None else f"{'—':>{col_w}}"
+        print(row)
 
-    print("-" * 26)
-    vals = [scores[b] for b in DISPLAY_ORDER if b in scores]
-    if vals:
-        print(f"{'Average':<15} {sum(vals)/len(vals):>10.3f}")
+    print("-" * len(header))
+    row = f"{'Average':<15}"
+    for m in methods:
+        vals = [all_results[m][b] for b in DISPLAY_ORDER if b in all_results[m]]
+        row += f"{sum(vals)/len(vals):{col_w}.3f}" if vals else f"{'—':>{col_w}}"
+    print(row)
 
 
 if __name__ == "__main__":
