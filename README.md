@@ -154,11 +154,11 @@ torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
   --save-strategy steps --save-steps 200 --resume
 
 torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
-  --capability general --fsdp \
-  --output-dir $SCRATCH/eigcov/checkpoints/nlg \
+  --capability math --fsdp \
+  --output-dir $SCRATCH/eigcov/checkpoints/nlg-lora \
   --hf-cache-dir $SCRATCH/huggingface \
   --use-lora \
-  --save-strategy steps --save-steps 200 --resume
+  --save-strategy steps --save-steps 200
   ```
 
 ### 2. Merge
@@ -270,11 +270,11 @@ ifeval::tulu popqa::tulu "bbh:cot-v1::tulu" \
 
 
 olmes \
-  --model mremila/pmahdavi-Llama-3.1-8B-eigcov-ignore-gate_proj-up_proj \
+  --model mremila/pmahdavi-Llama-3.1-8B-mix-eigcov_gd-eigcov_down_proj_gate_proj_up_proj \
   --task  codex_humaneval::tulu codex_humanevalplus::tulu \
   gsm8k::tulu drop::llama3 minerva_math::tulu  \
   ifeval::tulu popqa::tulu "bbh:cot-v1::tulu" \
-  --output-dir results-nlg-eigcov-ignore-gate_proj-up_proj \
+  --output-dir results-nlg-mix-eigcov_gd-eigcov_down_proj_gate_proj_up_proj \
   --gpus 1 \
   --model-type vllm  \
   --model-args '{"gpu_memory_utilization": 0.9, "trust_remote_code": false, "max_length": 4096}' 
@@ -282,14 +282,15 @@ olmes \
 
 
 # code only
-CUDA_VISIBLE_DEVICES=0 olmes \
+olmes \
   --model mremila/Llama-3.1-8B-coding \
   --task codex_humaneval::tulu    \
-  --output-dir results-nlg-lora-mremila-Llama-3.1-8B-coding \
-  --gpus 1 \
+  --output-dir results-nlg-mremila-Llama-3.1-8B-coding \
+  --gpus 4 \
   --model-type vllm  \
   --model-args '{"gpu_memory_utilization": 0.9, "trust_remote_code": false, "max_length": 4096}' 
 ```
+<!-- 113/3280 [30:57<23:38:53, 26.88s/it] w/ 1 gpu -->
 <!-- codex_humanevalplus::tulu -->
 
 
