@@ -154,20 +154,38 @@ torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
   --save-strategy steps --save-steps 200 --resume
 
 torchrun --nproc_per_node=4 scripts/nlg/finetune.py \
-  --capability general --fsdp \
-  --output-dir $SCRATCH/eigcov/checkpoints/nlg \
-  --save-strategy steps
+  --capability math --fsdp \
+  --output-dir $SCRATCH/eigcov/checkpoints/nlg-lora \
+  --hf-cache-dir $SCRATCH/huggingface \
+  --use-lora \
+  --save-strategy steps --save-steps 200
   ```
 
 ### 2. Merge
 ```sh
 # Create param folders
-python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-coding --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-coding
+python scripts/nlg/save_model_param_folder.py --model mremila/Llama-3.1-8B-coding     --output-dir checkpoints/nlg/mremila-Llama-3.1-8B-coding
+python scripts/nlg/save_model_param_folder.py --model mremila/Llama-3.1-8B-precise_if --output-dir checkpoints/nlg/mremila-Llama-3.1-8B-precise_if
+python scripts/nlg/save_model_param_folder.py --model mremila/Llama-3.1-8B-general    --output-dir checkpoints/nlg/mremila-Llama-3.1-8B-general
+python scripts/nlg/save_model_param_folder.py --model mremila/Llama-3.1-8B-knowledge  --output-dir checkpoints/nlg/mremila-Llama-3.1-8B-knowledge
 # ... do for all
 
+# Merge param folder (lora)
+method=tsv
+python scripts/nlg/merge.py \
+  --pretrained-dir checkpoints/nlg/meta-llama-Meta-Llama-3.1-8B \
+  --finetuned-dirs \
+    checkpoints/nlg/mremila-Llama-3.1-8B-math \
+    checkpoints/nlg/mremila-Llama-3.1-8B-coding \
+    checkpoints/nlg/mremila-Llama-3.1-8B-precise-if \
+    checkpoints/nlg/mremila-Llama-3.1-8B-general \
+    checkpoints/nlg/mremila-Llama-3.1-8B-knowledge \
+  --merge-func $method \
+  --output-dir checkpoints/nlg/mremila-Llama-3.1-8B-${method} 
 
-# Merge param folder
-method=mean
+# Merge param folder (ignore)
+# ignore_keys="gate_proj up_proj"
+method=eigcov_gd
 python scripts/nlg/merge.py \
   --pretrained-dir checkpoints/nlg/meta-llama-Meta-Llama-3.1-8B \
   --finetuned-dirs \
@@ -177,7 +195,22 @@ python scripts/nlg/merge.py \
     checkpoints/nlg/pmahdavi-Llama-3.1-8B-general \
     checkpoints/nlg/pmahdavi-Llama-3.1-8B-knowledge-recall \
   --merge-func $method \
-  --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-$method
+  --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-${method}
+  # --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-${method}-ignore-${ignore_keys// /-} \
+  # --ignore-keys $ignore_keys
+
+# Merge param folder (mix: two methods per-key)
+python scripts/nlg/merge.py \
+  --pretrained-dir checkpoints/nlg/meta-llama-Meta-Llama-3.1-8B \
+  --finetuned-dirs \
+    checkpoints/nlg/pmahdavi-Llama-3.1-8B-math-reasoning \
+    checkpoints/nlg/pmahdavi-Llama-3.1-8B-coding \
+    checkpoints/nlg/pmahdavi-Llama-3.1-8B-precise-if \
+    checkpoints/nlg/pmahdavi-Llama-3.1-8B-general \
+    checkpoints/nlg/pmahdavi-Llama-3.1-8B-knowledge-recall \
+  --merge-func mix \
+  --merge-kwargs '{"mix_primary": "eigcov_gd", "mix_fallback": "eigcov", "mix_targets": ["down_proj", "gate_proj", "up_proj"]}' \
+  --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-mix-eigcov_gd-eigcov_down_proj_gate_proj_up_proj
 ```
 
 ### 3. Upload 
@@ -190,9 +223,15 @@ hf upload mremila/Llama-3.1-8B-knowledge checkpoints/nlg/Llama-3.1-8B-knowledge 
 hf upload mremila/Llama-3.1-8B-precise_if checkpoints/nlg/Llama-3.1-8B-precise_if --repo-type model    
 
 # Merged models
-hf upload mremila/pmahdavi-Llama-3.1-8B-eigcov checkpoints/nlg/pmahdavi-Llama-3.1-8B-eigcov--repo-type model  
-hf upload mremila/pmahdavi-Llama-3.1-8B-tsv    checkpoints/nlg/pmahdavi-Llama-3.1-8B-tsv --repo-type model    
-hf upload mremila/pmahdavi-Llama-3.1-8B-mean    checkpoints/nlg/pmahdavi-Llama-3.1-8B-mean --repo-type model    
+method=isoc
+echo "Uploading merged model for method: $method"
+hf upload mremila/pmahdavi-Llama-3.1-8B-$method checkpoints/nlg/pmahdavi-Llama-3.1-8B-$method --repo-type model
+echo "Upload complete to remote repo: mremila/pmahdavi-Llama-3.1-8B-$method"
+
+
+hf upload mremila/pmahdavi-Llama-3.1-8B-eigcov-ignore-gate_proj-up_proj checkpoints/nlg/pmahdavi-Llama-3.1-8B-eigcov-ignore-gate_proj-up_proj --repo-type model
+
+# 
 ```
 
 ### 4. Evaluate 
@@ -206,24 +245,53 @@ hf upload mremila/pmahdavi-Llama-3.1-8B-mean    checkpoints/nlg/pmahdavi-Llama-3
 # uv sync --group gpu # for vLLM support
 
 ## Run Evaluation
-method=eigcov
+method=isoc 
 olmes --model mremila/pmahdavi-Llama-3.1-8B-$method \
 --task  codex_humaneval::tulu codex_humanevalplus::tulu \
 gsm8k::tulu drop::llama3 minerva_math::tulu  \
 ifeval::tulu popqa::tulu "bbh:cot-v1::tulu" \
 --output-dir results-nlg-4096-$method \
---gpus 1 \
+--gpus 4 \
 --model-type vllm \
 --model-args '{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}' 
+
+
+## Run Evaluation (20K)
+method=isoc 
+olmes --model mremila/pmahdavi-Llama-3.1-8B-20K-$method \
+--task  codex_humaneval::tulu codex_humanevalplus::tulu \
+gsm8k::tulu drop::llama3 minerva_math::tulu  \
+ifeval::tulu popqa::tulu "bbh:cot-v1::tulu" \
+--output-dir results-nlg-4096-20K-$method \
+--gpus 2 \
+--model-type vllm \
+--model-args '{"gpu_memory_utilization": 0.9, "trust_remote_code": false, "max_length": 4096}' 
+
+
+
+olmes \
+  --model mremila/pmahdavi-Llama-3.1-8B-mix-eigcov_gd-eigcov_down_proj_gate_proj_up_proj \
+  --task  codex_humaneval::tulu codex_humanevalplus::tulu \
+  gsm8k::tulu drop::llama3 minerva_math::tulu  \
+  ifeval::tulu popqa::tulu "bbh:cot-v1::tulu" \
+  --output-dir results-nlg-mix-eigcov_gd-eigcov_down_proj_gate_proj_up_proj \
+  --gpus 1 \
+  --model-type vllm  \
+  --model-args '{"gpu_memory_utilization": 0.9, "trust_remote_code": false, "max_length": 4096}' 
 
 
 
 # code only
 olmes \
-  --model checkpoints/nlg/pmahdavi-Llama-3.1-8B-eigcov \
-  --task codex_humaneval::tulu codex_humanevalplus::tulu \
-  --output-dir results-nlg 
+  --model mremila/Llama-3.1-8B-coding \
+  --task codex_humaneval::tulu    \
+  --output-dir results-nlg-mremila-Llama-3.1-8B-coding \
+  --gpus 4 \
+  --model-type vllm  \
+  --model-args '{"gpu_memory_utilization": 0.9, "trust_remote_code": false, "max_length": 4096}' 
 ```
+<!-- 113/3280 [30:57<23:38:53, 26.88s/it] w/ 1 gpu -->
+<!-- codex_humanevalplus::tulu -->
 
 
 ## Repository Structure
@@ -267,3 +335,16 @@ scripts/                      # Entry points (run directly)
     ├── eval_task_addition.py
     └── eval_task_negation.py
 ```
+
+
+
+
+
+
+
+<!-- Running generate_until requests:  66%|█████████████████████████████████████████████████████████████████████████████████████████████████▉                                                  | 9439/14267 [06:02<03:53, 20.71it/s]
+Running generate_until requests:  66%|█████████████████████████████████████████████████████████████████████████████████████████████████▉                                                  | 9445/14267 [06:02<03:27, 23.22it/s]
+Running generate_until requests:  68%|████████████████████████████████████████████████████████████████████████████████████████████████████▍                                               | 9682/14267 [06:12<03:08, 24.31it/s]^C(Worker_TP1 pid=1864815) INFO 03-25 12:02:48 [multiproc_executor.py:558] Parent process exited, terminating worker
+(Worker_TP0 pid=1864814) INFO 03-25 12:02:48 [multiproc_executor.py:558] Parent process exited, terminating worker
+(Worker_TP3 pid=1864817) INFO 03-25 12:02:48 [multiproc_executor.py:558] Parent process exited, terminating worker
+(Worker_TP2 pid=1864816) INFO 03-25 12:02:48 [multiproc_executor.py:558] Parent process exited, terminating worker -->
