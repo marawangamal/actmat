@@ -1,18 +1,18 @@
 #!/bin/bash
-# Merge + evaluate rl models in one shot.
+# Merge + evaluate NLG models in one shot.
 #
 # For each merge method: runs merge.py, optionally uploads to HF Hub,
 # evaluates via olmes, then collects all results into a summary table.
 #
 # Usage:
-#   bash scripts/rl/eval_task_addition.sh \
-#     --pretrained-dir checkpoints/rl/meta-llama-Meta-Llama-3.1-8B \
+#   bash scripts/nlg/eval_task_addition.sh \
+#     --pretrained-dir checkpoints/nlg/meta-llama-Meta-Llama-3.1-8B \
 #     --finetuned-dirs \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-math-reasoning \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-coding \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-precise-if \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-general \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-knowledge-recall \
+#       checkpoints/nlg/pmahdavi-Llama-3.1-8B-math-reasoning \
+#       checkpoints/nlg/pmahdavi-Llama-3.1-8B-coding \
+#       checkpoints/nlg/pmahdavi-Llama-3.1-8B-precise-if \
+#       checkpoints/nlg/pmahdavi-Llama-3.1-8B-general \
+#       checkpoints/nlg/pmahdavi-Llama-3.1-8B-knowledge-recall \
 #     --merge-funcs "eigcov tsv isoc mean" \
 #     --gpus 4
 
@@ -22,8 +22,8 @@ set -euo pipefail
 PRETRAINED_DIR=""
 FINETUNED_DIRS=()
 MERGE_FUNCS="eigcov tsv isoc mean"
-OUTPUT_BASE="checkpoints/rl"
-RESULTS_BASE="results-rl"
+OUTPUT_BASE="checkpoints/nlg"
+RESULTS_BASE="results-nlg"
 GPUS=4
 UPLOAD=""          # HF Hub user/org prefix; empty = skip upload
 MERGE_KWARGS=""    # JSON string forwarded to merge.py --merge-kwargs
@@ -156,7 +156,7 @@ for method in $MERGE_FUNCS; do
     echo ">>> Skipping merge: ${OUTPUT_DIR} already exists"
   else
     MERGE_CMD=(
-      python scripts/rl/merge.py
+      python scripts/nlg/merge.py
       --pretrained-dir "$PRETRAINED_DIR"
       --finetuned-dirs "${FINETUNED_DIRS[@]}"
       --merge-func "$method"
@@ -203,7 +203,7 @@ done
 echo "============================================================"
 echo "Collecting results ..."
 echo "============================================================"
-COLLECT_CMD=(python scripts/rl/collect_results.py --dirs "${RESULT_DIRS[@]}")
+COLLECT_CMD=(python scripts/nlg/collect_results.py --dirs "${RESULT_DIRS[@]}")
 if [[ -n "$NO_CODE" ]]; then
   COLLECT_CMD+=(--no-code)
 fi

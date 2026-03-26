@@ -10,6 +10,13 @@ Qwen-1 requires `einops` and a dummy `transformers_stream_generator` stub (the r
 pip install einops peft safetensors lm-eval
 mkdir -p $VIRTUAL_ENV/lib/python*/site-packages/transformers_stream_generator
 echo "" > $VIRTUAL_ENV/lib/python*/site-packages/transformers_stream_generator/__init__.py
+
+
+cd ~/scratch/olmes
+UV_PROJECT_ENVIRONMENT=.venv-qwen
+uv sync --group gpu
+source .venv-qwen/bin/activate
+uv pip install transformers==4.37.2
 ```
 
 ## Full pipeline
