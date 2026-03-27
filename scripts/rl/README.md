@@ -66,6 +66,24 @@ olmes --model checkpoints/rl/meta-llama-Meta-Llama-3.1-8B-eigcov \
 
 # 5. Collect results
 python scripts/rl/collect_results.py --dirs results-rl/meta-llama-Meta-Llama-3.1-8B-eigcov
+
+
+# (Optional) Evaluate expert models
+
+MODEL_ID=allenai/Olmo-3-7B-RL-Zero-Math
+olmes \
+  --model $MODEL_ID \
+  --task \
+    codex_humaneval::tulu \
+    codex_humanevalplus::tulu \
+    ifeval::tulu \
+    aime:2024::olmo3:midtrain \
+    aime:2025::olmo3:midtrain \
+  --output-dir results-rl/"${MODEL_ID}/$(echo "$dir" | tr '/' '-')" \
+  --gpus 4 \
+  --model-type vllm \
+  --model-args '{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}' \
+  --batch-size 128
 ```
 
 ## Custom merge kwargs
