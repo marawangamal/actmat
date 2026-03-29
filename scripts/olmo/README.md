@@ -41,12 +41,12 @@ MODEL_ID=allenai/Olmo-3-7B-RL-Zero-Math
       codex_humaneval::tulu \
       codex_humanevalplus::tulu \
       ifeval::tulu \
-      aime:2024::olmo3:midtrain \
-      aime:2025::olmo3:midtrain \
-    --output-dir results-rl/"${MODEL_ID}/$(echo "$dir" | tr '/' '-')" \
+      aime:zs_cot_r1::pass_at_32_2024_deepseek \
+      aime:zs_cot_r1::pass_at_32_2025_deepseek \
+    --output-dir results-rl/"$(echo $MODEL_ID | tr '/' '-')" \
     --gpus 4 \
     --model-type vllm \
-    --model-args '{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}' \
+    --model-args '{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}' \
     --batch-size 128
 ```
 

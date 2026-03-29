@@ -37,7 +37,11 @@ for MODEL_ID in "${MODEL_IDS[@]}"; do
   olmes \
     --model $MODEL_ID \
     --task \
+      codex_humaneval::tulu \
+      codex_humanevalplus::tulu \
       ifeval::tulu \
+      aime:zs_cot_r1::pass_at_32_2024_deepseek \
+      aime:zs_cot_r1::pass_at_32_2025_deepseek \
     --output-dir $OUTPUT_DIR \
     --gpus 4 \
     --model-type vllm \
