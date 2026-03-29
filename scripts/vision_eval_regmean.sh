@@ -30,6 +30,7 @@ NUM_BATCHES=10
 BATCH_SIZE=32
 FT_MODE=standard
 RESULTS_DB="results/results-regmean.jsonl"
+COV_ESTIMATOR="avg"
 
 for MODEL in "${MODELS[@]}"; do
 
@@ -41,13 +42,12 @@ for MODEL in "${MODELS[@]}"; do
     --cov-num-batches="$NUM_BATCHES" \
     --cov-batch-size="$BATCH_SIZE" \
     --cov-type=sm \
-    --mha=split \
-    --cov-estimator=full \
+    --cov-estimator=${COV_ESTIMATOR} \
     --openclip-cachedir="$OPENCLIP_DIR" \
     --data-location="$DATA_DIR"
 
   # 2. Evaluate RegMean
-  COV_DIR="checkpoints/$MODEL/_covariances/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnsplit_efull_ft${FT_MODE}"
+  COV_DIR="checkpoints/$MODEL/_covariances/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnNone_e${COV_ESTIMATOR}_ft${FT_MODE}"
 
   echo "[BASH] Running eval_task_addition.py | model: $MODEL | method: regmean"
   python scripts/vision/eval_task_addition.py \

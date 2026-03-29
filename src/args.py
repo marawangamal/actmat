@@ -149,8 +149,8 @@ def parse_arguments():
         "--hpo",
         type=json.loads,
         default=None,
-        help='JSON dict of HP grid. Keys are merge function kwargs, values are lists. '
-             'Example: \'{"lam": [0.0, 0.1, 0.2]}\'',
+        help="JSON dict of HP grid. Keys are merge function kwargs, values are lists. "
+        "Example: '{\"lam\": [0.0, 0.1, 0.2]}'",
     )
     parser.add_argument(
         "--overwrite",
