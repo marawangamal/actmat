@@ -30,7 +30,19 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTTrainer, SFTConfig
 from peft import LoraConfig
 
-PRETRAINED_MODEL = "meta-llama/Meta-Llama-3.1-8B"
+MODEL_CONFIGS = {
+    "llama": {
+        "pretrained": "meta-llama/Meta-Llama-3.1-8B",
+        "tokenizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "name_prefix": "Llama-3.1-8B",
+    },
+    "olmo": {
+        "pretrained": "allenai/Olmo-3-1025-7B",
+        "tokenizer": "allenai/Olmo-3-7B-Instruct",
+        "name_prefix": "Olmo-3-7B",
+    },
+}
+
 DATASET_ID = "allenai/tulu-3-sft-mixture"
 MAX_SEQ_LEN = 4096
 
@@ -66,6 +78,13 @@ CAPABILITY_SOURCES = {
 def parse_args():
     p = argparse.ArgumentParser(
         description="Fine-tune Llama-3.1-8B on Tulu 3 capability subsets"
+    )
+    p.add_argument(
+        "--model",
+        type=str,
+        default="llama",
+        choices=list(MODEL_CONFIGS.keys()),
+        help="Base model to fine-tune (default: llama)",
     )
     p.add_argument(
         "--capability",
@@ -106,7 +125,8 @@ def train_capability(capability, args):
     print(f"Training capability: {capability}")
     print(f"{'='*60}")
 
-    run_dir = os.path.join(args.output_dir, f"Llama-3.1-8B-{capability}")
+    cfg = MODEL_CONFIGS[args.model]
+    run_dir = os.path.join(args.output_dir, f"{cfg['name_prefix']}-{capability}")
     if os.path.isdir(run_dir) and os.listdir(run_dir) and not args.resume:
         print(f"  Skipping {capability} — {run_dir} already exists")
         return
@@ -132,14 +152,14 @@ def train_capability(capability, args):
 
     # Load tokenizer from Instruct variant (has chat template), model from base
     tokenizer = AutoTokenizer.from_pretrained(
-        "meta-llama/Meta-Llama-3.1-8B-Instruct", cache_dir=args.hf_cache_dir
+        cfg["tokenizer"], cache_dir=args.hf_cache_dir
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     print("Loading model ...")
     model = AutoModelForCausalLM.from_pretrained(
-        PRETRAINED_MODEL,
+        cfg["pretrained"],
         torch_dtype=torch.bfloat16 if args.bf16 else torch.float32,
         cache_dir=args.hf_cache_dir,
     )
@@ -162,7 +182,7 @@ def train_capability(capability, args):
         logging_steps=10,
         save_strategy=args.save_strategy,
         **({"save_steps": args.save_steps} if args.save_strategy == "steps" else {}),
-        save_total_limit=2,
+        # save_total_limit=2,
         report_to="none",
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
