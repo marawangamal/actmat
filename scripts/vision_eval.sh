@@ -49,7 +49,7 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 # Evaluate all merging methods using their default settings.
 # Results are stored in the main results database.
-MODELS=(ViT-B-16)
+MODELS=(ViT-L-14)
 METHODS=(tsv eigcov regmean)
 FT_MODES=(standard)
 RESULTS_DB="results/results.jsonl"
