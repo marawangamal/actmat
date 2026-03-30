@@ -2,16 +2,17 @@
 
 Runs forward passes (no training) while forward hooks from src/covariance.py
 capture activation statistics. Each capability produces a covariance NPZ file
-that can be used by RegMean or other covariance-based merge methods.
+saved inside the finetuned model's param-folder directory, where
+ParamFolderTaskVector auto-discovers it for RegMean merging.
 
 Usage:
     export PYTHONPATH="$PYTHONPATH:$PWD"
 
     # Single capability
-    python scripts/olmo/covariance.py --capability math --hf-cache-dir $SCRATCH/huggingface
+    python scripts/olmo/covariance.py --capability math --save checkpoints/olmo
 
     # All capabilities
-    python scripts/olmo/covariance.py --capability all --hf-cache-dir $SCRATCH/huggingface
+    python scripts/olmo/covariance.py --capability all --save checkpoints/olmo
 """
 
 import argparse
@@ -27,7 +28,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.covariance import register_hooks
 
 PRETRAINED_MODEL = "allenai/Olmo-3-1025-7B"
-MAX_SEQ_LEN = 4096
+PRETRAINED_TOKENIZER = "allenai/Olmo-3-7B-RL-Zero-Math"
+MAX_SEQ_LEN = 256
 
 CAPABILITY_DATASETS = {
     "math": "allenai/Dolci-RL-Zero-Math-7B",
@@ -35,10 +37,11 @@ CAPABILITY_DATASETS = {
     "if": "allenai/Dolci-RL-Zero-IF-7B",
 }
 
-ANSWER_COLUMN = {
-    "math": "ground_truth",
-    "code": "solution",
-    "if": "ground_truth",
+# Maps capability to the finetuned model dir name (used for output paths)
+CAPABILITY_MODEL_DIRS = {
+    "math": "allenai-Olmo-3-7B-RL-Zero-Math",
+    "code": "allenai-Olmo-3-7B-RL-Zero-Code",
+    "if": "allenai-Olmo-3-7B-RL-Zero-IF",
 }
 
 
@@ -52,7 +55,7 @@ def parse_args():
         required=True,
         choices=list(CAPABILITY_DATASETS.keys()) + ["all"],
     )
-    p.add_argument("--output-dir", type=str, default="checkpoints/olmo")
+    p.add_argument("--save", type=str, default="checkpoints/olmo")
     p.add_argument("--hf-cache-dir", type=str, default=None)
     p.add_argument("--bf16", action="store_true", default=True)
     p.add_argument(
@@ -69,24 +72,12 @@ def parse_args():
     )
     p.add_argument("--cov-num-batches", type=int, default=10)
     p.add_argument("--cov-batch-size", type=int, default=32)
+    p.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Re-collect even if covariance.npz exists",
+    )
     return p.parse_args()
-
-
-def _prepare_messages(ds, capability):
-    """Construct a uniform `messages` column from capability-specific schemas."""
-    answer_col = ANSWER_COLUMN[capability]
-
-    def _to_messages(ex):
-        return {
-            "messages": [
-                {"role": "user", "content": ex["prompt"]},
-                {"role": "assistant", "content": ex[answer_col]},
-            ]
-        }
-
-    ds = ds.map(_to_messages, desc=f"Preparing messages for {capability}")
-    ds = ds.remove_columns([c for c in ds.column_names if c != "messages"])
-    return ds
 
 
 def collect_covariance(capability, args):
@@ -94,7 +85,12 @@ def collect_covariance(capability, args):
     print(f"Collecting covariance: {capability}")
     print(f"{'='*60}")
 
-    run_dir = os.path.join(args.output_dir, f"Olmo-3-7B-{capability}")
+    run_dir = os.path.join(args.save, CAPABILITY_MODEL_DIRS[capability])
+    cov_path = os.path.join(run_dir, "covariance.npz")
+
+    if os.path.exists(cov_path) and not args.overwrite:
+        print(f"  Skipping {capability} — {cov_path} already exists")
+        return
 
     if args.hf_cache_dir:
         os.environ["HF_HOME"] = args.hf_cache_dir
@@ -103,25 +99,26 @@ def collect_covariance(capability, args):
     dataset_id = CAPABILITY_DATASETS[capability]
     print(f"  Dataset: {dataset_id}")
     ds = load_dataset(dataset_id, split="train", cache_dir=args.hf_cache_dir)
-    ds = _prepare_messages(ds, capability)
     print(f"  {len(ds)} examples")
 
     if len(ds) == 0:
         print(f"  WARNING: No examples found for {capability}, skipping.")
         return
 
-    # Load tokenizer
+    # Load tokenizer (from RL-Zero Math model which has a chat template)
     tokenizer = AutoTokenizer.from_pretrained(
-        PRETRAINED_MODEL, cache_dir=args.hf_cache_dir
+        PRETRAINED_TOKENIZER, cache_dir=args.hf_cache_dir
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Tokenize dataset
+    # Tokenize only the prompts (no assistant answers needed for covariance)
     def tokenize_fn(examples):
+        messages = [
+            [{"role": "user", "content": prompt}] for prompt in examples["prompt"]
+        ]
         texts = [
-            tokenizer.apply_chat_template(msgs, tokenize=False)
-            for msgs in examples["messages"]
+            tokenizer.apply_chat_template(msgs, tokenize=False) for msgs in messages
         ]
         return tokenizer(
             texts,
@@ -132,7 +129,7 @@ def collect_covariance(capability, args):
         )
 
     ds = ds.map(
-        tokenize_fn, batched=True, remove_columns=["messages"], desc="Tokenizing"
+        tokenize_fn, batched=True, remove_columns=ds.column_names, desc="Tokenizing"
     )
     ds.set_format("torch", columns=["input_ids", "attention_mask"])
 
@@ -185,7 +182,6 @@ def collect_covariance(capability, args):
         saveable[f"{name}_n"] = cobj.n
 
     os.makedirs(run_dir, exist_ok=True)
-    cov_path = os.path.join(run_dir, f"covariance_{capability}.npz")
     np.savez(cov_path, **saveable)
     print(f"Saved covariances ({len(cobjs)} layers) to {cov_path}")
 

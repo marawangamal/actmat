@@ -23,17 +23,19 @@ export NLTK_DATA=$SCRATCH/nltk_data
 
 ```sh
 # Single capability
-python scripts/olmo/covariance.py --capability math --hf-cache-dir $SCRATCH/huggingface
+python scripts/olmo/covariance.py --capability math --save checkpoints/olmo
 
 # All capabilities
-python scripts/olmo/covariance.py --capability all --hf-cache-dir $SCRATCH/huggingface
+python scripts/olmo/covariance.py --capability all --save checkpoints/olmo
 
 # Custom settings
-python scripts/olmo/covariance.py --capability math \
-  --cov-num-batches 100 --cov-batch-size 2 \
-  --cov-type sm --cov-estimator avg \
+python scripts/olmo/covariance.py --capability all --save checkpoints/olmo \
+  --cov-num-batches 64 --cov-batch-size 2 \
+  --cov-type sm --cov-estimator full \
   --hf-cache-dir $SCRATCH/huggingface
 ```
+
+Saves `covariance.npz` into each finetuned model's param-folder dir (e.g. `checkpoints/olmo/allenai-Olmo-3-7B-RL-Zero-Math/covariance.npz`). `ParamFolderTaskVector` auto-discovers these when merging with regmean.
 
 ## Evaluate merge methods
 
