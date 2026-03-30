@@ -19,6 +19,22 @@ export SSL_CERT_DIR=/etc/ssl/certs
 export NLTK_DATA=$SCRATCH/nltk_data
 ```
 
+## Collect covariances
+
+```sh
+# Single capability
+python scripts/olmo/covariance.py --capability math --hf-cache-dir $SCRATCH/huggingface
+
+# All capabilities
+python scripts/olmo/covariance.py --capability all --hf-cache-dir $SCRATCH/huggingface
+
+# Custom settings
+python scripts/olmo/covariance.py --capability math \
+  --cov-num-batches 100 --cov-batch-size 2 \
+  --cov-type sm --cov-estimator avg \
+  --hf-cache-dir $SCRATCH/huggingface
+```
+
 ## Evaluate merge methods
 
 ```sh
