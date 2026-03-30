@@ -17,9 +17,9 @@ ALL_MODELS = {**LANG_MODELS, **VIS_MODELS}
 # # ==== Standard ====
 if FT_MODE == "standard":
     BAR_METHODS = {
-        "sum_data": "TA (data)",
+        "sum_data": "TA",
         "regmean": "RegMean",
-        "sum": "TA",
+        # "sum": "TA",
         "mean": "Average",
         "isoc": "ISO-C",
         "tsv": "TSV",
@@ -31,9 +31,9 @@ if FT_MODE == "standard":
 else:
     # ==== LoRA ====
     BAR_METHODS = {
-        "sum_data": "TA (data)",
+        "sum_data": "TA",
         "regmean": "RegMean",
-        "sum": "TA",
+        # "sum": "TA",
         "mean": "Average",
         "isoc_mean": "ISO-C",
         "tsv": "TSV",
@@ -45,16 +45,15 @@ else:
 BASELINE_METHODS = {"expert": "Expert", "zeroshot": "Zeroshot"}
 ALL_METHODS = {**BAR_METHODS, **KNOTS_METHODS, **BASELINE_METHODS}
 
-DATA_NEEDED = {"RegMean", "TA (data)"}
+DATA_NEEDED = {"RegMean", "TA"}
 COLORS = {
     "EigenCov": "#00A658",
     "TSV": "#4A5568",
     "ISO-C": "#718096",
     "Average": "#A0AEC0",
     "RegMean": "#CBD5E0",
+    "TA (data-free)": "#E2E8F0",
     "TA": "#E2E8F0",
-    "TA (data)": "#E2E8F0",
-    "TA (hpopt)": "#E2E8F0",
 }
 BL_STYLES = {
     "Expert": dict(color="black", ls="--", lw=1.2),
@@ -194,3 +193,4 @@ fig.legend(
 fig.tight_layout()
 fig.subplots_adjust(bottom=0.12)
 plt.show()
+plt.savefig(f"../results-tracked/performance-{FT_MODE}.pdf", dpi=300)
