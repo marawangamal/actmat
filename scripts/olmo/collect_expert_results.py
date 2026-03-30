@@ -179,6 +179,8 @@ def main():
         # test_avg_top1 = avg_accuracy@1 for compatibility with make_table.py
         if "@1" in averages_by_config and "expert" in averages_by_config["@1"]:
             record["test_avg_top1"] = averages_by_config["@1"]["expert"]
+        if "@k" in averages_by_config and "expert" in averages_by_config["@k"]:
+            record["test_avg_topk"] = averages_by_config["@k"]["expert"]
         print("Logging record with merge_func:", record["merge_func"])
         append_result(args.results_db, record, run_hash)
         print(f"\nLogged 1 result(s) to {args.results_db}")
