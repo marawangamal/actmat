@@ -1,182 +1,75 @@
-"""Collect olmes evaluation results and compute domain averages.
+"""Collect olmes evaluation results.
 
 Usage:
-    python scripts/nlg/collect_results.py --dirs results-nlg-4096-eigcov results-nlg-4096-mean
+    python scripts/olmo/collect_results.py --dirs results-olmo-mean results-olmo-eigcov
 """
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
 
-STANDALONE = {
-    "codex_humaneval::tulu": "HumanEval",
-    "codex_humanevalplus::tulu": "HumanEval+",
-    "ifeval::tulu": "IFEval",
-    "aime:zs_cot_r1::pass_at_32_2024_deepseek": "AIME 2024",
-    "aime:zs_cot_r1::pass_at_32_2025_deepseek": "AIME 2025",
-}
 
-DISPLAY_ORDER = ["HumanEval", "HumanEval+", "IFEval", "AIME 2024", "AIME 2025"]
-SCORE_CONFIGS = {
-    "@1": {
-        "codex_humaneval::tulu": "pass_at_1",
-        "codex_humanevalplus::tulu": "pass_at_1",
-        "aime:zs_cot_r1::pass_at_32_2024_deepseek": "pass_at_1",
-        "aime:zs_cot_r1::pass_at_32_2025_deepseek": "pass_at_1",
-    },
-    "@k": {
-        "codex_humaneval::tulu": "pass_at_10",
-        "codex_humanevalplus::tulu": "pass_at_10",
-        "aime:zs_cot_r1::pass_at_32_2024_deepseek": "pass_at_32",
-        "aime:zs_cot_r1::pass_at_32_2025_deepseek": "pass_at_32",
-    },
-}
-
-
-def load_results(results_dir: Path, primary_scores: dict[str, str]) -> dict[str, float]:
-    metrics_files = sorted(results_dir.glob("*-metrics.json"))
-    if not metrics_files:
-        print(f"Warning: no metrics files found in {results_dir}", file=sys.stderr)
-        return {}
-
-    task_scores: dict[str, float] = {}
-    for f in metrics_files:
+def load_results(results_dir: Path) -> dict[str, float]:
+    scores = {}
+    for f in sorted(results_dir.glob("*-metrics.json")):
         data = json.loads(f.read_text())
-        task_name = data["task_config"]["metadata"]["alias"]
-        primary_key = primary_scores.get(task_name, "primary_score")
-        primary = data.get("metrics", {}).get(primary_key)
-        if primary is not None:
-            task_scores[task_name] = primary
-
-    scores: dict[str, float] = {}
-
-    for task_name, display_name in STANDALONE.items():
-        if task_name in task_scores:
-            scores[display_name] = task_scores[task_name]
-
+        alias = data["task_config"]["metadata"]["alias"]
+        score = data.get("metrics", {}).get("primary_score")
+        if score is not None:
+            scores[alias] = score
     return scores
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Collect olmes results and compute averages."
-    )
-    parser.add_argument(
-        "--dirs",
-        nargs="+",
-        required=True,
-        help="One or more olmes output directories containing *-metrics.json files.",
-    )
-    parser.add_argument(
-        "--no-code",
-        action="store_true",
-        help="Omit code benchmarks (HumanEval, HumanEval+) from the table.",
-    )
-    parser.add_argument(
-        "--log",
-        action="store_true",
-        help="Append average accuracies to results/results.jsonl.",
-    )
-    parser.add_argument(
-        "--results-db",
-        default="results-tracked/results.jsonl",
-        help="Path to the results JSONL database (default: results/results.jsonl).",
-    )
-    return parser.parse_args()
-
-
-def print_table(all_results: dict[str, dict[str, float]], label: str):
-    methods = list(all_results.keys())
-    col_w = max(15, *(len(m) + 2 for m in methods))
-
-    print(f"\n=== {label} ===")
-    header = f"{'Benchmark':<15}" + "".join(f"{m:>{col_w}}" for m in methods)
-    print(header)
-    print("-" * len(header))
-
-    for bench in DISPLAY_ORDER:
-        row = f"{bench:<15}"
-        for m in methods:
-            val = all_results[m].get(bench)
-            row += f"{val:{col_w}.3f}" if val is not None else f"{'—':>{col_w}}"
-        print(row)
-
-    print("-" * len(header))
-    row = f"{'Average':<15}"
-    averages: dict[str, float] = {}
-    for m in methods:
-        vals = [all_results[m][b] for b in DISPLAY_ORDER if b in all_results[m]]
-        if vals:
-            averages[m] = sum(vals) / len(vals)
-            row += f"{averages[m]:{col_w}.3f}"
-        else:
-            row += f"{'—':>{col_w}}"
-    print(row)
-    return averages
-
-
 def main():
-    args = parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dirs", nargs="+", required=True)
+    parser.add_argument("--log", action="store_true")
+    parser.add_argument(
+        "--dry", action="store_true", help="Print records that would be logged."
+    )
+    parser.add_argument("--results-db", default="results-tracked/results.jsonl")
+    args = parser.parse_args()
 
-    # Collect scores for each config (pass@1, pass@k)
-    # results_by_config[suffix][method_name] = {benchmark: score}
-    results_by_config: dict[str, dict[str, dict[str, float]]] = {}
-    for suffix, primary_scores in SCORE_CONFIGS.items():
-        results: dict[str, dict[str, float]] = {}
-        for d in args.dirs:
-            p = Path(d)
-            name = p.name.replace("results-nlg-", "")
-            results[name] = load_results(p, primary_scores)
-        results_by_config[suffix] = results
+    all_results = {Path(d).name: load_results(Path(d)) for d in args.dirs}
+    all_tasks = sorted(set().union(*(s.keys() for s in all_results.values())))
+    methods = list(all_results.keys())
 
-    # Print tables and collect averages per config
-    averages_by_config: dict[str, dict[str, float]] = {}
-    for suffix, results in results_by_config.items():
-        averages_by_config[suffix] = print_table(results, f"pass{suffix}")
+    # Print table
+    col_w = max(15, *(len(m) + 2 for m in methods))
+    task_w = max((len(t) for t in all_tasks), default=10) + 2
+    print(f"{'Task':<{task_w}}" + "".join(f"{m:>{col_w}}" for m in methods))
+    for task in all_tasks:
+        print(
+            f"{task:<{task_w}}"
+            + "".join(
+                f"{all_results[m].get(task, float('nan')):{col_w}.3f}" for m in methods
+            )
+        )
+    averages = {m: sum(s.values()) / len(s) for m, s in all_results.items() if s}
+    print(
+        f"{'Average':<{task_w}}"
+        + "".join(f"{averages.get(m, float('nan')):{col_w}.3f}" for m in methods)
+    )
 
-    if args.log:
-        _HASH_IGNORE = {"log", "no_code", "results_db"}
-        # Get all method names from any config
-        all_methods = set()
-        for results in results_by_config.values():
-            all_methods.update(results.keys())
-
-        logged = 0
-        for method in sorted(all_methods):
+    if args.log or args.dry:
+        for method, scores in all_results.items():
             args.merge_func = method.rsplit("-", 1)[-1]
-            run_hash = make_run_hash("collect_results_olmo", args, ignore=_HASH_IGNORE)
-            if record_exists(args.results_db, run_hash):
-                print(f"Skipping {method}: already logged ({args.merge_func})")
+            run_hash = make_run_hash(
+                "collect_results_olmo", args, ignore={"log", "dry", "results_db"}
+            )
+            if not args.dry and record_exists(args.results_db, run_hash):
                 continue
-
-            record = {
-                **args_to_dict(args),
-                "script": "collect_results_olmo",
-                "model": "Olmo-3-7B",
-                "finetuning_mode": "standard",
-            }
-
-            # Add prefixed scores for each config
-            for suffix, results in results_by_config.items():
-                if method in results:
-                    for bench, score in results[method].items():
-                        record[f"test_{bench}{suffix}"] = score
-                avg = averages_by_config[suffix].get(method)
-                if avg is not None:
-                    record[f"avg_accuracy{suffix}"] = avg
-
-            # test_avg_top1 = avg_accuracy@1 for compatibility with make_table.py
-            if "@1" in averages_by_config and method in averages_by_config["@1"]:
-                record["test_avg_top1"] = averages_by_config["@1"][method]
-            if "@k" in averages_by_config and method in averages_by_config["@k"]:
-                record["test_avg_topk"] = averages_by_config["@k"][method]
-            print("Logging record with merge_func:", record["merge_func"])
-            append_result(args.results_db, record, run_hash)
-            logged += 1
-        print(f"\nLogged {logged} result(s) to {args.results_db}")
+            record = {**args_to_dict(args), "script": "collect_results_olmo"}
+            record.update({f"test_{t}": v for t, v in scores.items()})
+            if method in averages:
+                record["test_avg"] = averages[method]
+            if args.dry:
+                print(f"\n[dry] {method}:")
+                print(json.dumps(record, indent=2))
+            else:
+                append_result(args.results_db, record, run_hash)
 
 
 if __name__ == "__main__":
