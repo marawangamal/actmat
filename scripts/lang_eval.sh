@@ -115,3 +115,9 @@ for MODEL in "${MODELS[@]}"; do
     done
   done
 done
+
+
+# python scripts/language/eval_single_task.py \
+#         --finetuning-mode="standard" \
+#         --hf-cache-dir="$SCRATCH/hf_cache" \
+#         --model="t5-large" 

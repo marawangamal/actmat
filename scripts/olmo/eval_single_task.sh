@@ -20,8 +20,8 @@ set -euo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 MODEL_IDS=(
-  allenai/Olmo-3-7B-RL-Zero-Math
-  allenai/Olmo-3-7B-RL-Zero-Code
+  # allenai/Olmo-3-7B-RL-Zero-Math
+  # allenai/Olmo-3-7B-RL-Zero-Code
   allenai/Olmo-3-7B-RL-Zero-IF
 )
 

@@ -19,6 +19,12 @@ STANDALONE = {
     "aime:zs_cot_r1::pass_at_32_2025_deepseek": "AIME 2025",
 }
 
+EXPERT_BENCHMARKS = {
+    "Math": ["AIME 2024", "AIME 2025"],
+    "Code": ["HumanEval", "HumanEval+"],
+    "IF": ["IFEval"],
+}
+
 DISPLAY_ORDER = ["HumanEval", "HumanEval+", "IFEval", "AIME 2024", "AIME 2025"]
 SCORE_CONFIGS = {
     "@1": {
@@ -122,15 +128,25 @@ def main():
     args = parse_args()
 
     # Collect scores for each config (pass@1, pass@k)
-    # results_by_config[suffix][method_name] = {benchmark: score}
+    # results_by_config[suffix]["expert"] = {benchmark: score}
     results_by_config: dict[str, dict[str, dict[str, float]]] = {}
     for suffix, primary_scores in SCORE_CONFIGS.items():
-        results: dict[str, dict[str, float]] = {}
+        expert: dict[str, float] = {}
         for d in args.dirs:
             p = Path(d)
-            name = p.name.replace("results-nlg-", "")
-            results[name] = load_results(p, primary_scores)
-        results_by_config[suffix] = results
+            expert_type = p.name.rsplit("-", 1)[-1]
+            benchmarks = EXPERT_BENCHMARKS.get(expert_type)
+            if benchmarks is None:
+                print(
+                    f"Warning: unknown expert type '{expert_type}' from {p.name}",
+                    file=sys.stderr,
+                )
+                continue
+            scores = load_results(p, primary_scores)
+            for bench in benchmarks:
+                if bench in scores:
+                    expert[bench] = scores[bench]
+        results_by_config[suffix] = {"expert": expert}
 
     # Print tables and collect averages per config
     averages_by_config: dict[str, dict[str, float]] = {}
@@ -139,44 +155,35 @@ def main():
 
     if args.log:
         _HASH_IGNORE = {"log", "no_code", "results_db"}
-        # Get all method names from any config
-        all_methods = set()
-        for results in results_by_config.values():
-            all_methods.update(results.keys())
+        args.merge_func = "expert"
+        run_hash = make_run_hash("collect_results_olmo", args, ignore=_HASH_IGNORE)
+        if record_exists(args.results_db, run_hash):
+            print("Skipping expert: already logged")
+            return
 
-        logged = 0
-        for method in sorted(all_methods):
-            args.merge_func = method.rsplit("-", 1)[-1]
-            run_hash = make_run_hash("collect_results_olmo", args, ignore=_HASH_IGNORE)
-            if record_exists(args.results_db, run_hash):
-                print(f"Skipping {method}: already logged ({args.merge_func})")
-                continue
+        record = {
+            **args_to_dict(args),
+            "script": "collect_results_olmo",
+            "model": "Olmo-3-7B",
+            "finetuning_mode": "standard",
+        }
 
-            record = {
-                **args_to_dict(args),
-                "script": "collect_results_olmo",
-                "model": "Olmo-3-7B",
-                "finetuning_mode": "standard",
-            }
+        # Add prefixed scores for each config
+        for suffix, results in results_by_config.items():
+            for bench, score in results["expert"].items():
+                record[f"test_{bench}{suffix}"] = score
+            avg = averages_by_config[suffix].get("expert")
+            if avg is not None:
+                record[f"avg_accuracy{suffix}"] = avg
 
-            # Add prefixed scores for each config
-            for suffix, results in results_by_config.items():
-                if method in results:
-                    for bench, score in results[method].items():
-                        record[f"test_{bench}{suffix}"] = score
-                avg = averages_by_config[suffix].get(method)
-                if avg is not None:
-                    record[f"avg_accuracy{suffix}"] = avg
-
-            # test_avg_top1 = avg_accuracy@1 for compatibility with make_table.py
-            if "@1" in averages_by_config and method in averages_by_config["@1"]:
-                record["test_avg_top1"] = averages_by_config["@1"][method]
-            if "@k" in averages_by_config and method in averages_by_config["@k"]:
-                record["test_avg_topk"] = averages_by_config["@k"][method]
-            print("Logging record with merge_func:", record["merge_func"])
-            append_result(args.results_db, record, run_hash)
-            logged += 1
-        print(f"\nLogged {logged} result(s) to {args.results_db}")
+        # test_avg_top1 = avg_accuracy@1 for compatibility with make_table.py
+        if "@1" in averages_by_config and "expert" in averages_by_config["@1"]:
+            record["test_avg_top1"] = averages_by_config["@1"]["expert"]
+        if "@k" in averages_by_config and "expert" in averages_by_config["@k"]:
+            record["test_avg_topk"] = averages_by_config["@k"]["expert"]
+        print("Logging record with merge_func:", record["merge_func"])
+        append_result(args.results_db, record, run_hash)
+        print(f"\nLogged 1 result(s) to {args.results_db}")
 
 
 if __name__ == "__main__":
