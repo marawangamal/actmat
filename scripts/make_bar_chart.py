@@ -8,35 +8,44 @@ FT_MODE = "lora"
 # ── Config ──────────────────────────────────────────────────────────────
 RESULTS = osp.join("../results-tracked", "results.jsonl")
 RESULTS_ANC = osp.join("../results-tracked", "results-anc.jsonl")
+RESULTS_TA = osp.join("../results-tracked", "results-ta.jsonl")
 
 LANG_MODELS = {"t5-base": "T5-Base", "t5-large": "T5-Large"}
 VIS_MODELS = {"ViT-B-16": "ViT-B/16", "ViT-B-32": "ViT-B/32", "ViT-L-14": "ViT-L/14"}
 ALL_MODELS = {**LANG_MODELS, **VIS_MODELS}
 
 # # ==== Standard ====
-# BAR_METHODS = {
-#     "sum": "TA", "regmean": "RegMean", "mean": "Average",
-#     "isoc": "ISO-C", "tsv": "TSV", "eigcov": "EigenCov",
-# }
-# KNOTS_METHODS = {}
-# KNOTS_BASE = {}
+if FT_MODE == "standard":
+    BAR_METHODS = {
+        "sum_data": "TA (data)",
+        "regmean": "RegMean",
+        "sum": "TA",
+        "mean": "Average",
+        "isoc": "ISO-C",
+        "tsv": "TSV",
+        "eigcov": "EigenCov",
+    }
+    KNOTS_METHODS = {}
+    KNOTS_BASE = {}
 
-# ==== LoRA ====
-BAR_METHODS = {
-    "sum": "TA",
-    "regmean": "RegMean",
-    "mean": "Average",
-    "isoc_mean": "ISO-C",
-    "tsv": "TSV",
-    "eigcov": "EigenCov",
-}
-KNOTS_METHODS = {"knots_tsv": "KNOTS-TSV", "knots_isoc_mean": "KNOTS-ISO-C"}
-KNOTS_BASE = {"KNOTS-TSV": "TSV", "KNOTS-ISO-C": "ISO-C"}
+else:
+    # ==== LoRA ====
+    BAR_METHODS = {
+        "sum_data": "TA (data)",
+        "regmean": "RegMean",
+        "sum": "TA",
+        "mean": "Average",
+        "isoc_mean": "ISO-C",
+        "tsv": "TSV",
+        "eigcov": "EigenCov",
+    }
+    KNOTS_METHODS = {"knots_tsv": "KNOTS-TSV", "knots_isoc_mean": "KNOTS-ISO-C"}
+    KNOTS_BASE = {"KNOTS-TSV": "TSV", "KNOTS-ISO-C": "ISO-C"}
 
 BASELINE_METHODS = {"expert": "Expert", "zeroshot": "Zeroshot"}
 ALL_METHODS = {**BAR_METHODS, **KNOTS_METHODS, **BASELINE_METHODS}
 
-DATA_NEEDED = {"RegMean", "TA"}
+DATA_NEEDED = {"RegMean", "TA (data)"}
 COLORS = {
     "EigenCov": "#00A658",
     "TSV": "#4A5568",
@@ -44,6 +53,8 @@ COLORS = {
     "Average": "#A0AEC0",
     "RegMean": "#CBD5E0",
     "TA": "#E2E8F0",
+    "TA (data)": "#E2E8F0",
+    "TA (hpopt)": "#E2E8F0",
 }
 BL_STYLES = {
     "Expert": dict(color="black", ls="--", lw=1.2),
@@ -61,6 +72,9 @@ df = pd.DataFrame(_read_jsonl(RESULTS))
 
 if osp.exists(RESULTS_ANC):
     df = pd.concat([df, pd.DataFrame(_read_jsonl(RESULTS_ANC))])
+
+if osp.exists(RESULTS_TA):
+    df = pd.concat([df, pd.DataFrame(_read_jsonl(RESULTS_TA))])
 
 df = (
     df[df["finetuning_mode"] == FT_MODE]
@@ -153,7 +167,13 @@ for ax, (title, models) in zip(axes, panels):
     ax.set_xticks(x)
     ax.set_xticklabels(models, fontsize=11)
     ax.set_title(title, fontsize=12, fontweight="bold")
-    ax.set_ylim(45 if title == "Vision" else 40, 95)
+    if FT_MODE == "standard":
+        ymin = 45 if title == "Vision" else 50
+        ymax = 95 if title == "Vision" else 85
+    else:
+        ymin = 45 if title == "Vision" else 40
+        ymax = 95 if title == "Vision" else 85
+    ax.set_ylim(ymin, ymax)
     ax.spines[["top", "right"]].set_visible(False)
     ax.yaxis.grid(True, alpha=0.4, linestyle="--", zorder=0)
 
