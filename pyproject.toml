@@ -1,0 +1,15 @@
+[project]
+name = "eigcov"
+version = "0.1.0"
+description = "Data-free model merging via eigenvalue covariance estimation of task vectors"
+requires-python = ">=3.11"
+dependencies = []
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu121" }
+torchvision = { index = "pytorch-cu121" }
+promptsource = { git = "https://github.com/bigscience-workshop/promptsource.git" }

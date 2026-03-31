@@ -59,6 +59,11 @@ class ParamFolderTaskVector(_TaskVector):
         else:
             self._pre_manifest = _load_manifest(Path(pretrained_checkpoint))
             self._ft_manifest = _load_manifest(Path(finetuned_checkpoint))
+            # Auto-discover covariance file if not explicitly provided.
+            if "covariance_path" not in kwargs or kwargs["covariance_path"] is None:
+                auto_cov = Path(finetuned_checkpoint) / "covariance.npz"
+                if auto_cov.exists():
+                    kwargs["covariance_path"] = str(auto_cov)
             # Always lazy — that's the whole point of this subclass.
             super().__init__(
                 pretrained_checkpoint=str(pretrained_checkpoint),
@@ -108,6 +113,9 @@ class ParamFolderTaskVector(_TaskVector):
         # Single-element cache — previous entry is released.
         self._cache = {key: delta}
         return delta
+
+    def param_key_to_cov_key(self, key: str):
+        return key.replace(".weight", "")
 
     def _cast_to_same_type(self, other):
         if isinstance(other, ParamFolderTaskVector):

@@ -5,14 +5,14 @@
 # evaluates via olmes, then collects all results into a summary table.
 #
 # Usage:
-#   bash scripts/rl/eval_task_addition.sh \
-#     --pretrained-dir checkpoints/rl/meta-llama-Meta-Llama-3.1-8B \
+#   bash scripts/olmo/eval_task_addition.sh \
+#     --pretrained-dir checkpoints/olmo/meta-llama-Meta-Llama-3.1-8B \
 #     --finetuned-dirs \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-math-reasoning \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-coding \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-precise-if \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-general \
-#       checkpoints/rl/pmahdavi-Llama-3.1-8B-knowledge-recall \
+#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-math-reasoning \
+#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-coding \
+#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-precise-if \
+#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-general \
+#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-knowledge-recall \
 #     --merge-funcs "eigcov tsv isoc mean" \
 #     --gpus 4
 
@@ -22,8 +22,8 @@ set -euo pipefail
 PRETRAINED_DIR=""
 FINETUNED_DIRS=()
 MERGE_FUNCS="eigcov tsv mean isoc"
-OUTPUT_BASE="checkpoints/rl"
-RESULTS_BASE="results-rl"
+OUTPUT_BASE="checkpoints/olmo"
+RESULTS_BASE="results-olmo"
 GPUS=4
 UPLOAD=""          # HF Hub user/org prefix; empty = skip upload
 MERGE_KWARGS=""    # JSON string forwarded to merge.py --merge-kwargs
@@ -39,7 +39,8 @@ OLMES_TASKS=(
   "aime:zs_cot_r1::pass_at_32_2024_deepseek"
   "aime:zs_cot_r1::pass_at_32_2025_deepseek"
 )
-OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
+OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}' # for aime
+# OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'  # otherwise
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -101,7 +102,7 @@ ensure_param_folder() {
   local local_dir="${OUTPUT_BASE}/$(echo "$dir" | tr '/' '-')"
   if [[ ! -d "$local_dir" ]]; then
     echo ">>> Downloading ${dir} to ${local_dir} ..."
-    python scripts/rl/save_model_param_folder.py --model "$dir" --output-dir "$local_dir"
+    python scripts/olmo/save_model_param_folder.py --model "$dir" --output-dir "$local_dir"
   else
     echo ">>> Using cached ${local_dir} for ${dir}"
   fi
@@ -153,7 +154,7 @@ for method in $MERGE_FUNCS; do
     echo ">>> Skipping merge: ${OUTPUT_DIR} already exists"
   else
     MERGE_CMD=(
-      python scripts/rl/merge.py
+      python scripts/olmo/merge.py
       --pretrained-dir "$PRETRAINED_DIR"
       --finetuned-dirs "${FINETUNED_DIRS[@]}"
       --merge-func "$method"
@@ -200,7 +201,7 @@ done
 echo "============================================================"
 echo "Collecting results ..."
 echo "============================================================"
-COLLECT_CMD=(python scripts/rl/collect_results.py --dirs "${RESULT_DIRS[@]}")
+COLLECT_CMD=(python scripts/olmo/collect_results.py --dirs "${RESULT_DIRS[@]}")
 if [[ -n "$NO_CODE" ]]; then
   COLLECT_CMD+=(--no-code)
 fi
