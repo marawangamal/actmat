@@ -63,9 +63,9 @@ METHODS_MAP = {
 
 def load_data():
     paths = [
-        "../results-tracked/results.jsonl",
-        "../results-tracked/results-anc.jsonl",
-        "../results-tracked/results-ta.jsonl",
+        "results-tracked/results.jsonl",
+        "results-tracked/results-anc.jsonl",
+        "results-tracked/results-ta.jsonl",
     ]
     all_data = []
     for p in paths:
@@ -214,5 +214,5 @@ fig.legend(
 plt.tight_layout()
 # Adjust bottom to make room for the massive legend
 plt.subplots_adjust(bottom=0.15, hspace=0.3, wspace=0.2)
-plt.savefig("../results-tracked/performance-grid.pdf", dpi=300, bbox_inches="tight")
+plt.savefig("results-tracked/performance-grid.pdf", dpi=300, bbox_inches="tight")
 plt.show()
