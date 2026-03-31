@@ -1,196 +1,172 @@
 import json, os.path as osp
-import matplotlib.pyplot as plt, numpy as np, pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
-# ── Params (toggle here) ────────────────────────────────────────────────
-# FT_MODE = "standard"  # "standard" | "lora"
-FT_MODE = "lora"
+# ── 1. Configuration (36pt "Billboard" Style) ──────────────────────────
+BASE_FONTSIZE = 36
+sns.set_theme(
+    style="ticks",
+    rc={
+        "font.size": BASE_FONTSIZE,
+        "axes.titlesize": BASE_FONTSIZE,
+        "axes.labelsize": BASE_FONTSIZE,
+        "xtick.labelsize": BASE_FONTSIZE * 0.85,
+        "ytick.labelsize": BASE_FONTSIZE * 0.85,
+        "legend.fontsize": BASE_FONTSIZE * 0.75,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "hatch.linewidth": 2.5,
+        "hatch.color": "#333333",
+    },
+)
 
-# ── Config ──────────────────────────────────────────────────────────────
-RESULTS = osp.join("../results-tracked", "results.jsonl")
-RESULTS_ANC = osp.join("../results-tracked", "results-anc.jsonl")
-RESULTS_TA = osp.join("../results-tracked", "results-ta.jsonl")
+MODELS = {
+    "Language": {"t5-base": "T5-Base", "t5-large": "T5-Large"},
+    "Vision": {"ViT-B-16": "ViT-B/16", "ViT-B-32": "ViT-B/32", "ViT-L-14": "ViT-L/14"},
+}
 
-LANG_MODELS = {"t5-base": "T5-Base", "t5-large": "T5-Large"}
-VIS_MODELS = {"ViT-B-16": "ViT-B/16", "ViT-B-32": "ViT-B/32", "ViT-L-14": "ViT-L/14"}
-ALL_MODELS = {**LANG_MODELS, **VIS_MODELS}
-
-# # ==== Standard ====
-if FT_MODE == "standard":
-    BAR_METHODS = {
-        "sum_data": "TA",
-        "regmean": "RegMean",
-        # "sum": "TA",
-        "mean": "Average",
-        "isoc": "ISO-C",
-        "tsv": "TSV",
-        "eigcov": "EigenCov",
-    }
-    KNOTS_METHODS = {}
-    KNOTS_BASE = {}
-
-else:
-    # ==== LoRA ====
-    BAR_METHODS = {
-        "sum_data": "TA",
-        "regmean": "RegMean",
-        # "sum": "TA",
-        "mean": "Average",
-        "isoc_mean": "ISO-C",
-        "tsv": "TSV",
-        "eigcov": "EigenCov",
-    }
-    KNOTS_METHODS = {"knots_tsv": "KNOTS-TSV", "knots_isoc_mean": "KNOTS-ISO-C"}
-    KNOTS_BASE = {"KNOTS-TSV": "TSV", "KNOTS-ISO-C": "ISO-C"}
-
-BASELINE_METHODS = {"expert": "Expert", "zeroshot": "Zeroshot"}
-ALL_METHODS = {**BAR_METHODS, **KNOTS_METHODS, **BASELINE_METHODS}
-
-DATA_NEEDED = {"RegMean", "TA"}
 COLORS = {
     "EigenCov": "#00A658",
     "TSV": "#4A5568",
+    "KNOTS-TSV": "#4A5568",
     "ISO-C": "#718096",
+    "KNOTS-ISO-C": "#718096",
     "Average": "#A0AEC0",
     "RegMean": "#CBD5E0",
-    "TA (data-free)": "#E2E8F0",
     "TA": "#E2E8F0",
 }
-BL_STYLES = {
-    "Expert": dict(color="black", ls="--", lw=1.2),
-    "Zeroshot": dict(color="gray", ls=":", lw=1.2),
-}
 
+BAR_ORDER = ["TA", "RegMean", "Average", "ISO-C", "TSV", "EigenCov"]
+KNOTS_MAP = {"KNOTS-TSV": "TSV", "KNOTS-ISO-C": "ISO-C"}
+DATA_NEEDING = ["TA", "RegMean", "KNOTS-TSV", "KNOTS-ISO-C"]
+TEXTURE_SLASH = "//"
+TEXTURE_DOT = ".."
 
-# ── Load data ───────────────────────────────────────────────────────────
-def _read_jsonl(path):
-    with open(path) as f:
-        return [json.loads(l) for l in f if l.strip()]
+# ── 2. Plotting Logic (2x2 Grid) ───────────────────────────────────────
+fig, axes = plt.subplots(2, 2, figsize=(32, 24))
+legend_data = {}
 
-
-df = pd.DataFrame(_read_jsonl(RESULTS))
-
-if osp.exists(RESULTS_ANC):
-    df = pd.concat([df, pd.DataFrame(_read_jsonl(RESULTS_ANC))])
-
-if osp.exists(RESULTS_TA):
-    df = pd.concat([df, pd.DataFrame(_read_jsonl(RESULTS_TA))])
-
-df = (
-    df[df["finetuning_mode"] == FT_MODE]
-    .assign(
-        Model=lambda d: d["model"].map(ALL_MODELS),
-        Method=lambda d: d["merge_func"].map(ALL_METHODS),
-        score=lambda d: d.get("test_avg_topk", d["test_avg_top1"]).fillna(
-            d["test_avg_top1"]
-        ),
-    )
-    .dropna(subset=["Model", "Method", "score"])
-)
-
-tbl = df.groupby(["Method", "Model"])["score"].max().unstack("Model")
-
-# ── Plot: two subplots (Language | Vision) ──────────────────────────────
-panels = [
-    ("Language", [v for v in LANG_MODELS.values() if v in tbl.columns]),
-    ("Vision", [v for v in VIS_MODELS.values() if v in tbl.columns]),
+# Grid Structure:
+# Row 0: Language (Std, LoRA)
+# Row 1: Vision (Std, LoRA)
+grid_config = [
+    (0, 0, "standard", "Language"),
+    (0, 1, "lora", "Language"),
+    (1, 0, "standard", "Vision"),
+    (1, 1, "lora", "Vision"),
 ]
-bars = [v for v in BAR_METHODS.values() if v in tbl.index]
-baselines = [v for v in BASELINE_METHODS.values() if v in tbl.index]
-n_bars = len(bars)
-bw = 0.12
-gw = n_bars * bw
 
-fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), sharey=False)
+for r, c, mode, dom in grid_config:
+    ax = axes[r, c]
+    models = list(MODELS[dom].values())
+    sub = df[df["finetuning_mode"] == mode]
+    tbl = sub.groupby(["Method", "Model"])["Score"].max().unstack("Model")
 
-for ax, (title, models) in zip(axes, panels):
-    x = np.arange(len(models))
+    x, bw = np.arange(len(models)), 0.14
+    gw = len(BAR_ORDER) * bw
 
-    for i, m in enumerate(bars):
-        vals = [
-            tbl.loc[m, mod] * 100 if pd.notna(tbl.loc[m, mod]) else 0 for mod in models
-        ]
-        hatch = "///" if m in DATA_NEEDED else None
-        ax.bar(
-            x - gw / 2 + (i + 0.5) * bw,
+    for j, m in enumerate(BAR_ORDER):
+        if m not in tbl.index:
+            continue
+        vals = [tbl.loc[m, mod] if mod in tbl.columns else 0 for mod in models]
+
+        hatch = TEXTURE_SLASH if m in DATA_NEEDING else None
+        rects = ax.bar(
+            x - gw / 2 + (j + 0.5) * bw,
             vals,
             width=bw,
-            color=COLORS.get(m, "#999"),
+            color=COLORS.get(m),
             edgecolor="white",
-            linewidth=0.8,
+            linewidth=1.5,
             hatch=hatch,
             zorder=3,
-            label=m if ax is axes[0] else None,
         )
 
-    # KNOTS stacked segments on top of their base bars
-    for knots_name, base_name in KNOTS_BASE.items():
-        if knots_name not in tbl.index or base_name not in bars:
-            continue
-        i = bars.index(base_name)
-        base_vals = [
-            tbl.loc[base_name, mod] * 100 if pd.notna(tbl.loc[base_name, mod]) else 0
-            for mod in models
-        ]
-        knots_vals = [
-            tbl.loc[knots_name, mod] * 100 if pd.notna(tbl.loc[knots_name, mod]) else 0
-            for mod in models
-        ]
-        gains = [max(k - b, 0) for k, b in zip(knots_vals, base_vals)]
-        ax.bar(
-            x - gw / 2 + (i + 0.5) * bw,
-            gains,
-            bottom=base_vals,
-            width=bw,
-            color=COLORS.get(base_name, "#999"),
-            edgecolor="white",
-            linewidth=0.8,
-            hatch="...",
-            alpha=0.7,
-            zorder=3,
-            label=knots_name if ax is axes[0] else None,
-        )
+        # Capture legend handles
+        legend_data[m] = rects
 
-    for bl in baselines:
-        for j, mod in enumerate(models):
-            if bl in tbl.index and mod in tbl.columns and pd.notna(tbl.loc[bl, mod]):
-                val = tbl.loc[bl, mod] * 100
-                ax.hlines(
-                    val,
-                    j - gw / 2 - bw * 0.3,
-                    j + gw / 2 + bw * 0.3,
-                    zorder=4,
-                    **BL_STYLES[bl],
-                    label=bl if ax is axes[0] and j == 0 else None,
-                )
+        # Handle KNOTS Gains (LoRA columns only)
+        knots_key = next((k for k, v in KNOTS_MAP.items() if v == m), None)
+        if mode == "lora" and knots_key in tbl.index:
+            k_vals = [
+                tbl.loc[knots_key, mod] if mod in tbl.columns else 0 for mod in models
+            ]
+            gains = [max(k - b, 0) for k, b in zip(k_vals, vals)]
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(models, fontsize=11)
-    ax.set_title(title, fontsize=12, fontweight="bold")
-    if FT_MODE == "standard":
-        ymin = 45 if title == "Vision" else 50
-        ymax = 95 if title == "Vision" else 85
-    else:
-        ymin = 45 if title == "Vision" else 40
-        ymax = 95 if title == "Vision" else 85
+            k_rects = ax.bar(
+                x - gw / 2 + (j + 0.5) * bw,
+                gains,
+                bottom=vals,
+                width=bw,
+                color=COLORS.get(m),
+                edgecolor="white",
+                hatch=TEXTURE_DOT,
+                zorder=4,
+            )
+            legend_data[knots_key] = k_rects
+
+    # ── Honest Scaling (45-85 for Lang, 45-95 for Vis) ──
+    ymin, ymax = (45, 85) if dom == "Language" else (45, 95)
     ax.set_ylim(ymin, ymax)
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.yaxis.grid(True, alpha=0.4, linestyle="--", zorder=0)
 
-axes[0].set_ylabel("Accuracy (%)", fontsize=12)
+    # Baselines
+    for bl, style in {"Expert": "--", "Zeroshot": ":"}.items():
+        if bl in tbl.index:
+            for k, mod in enumerate(models):
+                if mod in tbl.columns:
+                    line = ax.hlines(
+                        tbl.loc[bl, mod],
+                        k - gw / 2 - 0.05,
+                        k + gw / 2 + 0.05,
+                        colors="black" if bl == "Expert" else "gray",
+                        linestyles=style,
+                        lw=3.5,
+                        zorder=5,
+                    )
+                    legend_data[bl] = line
 
-# Shared legend at bottom
-h, l = axes[0].get_legend_handles_labels()
-by_label = dict(zip(l, h))
+    # Formatting
+    title_mode = "Standard" if mode == "standard" else "LoRA"
+    ax.set_title(f"{dom} ({title_mode})", fontweight="bold", pad=30)
+    ax.set_xticks(x)
+    ax.set_xticklabels(models, fontweight="bold")
+    ax.yaxis.grid(True, alpha=0.3, ls="--")
+
+    # Y-label only on the left-most plots
+    if c == 0:
+        ax.set_ylabel("Accuracy (%)", fontweight="bold", labelpad=20)
+
+# ── 3. Global Legend & Export ──────────────────────────────────────────
+order = [
+    "Expert",
+    "Zeroshot",
+    "TA",
+    "RegMean",
+    "Average",
+    "ISO-C",
+    "KNOTS-ISO-C",
+    "TSV",
+    "KNOTS-TSV",
+    "EigenCov",
+]
+legend_data["Expert"] = plt.Line2D([0], [0], color="black", ls="--", lw=3.5)
+legend_data["Zeroshot"] = plt.Line2D([0], [0], color="gray", ls=":", lw=3.5)
+
+final_handles = [legend_data[m] for m in order if m in legend_data]
 fig.legend(
-    by_label.values(),
-    by_label.keys(),
+    final_handles,
+    [m for m in order if m in legend_data],
     loc="lower center",
-    bbox_to_anchor=(0.5, -0.02),
-    ncol=n_bars + len(KNOTS_BASE) + len(baselines),
-    fontsize=9,
+    bbox_to_anchor=(0.5, 0.04),
+    ncol=5,
     frameon=False,
+    columnspacing=1.5,
 )
-fig.tight_layout()
-fig.subplots_adjust(bottom=0.12)
+
+plt.tight_layout()
+# Adjust bottom to make room for the massive legend
+plt.subplots_adjust(bottom=0.15, hspace=0.3, wspace=0.2)
+plt.savefig("../results-tracked/performance-grid.pdf", dpi=300, bbox_inches="tight")
 plt.show()
-plt.savefig(f"../results-tracked/performance-{FT_MODE}.pdf", dpi=300)
