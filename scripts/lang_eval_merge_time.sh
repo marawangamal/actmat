@@ -8,8 +8,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-# set -euo pipefail
-# mkdir -p logs
+set -euo pipefail
+mkdir -p logs
 
 # 0. Setup environment
 source "$SCRATCH/eigcov/.venv/bin/activate"
@@ -17,39 +17,21 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
 HF_CACHE_DIR="$SCRATCH/hf_cache"
-RESULTS_DB="results/results-latency.jsonl"
+RESULTS_DB="results-tracked/results-latency.jsonl"
 SAVE="checkpoints"
 
 # ── Models / finetuning modes ───────────────────────────────────────────
 MODELS=(t5-large)
-FT_MODES=(standard)
+NUM_BATCHES=10
+BATCH_SIZE=32
+FT_MODE=standard
 
 # ── Default methods (from lang_eval.sh) ─────────────────────────────────
 DEFAULT_METHODS=(tsv eigcov isoc mean sum)
 
-# ── HPO methods (from lang_eval_hpo.sh) ─────────────────────────────────
-HPO_METHODS=(eigcov_gd)
-HPO_CONFIGS=(
-  '{"alpha_weighted": [false], "cov_weighted": [false], "lam": [0.00001]}'
-  '{"alpha_weighted": [false], "cov_weighted": [true], "lam": [0.00001]}'
-  '{"alpha_weighted": [true], "cov_weighted": [false], "lam": [0.00001]}'
-)
-
-# ── HPO methods (from lang_eval_hpo_2.sh) ───────────────────────────────
-HPO2_METHODS=(eigcov_general)
-HPO2_CONFIGS=(
-  '{"alpha_weighted": [false], "cov_weighted": [false], "lam": [0.00001], "solver": ["solve"]}'
-  '{"alpha_weighted": [false], "cov_weighted": [true], "lam": [0.00001], "solver": ["solve"]}'
-  '{"alpha_weighted": [true], "cov_weighted": [false], "lam": [0.00001], "solver": ["solve"]}'
-)
-
-# ─────────────────────────────────────────────────────────────────────────
-
 for MODEL in "${MODELS[@]}"; do
-  for FT_MODE in "${FT_MODES[@]}"; do
-
-    # 1. Default methods (no HPO, no cov-dir)
     for METHOD in "${DEFAULT_METHODS[@]}"; do
+      COV_DIR="checkpoints/$MODEL/_covariances/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_efull_ft${FT_MODE}"
       echo "[BASH] Timing merge | model: $MODEL | ft mode: $FT_MODE | method: $METHOD"
       python scripts/language/eval_merge_time.py \
         --model="$MODEL" \
@@ -58,40 +40,28 @@ for MODEL in "${MODELS[@]}"; do
         --cov-dir="None" \
         --results-db="$RESULTS_DB" \
         --hf-cache-dir="$HF_CACHE_DIR" \
-        --save="$SAVE"
+        --save="$SAVE" \
+        --cov-dir="None"
     done
-
-    # 2. HPO methods (eigcov_gd variants)
-    for METHOD in "${HPO_METHODS[@]}"; do
-      for HPO in "${HPO_CONFIGS[@]}"; do
-        echo "[BASH] Timing merge | model: $MODEL | ft mode: $FT_MODE | method: $METHOD | hpo: $HPO"
-        python scripts/language/eval_merge_time.py \
-          --model="$MODEL" \
-          --finetuning-mode="$FT_MODE" \
-          --merge-func="$METHOD" \
-          --cov-dir="None" \
-          --results-db="$RESULTS_DB" \
-          --hf-cache-dir="$HF_CACHE_DIR" \
-          --hpo="$HPO" \
-          --save="$SAVE"
-      done
-    done
-
-    # 3. HPO methods (eigcov_general variants)
-    for METHOD in "${HPO2_METHODS[@]}"; do
-      for HPO in "${HPO2_CONFIGS[@]}"; do
-        echo "[BASH] Timing merge | model: $MODEL | ft mode: $FT_MODE | method: $METHOD | hpo: $HPO"
-        python scripts/language/eval_merge_time.py \
-          --model="$MODEL" \
-          --finetuning-mode="$FT_MODE" \
-          --merge-func="$METHOD" \
-          --cov-dir="None" \
-          --results-db="$RESULTS_DB" \
-          --hf-cache-dir="$HF_CACHE_DIR" \
-          --hpo="$HPO" \
-          --save="$SAVE"
-      done
-    done
-
-  done
 done
+
+
+# +-----------------------------------------------------------------------------------------+
+# | NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
+# +-----------------------------------------+------------------------+----------------------+
+# | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+# | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+# |                                         |                        |               MIG M. |
+# |=========================================+========================+======================|
+# |   0  NVIDIA L40S                    On  |   00000000:61:00.0 Off |                    0 |
+# | N/A   26C    P8             33W /  325W |       0MiB /  46068MiB |      0%      Default |
+# |                                         |                        |                  N/A |
+# +-----------------------------------------+------------------------+----------------------+
+
+# +-----------------------------------------------------------------------------------------+
+# | Processes:                                                                              |
+# |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+# |        ID   ID                                                               Usage      |
+# |=========================================================================================|
+# |  No running processes found                                                             |
+# +-----------------------------------------------------------------------------------------+
