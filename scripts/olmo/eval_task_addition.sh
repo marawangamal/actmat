@@ -23,7 +23,7 @@ PRETRAINED_DIR=""
 FINETUNED_DIRS=()
 MERGE_FUNCS="eigcov tsv mean isoc"
 OUTPUT_BASE="checkpoints/olmo"
-RESULTS_BASE="results-olmo"
+RESULTS_BASE="results"
 GPUS=4
 UPLOAD=""          # HF Hub user/org prefix; empty = skip upload
 MERGE_KWARGS=""    # JSON string forwarded to merge.py --merge-kwargs
