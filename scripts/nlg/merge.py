@@ -152,13 +152,20 @@ def main():
     print("=" * 80)
 
     # Build lazy task vectors — no full model loading happens here.
+    # Each ParamFolderTaskVector expects a checkpoint_dir containing zeroshot/ and
+    # finetuned/ subdirectories.  We create temporary directories with symlinks
+    # pointing to the user-provided pretrained and finetuned param-folders.
+    import tempfile
+
+    tmp_root = Path(tempfile.mkdtemp(prefix="merge_ckpts_"))
     task_vectors = []
     for ft_dir in finetuned_dirs:
         print(f"  Creating task vector: {ft_dir.name}")
-        tv = ParamFolderTaskVector(
-            pretrained_checkpoint=pretrained_dir,
-            finetuned_checkpoint=ft_dir,
-        )
+        ckpt_dir = tmp_root / ft_dir.name
+        ckpt_dir.mkdir()
+        (ckpt_dir / "zeroshot").symlink_to(pretrained_dir)
+        (ckpt_dir / "finetuned").symlink_to(ft_dir)
+        tv = ParamFolderTaskVector(checkpoint_dir=str(ckpt_dir))
         task_vectors.append(tv)
 
     print(f"\nMerging {len(task_vectors)} task vectors with '{args.merge_func}' ...")

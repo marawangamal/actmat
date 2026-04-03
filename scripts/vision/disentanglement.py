@@ -17,7 +17,7 @@ from src.args import parse_arguments
 def compute_disentanglement_error(
     task_vector_1,
     task_vector_2,
-    pretrained_checkpoint,  # path or encoder
+    checkpoint_dir,
     dataset_1,
     dataset_2,
     args,
@@ -44,15 +44,15 @@ def compute_disentanglement_error(
             # Build merged model: θ_0 + α1*τ1 + α2*τ2
             merged_vector = task_vector_1 * alpha_1 + task_vector_2 * alpha_2
             merged_encoder = merged_vector.apply_to(
-                pretrained_checkpoint, scaling_coef=1.0
+                checkpoint_dir, scaling_coef=1.0
             )
 
             # Build single-task models: θ_0 + α1*τ1 and θ_0 + α2*τ2
             single_1_encoder = task_vector_1.apply_to(
-                pretrained_checkpoint, scaling_coef=alpha_1
+                checkpoint_dir, scaling_coef=alpha_1
             )
             single_2_encoder = task_vector_2.apply_to(
-                pretrained_checkpoint, scaling_coef=alpha_2
+                checkpoint_dir, scaling_coef=alpha_2
             )
 
             # Get predictions on dataset_1
@@ -175,18 +175,17 @@ if __name__ == "__main__":
     # alpha_range = [0.2]  # minimal grid for debugging
 
     for dataset_1, dataset_2 in task_pairs:
-        pretrained_ckpt = f"checkpoints/{model}/{dataset_1}Val/zeroshot.pt"
-        ft_ckpt_1 = f"checkpoints/{model}/{dataset_1}Val/finetuned.pt"
-        ft_ckpt_2 = f"checkpoints/{model}/{dataset_2}Val/finetuned.pt"
+        ckpt_dir_1 = f"checkpoints/{model}/{dataset_1}Val"
+        ckpt_dir_2 = f"checkpoints/{model}/{dataset_2}Val"
 
         # --- Non-linear FT (top row) ---
-        tv1 = NonLinearTaskVector(pretrained_ckpt, ft_ckpt_1)
-        tv2 = NonLinearTaskVector(pretrained_ckpt, ft_ckpt_2)
+        tv1 = NonLinearTaskVector(checkpoint_dir=ckpt_dir_1)
+        tv2 = NonLinearTaskVector(checkpoint_dir=ckpt_dir_2)
 
         grid_nl = compute_disentanglement_error(
             tv1,
             tv2,
-            pretrained_ckpt,
+            ckpt_dir_1,
             dataset_1,
             dataset_2,
             args,

@@ -49,21 +49,18 @@ control_dataset = "ImageNet"
 negation_accuracies = {}
 
 for dataset in eval_datasets:
+    checkpoint_dir = f"{args.save}/{dataset}Val"
     if args.finetuning_mode == "linear":
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/linear_zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/linear_finetuned.pt"
-        task_vector = -LinearizedTaskVector(pretrained_checkpoint, finetuned_checkpoint)
+        task_vector = -LinearizedTaskVector(checkpoint_dir=checkpoint_dir)
     else:
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/finetuned.pt"
-        task_vector = -NonLinearTaskVector(pretrained_checkpoint, finetuned_checkpoint)
+        task_vector = -NonLinearTaskVector(checkpoint_dir=checkpoint_dir)
 
     # We use the validation set to choose the optimal coefficient.
     args.eval_datasets = [dataset + "Val"]
     args.control_dataset = control_dataset + "Val"
     val_metrics = evaluate_task_vector(
         task_vector,
-        pretrained_checkpoint,
+        checkpoint_dir,
         args,
         posthoc_linearization=args.finetuning_mode == "posthoc",
     )
@@ -82,7 +79,7 @@ for dataset in eval_datasets:
     args.control_dataset = control_dataset
     test_metrics = evaluate_task_vector_at_coef(
         task_vector,
-        pretrained_checkpoint,
+        checkpoint_dir,
         args,
         optimal_coef,
         posthoc_linearization=args.finetuning_mode == "posthoc",

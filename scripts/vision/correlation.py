@@ -166,41 +166,25 @@ if __name__ == "__main__":
         # del tv
 
         print(f"\nCollecting covariance for {task}")
+        checkpoint_dir = f"{args.save}/{task}Val"
         if args.finetuning_mode == "linear":
-            pretrained_checkpoint = f"{args.save}/{task}Val/linear_zeroshot.pt"
-            finetuned_checkpoint = f"{args.save}/{task}Val/linear_finetuned.pt"
-            pretrained_nonlinear_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
-
-            # Get param names
+            # Get param names from the nonlinear pretrained model
             nonlinear_encoder = torch.load(
-                pretrained_nonlinear_checkpoint, map_location="cpu", weights_only=False
+                os.path.join(checkpoint_dir, "zeroshot.pt"), map_location="cpu", weights_only=False
             )
             param_names = [n for n, _ in nonlinear_encoder.named_parameters()]
             del nonlinear_encoder
 
-            tv = LinearizedTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-            )
+            tv = LinearizedTaskVector(checkpoint_dir=checkpoint_dir)
             encoder = tv.apply_to_nonlinear(
-                pretrained_nonlinear_checkpoint, param_names, scaling_coef=1.0
+                checkpoint_dir, param_names, scaling_coef=1.0
             )
         elif args.finetuning_mode == "lora":
-            pretrained_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
-            finetuned_checkpoint = f"{args.save}/{task}Val/lora_finetuned.pt"
-            tv = NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-            )
-            encoder = tv.apply_to(pretrained_checkpoint, scaling_coef=1.0)
+            # NOTE: LoRA mode not yet supported with checkpoint_dir convention
+            raise NotImplementedError("LoRA mode not yet supported with checkpoint_dir convention")
         else:
-            pretrained_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
-            finetuned_checkpoint = f"{args.save}/{task}Val/finetuned.pt"
-            tv = NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-            )
-            encoder = tv.apply_to(pretrained_checkpoint, scaling_coef=1.0)
+            tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dir)
+            encoder = tv.apply_to(checkpoint_dir, scaling_coef=1.0)
 
         del tv
 

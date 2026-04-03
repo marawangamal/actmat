@@ -119,16 +119,7 @@ for MODEL in "${MODELS[@]}"; do
           --data-location="$DATA_DIR"
       fi
 
-      # 2b. Set cov-dir (only meaningful for regmean/fisher)
-      if [ "$method" = "fisher" ]; then
-        COV_DIR="checkpoints/$MODEL/_fishers/fisher_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_ft${FT_MODE}"
-      elif [ "$method" = "regmean" ]; then
-        COV_DIR="checkpoints/$MODEL/_covariances/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_attnsplit_efull_ft${FT_MODE}"
-      else
-        COV_DIR="None"
-      fi
-
-      # 2c. Evaluate task addition
+      # 2b. Evaluate task addition
       echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
       python scripts/vision/eval_task_addition.py \
         --model="$MODEL" \
@@ -136,7 +127,6 @@ for MODEL in "${MODELS[@]}"; do
         --data-location="$DATA_DIR" \
         --merge-func="$method" \
         --mha=split \
-        --cov-dir="$COV_DIR" \
         --results-db="$RESULTS_DB" \
         ${HPO:+--hpo="$HPO"}
 

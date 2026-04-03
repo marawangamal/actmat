@@ -15,7 +15,7 @@ python scripts/vision/covariance.py --cov-split train --cov-num-batches 100 --co
 
 # Generate covariance matrices
 python scripts/vision/covariance.py --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets \
---model=ViT-B-16 --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split 
+--model=ViT-B-16 --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split
 
 """
 
@@ -25,11 +25,9 @@ import sys
 from pathlib import Path
 from typing import Dict
 import torch
-import numpy as np
 from tqdm import tqdm
 
 
-# Add to python path
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -43,11 +41,10 @@ from src import mhap, mhas
 from src.covariance import OnlineCovariance, register_hooks
 
 
-def compute_covs(encoder, dataset_name, args, on_batch=None, on_end=None):
+def compute_covs(encoder, dataset_name, args, on_end=None):
     classification_head = get_classification_head(args, dataset_name)
     model = ImageClassifier(encoder, classification_head)
     model.freeze_head()
-    # model.train()
     model.eval()
     model.to(args.model_device)
 
@@ -90,8 +87,6 @@ def compute_covs(encoder, dataset_name, args, on_batch=None, on_end=None):
             model.zero_grad()
             _ = loss_fn(model(images), labels)
             n_batches += 1
-            if on_batch is not None:
-                on_batch(cobjs, n_batches)
     print(f"    Used {n_batches} batches (max={max_num_batches})")
 
     del model, dataset, loader, handles
@@ -120,28 +115,12 @@ if __name__ == "__main__":
     ]
     tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
 
-    ss_num_batches = max(args.cov_num_batches)
-    ss_batch_size = args.cov_batch_size
-    ss_type = args.cov_type
-    ss_attn = args.mha
-    ss_split = args.cov_split
-    ss_estimator = args.cov_estimator
-    ss_fm = Path(args.load).stem if args.load is not None else args.finetuning_mode
-    cov_dir = f"{args.save}/_covariances/covariances_s{ss_split}_n{ss_num_batches}_b{ss_batch_size}_t{ss_type}_attn{ss_attn}_e{ss_estimator}_ft{ss_fm}"
-    os.makedirs(cov_dir, exist_ok=True)
-
-    def make_cov_dir(n):
-        return f"{args.save}/_covariances/covariances_s{ss_split}_n{n}_b{ss_batch_size}_t{ss_type}_attn{ss_attn}_e{ss_estimator}_ft{ss_fm}"
-
-    print(f"Covariance directory: {cov_dir}")
     for task in tasks:
-        cov_path = f"{cov_dir}/covariance_{task}.npz"
-        all_cached = all(
-            os.path.exists(f"{make_cov_dir(n)}/covariance_{task}.npz")
-            for n in args.cov_num_batches
-        )
-        if all_cached and not args.overwrite:
-            print(f"Skipping {task} (cached)")
+        checkpoint_dir = f"{args.save}/{task}Val"
+        cov_path = os.path.join(checkpoint_dir, "covariance.pt")
+
+        if os.path.exists(cov_path) and not args.overwrite:
+            print(f"Skipping {task} (cached: {cov_path})")
             continue
 
         print(f"\nCollecting covariance for {task}")
@@ -149,43 +128,23 @@ if __name__ == "__main__":
             # Direct checkpoint path supplied via --load; skip task-vector construction.
             encoder = torch.load(args.load, map_location="cpu", weights_only=False)
         elif args.finetuning_mode == "linear":
-            pretrained_checkpoint = f"{args.save}/{task}Val/linear_zeroshot.pt"
-            finetuned_checkpoint = f"{args.save}/{task}Val/linear_finetuned.pt"
-            pretrained_nonlinear_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
+            zeroshot_path = os.path.join(checkpoint_dir, "zeroshot.pt")
 
-            # Get param names
+            # Get param names from nonlinear model
             nonlinear_encoder = torch.load(
-                pretrained_nonlinear_checkpoint, map_location="cpu", weights_only=False
+                zeroshot_path, map_location="cpu", weights_only=False
             )
             param_names = [n for n, _ in nonlinear_encoder.named_parameters()]
             del nonlinear_encoder
 
-            tv = LinearizedTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-                covariance_path=cov_path,
-            )
+            tv = LinearizedTaskVector(checkpoint_dir=checkpoint_dir)
             encoder = tv.apply_to_nonlinear(
-                pretrained_nonlinear_checkpoint, param_names, scaling_coef=1.0
+                checkpoint_dir, param_names, scaling_coef=1.0
             )
-            del tv
-        elif args.finetuning_mode == "lora":
-            pretrained_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
-            finetuned_checkpoint = f"{args.save}/{task}Val/lora_finetuned.pt"
-            tv = NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-            )
-            encoder = tv.apply_to(pretrained_checkpoint, scaling_coef=1.0)
             del tv
         else:
-            pretrained_checkpoint = f"{args.save}/{task}Val/zeroshot.pt"
-            finetuned_checkpoint = f"{args.save}/{task}Val/finetuned.pt"
-            tv = NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-            )
-            encoder = tv.apply_to(pretrained_checkpoint, scaling_coef=1.0)
+            tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dir)
+            encoder = tv.apply_to(checkpoint_dir, scaling_coef=1.0)
             del tv
 
         # swap mha
@@ -196,38 +155,18 @@ if __name__ == "__main__":
             }[args.mha]
             encoder = swap_fn(encoder)
 
-        thresholds = set(n for n in args.cov_num_batches if n < ss_num_batches)
-
-        def on_batch(cobjs, n_batches):
-            if n_batches in thresholds:
-                snap_path = f"{make_cov_dir(n_batches)}/covariance_{task}.npz"
-                os.makedirs(os.path.dirname(snap_path), exist_ok=True)
-                snap = {
-                    k: v.cov.cpu().numpy() if isinstance(v, OnlineCovariance) else v
-                    for k, v in cobjs.items()
-                }
-                snap.update(
-                    {
-                        f"{k}_n": v.n
-                        for k, v in cobjs.items()
-                        if isinstance(v, OnlineCovariance)
-                    }
-                )
-                np.savez(snap_path, **snap)
-                print(f"  Saved snapshot (n={n_batches}) to {snap_path}")
-
-        def on_end(cobjs):
-            # Convert cobjs to saveable arrays (np.savez can't save tuples of inhomogeneous shapes)
-            # two loops to save memory
+        def on_end(cobjs, _cov_path=cov_path):
+            # Convert OnlineCovariance objects to tensors
+            saveable = {}
             for lname in list(cobjs):
-                cobjs[f"{lname}_n"] = cobjs[lname].n
-            saveable = {
-                k: v.cov.cpu().numpy() if isinstance(v, OnlineCovariance) else v
-                for k, v in cobjs.items()
-            }
-            np.savez(cov_path, **saveable)
-            print(f"  Saved to {cov_path}")
+                if isinstance(cobjs[lname], OnlineCovariance):
+                    saveable[lname] = cobjs[lname].cov.cpu()
+                    saveable[f"{lname}_n"] = cobjs[lname].n
+                else:
+                    saveable[lname] = cobjs[lname]
+            torch.save(saveable, _cov_path)
+            print(f"  Saved to {_cov_path}")
 
-        compute_covs(encoder, f"{task}Val", args, on_batch=on_batch, on_end=on_end)
+        compute_covs(encoder, f"{task}Val", args, on_end=on_end)
         del encoder
         gc.collect()

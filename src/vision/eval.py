@@ -74,14 +74,14 @@ def evaluate(image_encoder, args):
 
 
 def evaluate_task_vector_at_coef(
-    task_vector, pretrained_checkpoint, args, scaling_coef, posthoc_linearization=False
+    task_vector, checkpoint_dir, args, scaling_coef, posthoc_linearization=False
 ):
     image_encoder = task_vector.apply_to(
-        pretrained_checkpoint, scaling_coef=scaling_coef
+        checkpoint_dir, scaling_coef=scaling_coef
     )
     if posthoc_linearization:
         pretrained_encoder = task_vector.apply_to(
-            pretrained_checkpoint, scaling_coef=0.0
+            checkpoint_dir, scaling_coef=0.0
         )
         image_encoder = LinearizedImageEncoder(
             init_encoder=pretrained_encoder, image_encoder=image_encoder, args=args
@@ -100,7 +100,7 @@ def evaluate_task_vector_at_coef(
 
 
 def evaluate_task_vector(
-    task_vector, pretrained_checkpoint, args, posthoc_linearization=False
+    task_vector, checkpoint_dir, args, posthoc_linearization=False
 ):
     info = {}
     for scaling_coef in np.linspace(
@@ -109,7 +109,7 @@ def evaluate_task_vector(
         print(f"Evaluating for scaling coefficient {scaling_coef:.2f}")
         info[scaling_coef] = evaluate_task_vector_at_coef(
             task_vector,
-            pretrained_checkpoint,
+            checkpoint_dir,
             args,
             scaling_coef,
             posthoc_linearization,

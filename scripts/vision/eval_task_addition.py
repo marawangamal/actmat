@@ -111,48 +111,11 @@ task_vectors = []
 merge_name = getattr(args, "merge_func", "sum")
 
 for dataset in eval_datasets:
-    is_fisher = merge_name == "fisher"
-    cov_path = (
-        f"{args.cov_dir}/covariance_{dataset}.npz"
-        if args.cov_dir and not is_fisher
-        else None
-    )
-    fisher_path = (
-        f"{args.cov_dir}/fisher_{dataset}.npz" if args.cov_dir and is_fisher else None
-    )
+    checkpoint_dir = f"{args.save}/{dataset}Val"
     if args.finetuning_mode == "linear":
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/linear_zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/linear_finetuned.pt"
-        task_vectors.append(
-            LinearizedTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-                covariance_path=cov_path,
-                fisher_path=fisher_path,
-            )
-        )
-    elif args.finetuning_mode == "lora":
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/lora_finetuned.pt"
-        task_vectors.append(
-            NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-                covariance_path=cov_path,
-                fisher_path=fisher_path,
-            )
-        )
+        task_vectors.append(LinearizedTaskVector(checkpoint_dir=checkpoint_dir))
     else:
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/finetuned.pt"
-        task_vectors.append(
-            NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-                covariance_path=cov_path,
-                fisher_path=fisher_path,
-            )
-        )
+        task_vectors.append(NonLinearTaskVector(checkpoint_dir=checkpoint_dir))
     print(f"Task vector {dataset} loaded")
 
 # For use with RegMean and Projected RegMean.
@@ -177,6 +140,9 @@ hp_combos = (
 )
 
 args.control_dataset = None
+
+# Use last checkpoint_dir for apply_to (all share same pretrained model)
+pretrained_dir = f"{args.save}/{eval_datasets[-1]}Val"
 
 
 def _set_eval_split(split):
@@ -222,7 +188,7 @@ else:
         task_vector = _merge_and_remap(merge_kwargs)
         metrics = evaluate_task_vector_at_coef(
             task_vector,
-            pretrained_checkpoint,
+            pretrained_dir,
             args,
             1.0,
             posthoc_linearization=args.finetuning_mode == "posthoc",
@@ -245,7 +211,7 @@ print("=" * 100)
 task_vector = _merge_and_remap(best_merge_kwargs)
 test_metrics = evaluate_task_vector_at_coef(
     task_vector,
-    pretrained_checkpoint,
+    pretrained_dir,
     args,
     1.0,
     posthoc_linearization=args.finetuning_mode == "posthoc",

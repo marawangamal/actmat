@@ -11,14 +11,14 @@ class NonLinearTaskVector(_TaskVector):
         """Load a checkpoint into a model."""
         return torch.load(checkpoint, map_location="cpu", weights_only=False)
 
-    def apply_to_nonlinear(self, pretrained_nonlinear_checkpoint, scaling_coef=1.0):
+    def apply_to_nonlinear(self, checkpoint_dir, scaling_coef=1.0):
         """Apply a task vector to a nonlinear pretrained model."""
-        return self.apply_to(pretrained_nonlinear_checkpoint, scaling_coef)
+        return self.apply_to(checkpoint_dir, scaling_coef)
 
-    def apply_to_linear(self, pretrained_linear_checkpoint, scaling_coef=1.0):
+    def apply_to_linear(self, checkpoint_dir, scaling_coef=1.0):
         """Apply a task vector to a linear pretrained model."""
         return nonlinear_to_linear(self).apply_to(
-            pretrained_linear_checkpoint, scaling_coef
+            checkpoint_dir, scaling_coef
         )
 
     def _cast_to_same_type(self, other):
@@ -31,21 +31,24 @@ class NonLinearTaskVector(_TaskVector):
 class LinearizedTaskVector(_TaskVector):
     """A task vector for linearized models."""
 
+    PRETRAINED_FILENAME = "linear_zeroshot.pt"
+    FINETUNED_FILENAME = "linear_finetuned.pt"
+
     def _load_checkpoint(self, checkpoint):
         """Load a checkpoint into a model."""
         return LinearizedImageEncoder.load(checkpoint)
 
     def apply_to_nonlinear(
-        self, pretrained_nonlinear_checkpoint, param_names, scaling_coef=1.0
+        self, checkpoint_dir, param_names, scaling_coef=1.0
     ):
         """Apply a task vector to a nonlinear pretrained model."""
         return linear_to_nonlinear(self, param_names).apply_to(
-            pretrained_nonlinear_checkpoint, scaling_coef
+            checkpoint_dir, scaling_coef
         )
 
-    def apply_to_linear(self, pretrained_linear_checkpoint, scaling_coef=1.0):
+    def apply_to_linear(self, checkpoint_dir, scaling_coef=1.0):
         """Apply a task vector to a linear pretrained model."""
-        return self.apply_to(pretrained_linear_checkpoint, scaling_coef)
+        return self.apply_to(checkpoint_dir, scaling_coef)
 
     def get_named_parameters(self, param_names):
         """Get the named parameters of the task vector."""

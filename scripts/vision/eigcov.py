@@ -4,28 +4,25 @@ For each dataset and each 2D weight matrix, computes:
     Delta_k = W_T - W_k          (weight delta from mid checkpoint to finetuned)
     C_k     = Delta_k.T @ Delta_k  (covariance used by regmean merge)
 
-Keys in the output .npz match the format expected by merge_regmean, which looks
+Keys in the output .pt match the format expected by merge_regmean, which looks
 them up via param_key_to_cov_key():  "image_encoder.<module_path>" (no ".weight"
 suffix).
 
-Output directory follows the project convention:
-    results/{model}/covariances_eigcov_k{step}_ft{mode}
+Output is saved to the checkpoint directory as covariance.pt.
 
 Usage:
-python scripts/vision/eigcov.py \
---model ViT-B-16 \
---mid-checkpoint-step 500
+    python scripts/vision/eigcov.py \
+        --model ViT-B-16 \
+        --mid-checkpoint-step 500
 
     python scripts/vision/eval_task_addition.py \
-        --merge-func regmean \
-        --cov-dir results/ViT-B-16/covariances_eigcov_k500_ftstandard
+        --merge-func regmean
 """
 
 import os
 import sys
 from pathlib import Path
 
-import numpy as np
 import torch
 
 project_root = Path(__file__).parent.parent.parent
@@ -67,23 +64,19 @@ if __name__ == "__main__":
 
     datasets = args.eval_datasets if args.eval_datasets is not None else ALL_DATASETS
 
-    reverse_suffix = "_rev" if args.eigcov_reverse else ""
-    cov_dir = f"results/{args.model}/covariances_eigcov_k{args.mid_checkpoint_step}_ft{args.finetuning_mode}{reverse_suffix}"
-    os.makedirs(cov_dir, exist_ok=True)
-    print(f"Covariance directory: {cov_dir}")
-
     for dataset in datasets:
-        dataset_dir = f"{args.save}/{dataset}Val"
+        checkpoint_dir = f"{args.save}/{dataset}Val"
+        cov_path = os.path.join(checkpoint_dir, "covariance.pt")
 
         if args.finetuning_mode == "lora":
-            ft_path = f"{dataset_dir}/lora_finetuned.pt"
+            ft_path = f"{checkpoint_dir}/lora_finetuned.pt"
         else:
-            ft_path = f"{dataset_dir}/finetuned.pt"
-        mid_path = f"{dataset_dir}/checkpoint_{args.mid_checkpoint_step}.pt"
+            ft_path = f"{checkpoint_dir}/finetuned.pt"
+        mid_path = f"{checkpoint_dir}/checkpoint_{args.mid_checkpoint_step}.pt"
 
         if args.eigcov_reverse:
             # Delta = W_k - W_0
-            zs_path = f"{dataset_dir}/zeroshot.pt"
+            zs_path = f"{checkpoint_dir}/zeroshot.pt"
             if not os.path.exists(zs_path):
                 print(f"[skip] {zs_path} not found")
                 continue
@@ -114,10 +107,9 @@ if __name__ == "__main__":
             else:
                 delta = (ref_sd[key] - mid_sd[key]).float()  # W_T - W_k
             cov_key = param_key_to_cov_key(key)
-            covs[cov_key] = (delta.T @ delta).numpy()
+            covs[cov_key] = delta.T @ delta
 
-        cov_path = f"{cov_dir}/covariance_{dataset}.npz"
-        np.savez(cov_path, **covs)
+        torch.save(covs, cov_path)
         print(f"  Saved {len(covs)} covariance matrices -> {cov_path}")
 
         del ref_sd, mid_sd

@@ -31,35 +31,22 @@ for dataset in T5_DATASETS:
     print("*" * 100)
     print(f"Evaluating on {dataset}")
 
-    if args.finetuning_mode == "linear":
-        pretrained_checkpoint = f"{args.save}/{dataset}/linear_zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}/linear_finetuned.pt"
-    elif args.finetuning_mode == "none":
-        pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
-    elif args.finetuning_mode == "lora":
-        pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}/lora_finetuned.pt"
-    else:
-        pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}/finetuned.pt"
+    checkpoint_dir = f"{args.save}/{dataset}"
 
     try:
         task_vector = (
-            LanguageLinearizedTaskVector(pretrained_checkpoint, finetuned_checkpoint)
+            LanguageLinearizedTaskVector(checkpoint_dir=checkpoint_dir)
             if args.finetuning_mode == "linear"
-            else LanguageNonLinearTaskVector(
-                pretrained_checkpoint, finetuned_checkpoint
-            )
+            else LanguageNonLinearTaskVector(checkpoint_dir=checkpoint_dir)
         )
     except FileNotFoundError as e:
         print(f"Error: Could not find checkpoint — {e}")
         continue
 
     if args.finetuning_mode == "none":
-        model = task_vector.apply_to(pretrained_checkpoint, scaling_coef=0.0)
+        model = task_vector.apply_to(checkpoint_dir, scaling_coef=0.0)
     else:
-        model = task_vector.apply_to(pretrained_checkpoint, scaling_coef=1.0)
+        model = task_vector.apply_to(checkpoint_dir, scaling_coef=1.0)
 
     for split in ["test", "validation"]:
         print("=" * 100)

@@ -2,6 +2,17 @@
 
 Loads only individual parameter files on demand, keeping memory bounded to
 O(single_param × num_models) instead of O(full_model × num_models).
+
+Checkpoint directory layout:
+    checkpoint_dir/
+        zeroshot/           # pretrained model (param-folder)
+            param_manifest.json
+            params/
+        finetuned/          # finetuned model (param-folder)
+            param_manifest.json
+            params/
+        covariance/         # per-layer covariance files (optional)
+        fisher/             # per-layer fisher files (optional)
 """
 
 import json
@@ -44,30 +55,30 @@ def _build_param_file_path(model_dir: Path, manifest: dict, param_name: str) -> 
 class ParamFolderTaskVector(_TaskVector):
     """Task vector that lazily loads individual params from param-folder checkpoints.
 
-    Each checkpoint is a directory with a ``param_manifest.json`` and a ``params/``
-    subdirectory containing one file per parameter.  Only the two files needed for a
-    given key are loaded at a time (pretrained + finetuned), so peak memory is bounded
-    to a single parameter times the number of task vectors being merged.
+    Each checkpoint_dir contains ``zeroshot/`` and ``finetuned/`` subdirectories,
+    each with a ``param_manifest.json`` and a ``params/`` subdirectory containing
+    one file per parameter.  Only the two files needed for a given key are loaded
+    at a time, so peak memory is bounded to a single parameter times the number
+    of task vectors being merged.
     """
 
-    def __init__(self, pretrained_checkpoint=None, finetuned_checkpoint=None, vector=None, **kwargs):
+    PRETRAINED_FILENAME = "zeroshot"
+    FINETUNED_FILENAME = "finetuned"
+
+    def __init__(self, checkpoint_dir=None, vector=None, **kwargs):
         if vector is not None:
             # Constructed from a pre-computed vector dict (e.g. by combine_task_vectors).
             self._pre_manifest = None
             self._ft_manifest = None
             super().__init__(vector=vector, **kwargs)
         else:
-            self._pre_manifest = _load_manifest(Path(pretrained_checkpoint))
-            self._ft_manifest = _load_manifest(Path(finetuned_checkpoint))
-            # Auto-discover covariance file if not explicitly provided.
-            if "covariance_path" not in kwargs or kwargs["covariance_path"] is None:
-                auto_cov = Path(finetuned_checkpoint) / "covariance.npz"
-                if auto_cov.exists():
-                    kwargs["covariance_path"] = str(auto_cov)
+            pre_dir = Path(checkpoint_dir) / self.PRETRAINED_FILENAME
+            ft_dir = Path(checkpoint_dir) / self.FINETUNED_FILENAME
+            self._pre_manifest = _load_manifest(pre_dir)
+            self._ft_manifest = _load_manifest(ft_dir)
             # Always lazy — that's the whole point of this subclass.
             super().__init__(
-                pretrained_checkpoint=str(pretrained_checkpoint),
-                finetuned_checkpoint=str(finetuned_checkpoint),
+                checkpoint_dir=str(checkpoint_dir),
                 lazy=True,
                 **kwargs,
             )

@@ -156,12 +156,6 @@ def parse_arguments():
         help="Task vector merge function (e.g. sum, mean, ties, regmean).",
     )
     parser.add_argument(
-        "--cov-dir",
-        type=str,
-        default=None,
-        help="Directory containing per-dataset covariance .npz files.",
-    )
-    parser.add_argument(
         "--results-db",
         type=str,
         default=None,

@@ -35,7 +35,6 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --finetuning-mode="$FT_MODE" \
       --merge-func=eigcov \
-      --cov-dir=None \
       --results-db="$RESULTS_DB" \
       --hf-cache-dir="$HF_CACHE_DIR"
 
@@ -52,17 +51,15 @@ for MODEL in "${MODELS[@]}"; do
       --cov-estimator=full
 
     # 3. Evaluate RegMean at each sample count
-    for NUM_BATCHES in "${NUM_BATCHES_LIST[@]}"; do
-      COV_DIR="results/$MODEL/covariances_strain_n${NUM_BATCHES}_b${BATCH_SIZE}_tsm_efull_ft${FT_MODE}"
-
-      echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: regmean | n: $NUM_BATCHES"
-      python scripts/language/eval_task_addition.py \
-        --model="$MODEL" \
-        --finetuning-mode="$FT_MODE" \
-        --merge-func=regmean \
-        --cov-dir="$COV_DIR" \
-        --results-db="$RESULTS_DB" \
-        --hf-cache-dir="$HF_CACHE_DIR"
-    done
+    # NOTE: Covariances are now auto-discovered from checkpoint_dir/covariance.pt.
+    # To ablate over different sample counts, re-collect covariance with the desired
+    # settings before running eval.
+    echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: regmean"
+    python scripts/language/eval_task_addition.py \
+      --model="$MODEL" \
+      --finetuning-mode="$FT_MODE" \
+      --merge-func=regmean \
+      --results-db="$RESULTS_DB" \
+      --hf-cache-dir="$HF_CACHE_DIR"
   done
 done

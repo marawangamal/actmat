@@ -119,8 +119,7 @@ def compute_layerwise_interference(
 
 
 def compute_interference(
-    pretrained_checkpoint,
-    finetuned_checkpoints,
+    checkpoint_dirs,
     dataset_names,
     args,
     alpha=1.0,
@@ -133,8 +132,7 @@ def compute_interference(
     compare merged vs each single-task model.
 
     Args:
-        pretrained_checkpoint: path to the pretrained (zeroshot) checkpoint.
-        finetuned_checkpoints: list of paths to finetuned checkpoints.
+        checkpoint_dirs: list of checkpoint directories (each containing zeroshot.pt and finetuned.pt).
         dataset_names: list of dataset names corresponding to each task.
         args: parsed arguments.
         alpha: scaling coefficient applied to all task vectors.
@@ -148,17 +146,17 @@ def compute_interference(
         data = np.load(cache_path, allow_pickle=True)
         return dict(data["interference"].item())
 
-    T = len(finetuned_checkpoints)
+    T = len(checkpoint_dirs)
 
     # Pass 1: Build merged task vector incrementally (one at a time)
     print("  Building merged task vector...")
     merged_vector = None
     for t in range(T):
-        tv = NonLinearTaskVector(pretrained_checkpoint, finetuned_checkpoints[t])
+        tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dirs[t])
         merged_vector = tv if merged_vector is None else merged_vector + tv
         print(f"    Added task vector {t + 1}/{T}: {dataset_names[t]}")
 
-    merged_encoder = merged_vector.apply_to(pretrained_checkpoint, scaling_coef=alpha)
+    merged_encoder = merged_vector.apply_to(checkpoint_dirs[0], scaling_coef=alpha)
     del merged_vector  # Free memory
 
     # Pass 2: Compare merged vs each single-task model (one at a time)
@@ -166,8 +164,8 @@ def compute_interference(
     for t in range(T):
         print(f"  Computing interference for task {t + 1}/{T}: {dataset_names[t]}")
 
-        tv_t = NonLinearTaskVector(pretrained_checkpoint, finetuned_checkpoints[t])
-        single_encoder = tv_t.apply_to(pretrained_checkpoint, scaling_coef=alpha)
+        tv_t = NonLinearTaskVector(checkpoint_dir=checkpoint_dirs[t])
+        single_encoder = tv_t.apply_to(checkpoint_dirs[t], scaling_coef=alpha)
         del tv_t
 
         layer_interference = compute_layerwise_interference(
@@ -207,8 +205,7 @@ if __name__ == "__main__":
         "SVHN",
     ]
 
-    pretrained_ckpt = f"checkpoints/{model}/{datasets[0]}Val/zeroshot.pt"
-    ft_ckpts = [f"checkpoints/{model}/{ds}Val/finetuned.pt" for ds in datasets]
+    ckpt_dirs = [f"checkpoints/{model}/{ds}Val" for ds in datasets]
     dataset_names = [f"{ds}Val" for ds in datasets]
 
     alpha_range = np.linspace(0.0, 1.0, 11)  # [0.0, 0.1, ..., 1.0]
@@ -220,8 +217,7 @@ if __name__ == "__main__":
         print(f"Computing interference with α={alpha:.2f}")
         print(f"{'=' * 77}")
         interference = compute_interference(
-            pretrained_ckpt,
-            ft_ckpts,
+            ckpt_dirs,
             dataset_names,
             args,
             alpha=alpha,

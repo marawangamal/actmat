@@ -11,12 +11,12 @@ class LanguageNonLinearTaskVector(_TaskVector):
 
         return torch.load(checkpoint, map_location="cpu", weights_only=False)
 
-    def apply_to_nonlinear(self, pretrained_nonlinear_checkpoint, scaling_coef=1.0):
-        return self.apply_to(pretrained_nonlinear_checkpoint, scaling_coef)
+    def apply_to_nonlinear(self, checkpoint_dir, scaling_coef=1.0):
+        return self.apply_to(checkpoint_dir, scaling_coef)
 
-    def apply_to_linear(self, pretrained_linear_checkpoint, scaling_coef=1.0):
+    def apply_to_linear(self, checkpoint_dir, scaling_coef=1.0):
         return language_nonlinear_to_linear(self).apply_to(
-            pretrained_linear_checkpoint, scaling_coef
+            checkpoint_dir, scaling_coef
         )
 
     def _cast_to_same_type(self, other):
@@ -29,20 +29,23 @@ class LanguageNonLinearTaskVector(_TaskVector):
 class LanguageLinearizedTaskVector(_TaskVector):
     """Task vector for linearized T5 models."""
 
+    PRETRAINED_FILENAME = "linear_zeroshot.pt"
+    FINETUNED_FILENAME = "linear_finetuned.pt"
+
     def _load_checkpoint(self, checkpoint):
         from src.language.linearize import LinearizedT5Wrapper
 
         return LinearizedT5Wrapper.load(checkpoint)
 
     def apply_to_nonlinear(
-        self, pretrained_nonlinear_checkpoint, param_names, scaling_coef=1.0
+        self, checkpoint_dir, param_names, scaling_coef=1.0
     ):
         return language_linear_to_nonlinear(self, param_names).apply_to(
-            pretrained_nonlinear_checkpoint, scaling_coef
+            checkpoint_dir, scaling_coef
         )
 
-    def apply_to_linear(self, pretrained_linear_checkpoint, scaling_coef=1.0):
-        return self.apply_to(pretrained_linear_checkpoint, scaling_coef)
+    def apply_to_linear(self, checkpoint_dir, scaling_coef=1.0):
+        return self.apply_to(checkpoint_dir, scaling_coef)
 
     def get_named_parameters(self, param_names):
         params = {k: v for k, v in self.vector.items() if "model.params0" not in k}

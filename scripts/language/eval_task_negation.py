@@ -37,18 +37,11 @@ control_dataset = "rte"
 negation_accuracies = {}
 
 for dataset in T5_DATASETS:
+    checkpoint_dir = f"{args.save}/{dataset}"
     if args.finetuning_mode == "linear":
-        pretrained_checkpoint = f"{args.save}/{dataset}/linear_zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}/linear_finetuned.pt"
-        task_vector = -LanguageLinearizedTaskVector(
-            pretrained_checkpoint, finetuned_checkpoint
-        )
+        task_vector = -LanguageLinearizedTaskVector(checkpoint_dir=checkpoint_dir)
     else:
-        pretrained_checkpoint = f"{args.save}/{dataset}/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}/finetuned.pt"
-        task_vector = -LanguageNonLinearTaskVector(
-            pretrained_checkpoint, finetuned_checkpoint
-        )
+        task_vector = -LanguageNonLinearTaskVector(checkpoint_dir=checkpoint_dir)
 
     # Phase 1: choose optimal coefficient on validation split
     args.eval_datasets = [dataset]
@@ -56,7 +49,7 @@ for dataset in T5_DATASETS:
     val_metrics = evaluate_task_vector(
         "validation",
         task_vector,
-        pretrained_checkpoint,
+        checkpoint_dir,
         args,
     )
 
@@ -77,7 +70,7 @@ for dataset in T5_DATASETS:
     test_metrics = evaluate_task_vector_at_coef(
         "test",
         task_vector,
-        pretrained_checkpoint,
+        checkpoint_dir,
         args,
         float(optimal_coef) if optimal_coef is not None else 0.0,
     )

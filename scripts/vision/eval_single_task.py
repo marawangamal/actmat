@@ -45,33 +45,25 @@ for dataset in [
     print("*" * 100)
     print(f"Evaluating on {dataset}")
 
-    if args.finetuning_mode == "linear":
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/linear_zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/linear_finetuned.pt"
-    elif args.finetuning_mode == "lora":
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/lora_finetuned.pt"
-    else:
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/finetuned.pt"
+    checkpoint_dir = f"{args.save}/{dataset}Val"
 
     try:
         task_vector = (
-            LinearizedTaskVector(pretrained_checkpoint, finetuned_checkpoint)
+            LinearizedTaskVector(checkpoint_dir=checkpoint_dir)
             if args.finetuning_mode == "linear"
-            else NonLinearTaskVector(pretrained_checkpoint, finetuned_checkpoint)
+            else NonLinearTaskVector(checkpoint_dir=checkpoint_dir)
         )
     except FileNotFoundError as e:
-        print(f"{e}\n\nError: Could not find {finetuned_checkpoint}.")
+        print(f"{e}\n\nError: Could not find checkpoint in {checkpoint_dir}.")
         continue
 
     if args.finetuning_mode == "none":
-        image_encoder = task_vector.apply_to(pretrained_checkpoint, scaling_coef=0.0)
+        image_encoder = task_vector.apply_to(checkpoint_dir, scaling_coef=0.0)
     elif args.finetuning_mode in ("standard", "linear", "lora"):
-        image_encoder = task_vector.apply_to(pretrained_checkpoint, scaling_coef=1.0)
+        image_encoder = task_vector.apply_to(checkpoint_dir, scaling_coef=1.0)
     elif args.finetuning_mode == "posthoc":
-        zs_encoder = task_vector.apply_to(pretrained_checkpoint, scaling_coef=0.0)
-        ft_encoder = task_vector.apply_to(pretrained_checkpoint, scaling_coef=1.0)
+        zs_encoder = task_vector.apply_to(checkpoint_dir, scaling_coef=0.0)
+        ft_encoder = task_vector.apply_to(checkpoint_dir, scaling_coef=1.0)
         image_encoder = LinearizedImageEncoder(
             init_encoder=zs_encoder, image_encoder=ft_encoder, args=args
         )

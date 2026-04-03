@@ -18,7 +18,6 @@ Usage:
 import argparse
 import os
 
-import numpy as np
 import torch
 from datasets import load_dataset
 from torch.utils.data import DataLoader
@@ -86,7 +85,7 @@ def collect_covariance(capability, args):
     print(f"{'='*60}")
 
     run_dir = os.path.join(args.save, CAPABILITY_MODEL_DIRS[capability])
-    cov_path = os.path.join(run_dir, "covariance.npz")
+    cov_path = os.path.join(run_dir, "covariance.pt")
 
     if os.path.exists(cov_path) and not args.overwrite:
         print(f"  Skipping {capability} — {cov_path} already exists")
@@ -178,11 +177,11 @@ def collect_covariance(capability, args):
 
     saveable = {}
     for name, cobj in cobjs.items():
-        saveable[name] = cobj.cov.cpu().numpy()
+        saveable[name] = cobj.cov.cpu()
         saveable[f"{name}_n"] = cobj.n
 
     os.makedirs(run_dir, exist_ok=True)
-    np.savez(cov_path, **saveable)
+    torch.save(saveable, cov_path)
     print(f"Saved covariances ({len(cobjs)} layers) to {cov_path}")
 
 
