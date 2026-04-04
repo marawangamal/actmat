@@ -24,27 +24,8 @@ if results_file.exists() and not args.overwrite:
     exit(0)
 
 print("*" * 100)
-if args.finetuning_mode == "standard":
-    print(f"Evaluating non-linear FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "ft_accuracies.json")
-elif args.finetuning_mode == "linear":
-    print(f"Evaluating linear FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "linear_ft_accuracies.json")
-elif args.finetuning_mode == "posthoc":
-    print(f"Evaluating post-hoc linearized models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "posthoc_ft_accuracies.json")
-elif args.finetuning_mode == "lora":
-    print(f"Evaluating LoRA FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "lora_ft_accuracies.json")
-else:
-    raise ValueError(f"Invalid finetuning mode: {args.finetuning_mode}")
+print(f"Evaluating {args.finetuning_mode} FT models. ({args.merge_func})")
 print("*" * 100)
-
-with open(ft_accuracies_path) as f:
-    args.finetuning_accuracies = json.load(f)
-
-with open(os.path.join(args.save, "zeroshot_accuracies.json")) as f:
-    pretrained_accuracies = json.load(f)
 
 eval_datasets = [
     "SUN397",
@@ -142,8 +123,8 @@ else:
             1.0,
             posthoc_linearization=args.finetuning_mode == "posthoc",
         )
-        score = metrics["avg_normalized_top1"]
-        print(f"  {merge_kwargs} -> avg_normalized_top1={score:.4f}")
+        score = metrics["avg_top1"]
+        print(f"  {merge_kwargs} -> avg_top1={score:.4f}")
         if score > best_val_score:
             best_val_score = score
             best_merge_kwargs = merge_kwargs
@@ -167,22 +148,16 @@ test_metrics = evaluate_task_vector_at_coef(
 )
 
 print("=" * 100)
-print(f"Test normalized accuracy: {test_metrics['avg_normalized_top1']}")
-print(f"Test absolute accuracy: {test_metrics['avg_top1']}")
+print(f"Test accuracy: {test_metrics['avg_top1']}")
 
 # Build olmes-style metrics.json
 tasks = []
 for dataset in eval_datasets:
     top1 = test_metrics[f"{dataset}:top1"]
-    normalized_top1 = test_metrics[f"{dataset}:normalized_top1"]
     tasks.append(
         {
             "alias": dataset,
-            "metrics": {
-                "top1": top1,
-                "normalized_top1": normalized_top1,
-                "primary_score": top1,
-            },
+            "metrics": {"top1": top1, "primary_score": top1},
             "task_config": {"primary_metric": "top1"},
         }
     )

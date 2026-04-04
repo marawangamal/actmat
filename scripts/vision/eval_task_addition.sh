@@ -56,38 +56,7 @@ HPO=""
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
 
-    # 1a. Evaluate single task (finetuned)
-    case "$FT_MODE" in
-      lora)    _ST_FT="checkpoints/$MODEL/lora_ft_accuracies.json" ;;
-      linear)  _ST_FT="checkpoints/$MODEL/linear_ft_accuracies.json" ;;
-      posthoc) _ST_FT="checkpoints/$MODEL/posthoc_ft_accuracies.json" ;;
-      *)       _ST_FT="checkpoints/$MODEL/ft_accuracies.json" ;;
-    esac
-    if [ -f "$_ST_FT" ]; then
-      echo "[BASH] Skipping eval_single_task.py | $_ST_FT already exists"
-    else
-      echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: $FT_MODE"
-      python scripts/vision/eval_single_task.py \
-        --finetuning-mode="$FT_MODE" \
-        --model="$MODEL" \
-        --openclip-cachedir="$OPENCLIP_DIR" \
-        --data-location="$DATA_DIR"
-    fi
-
-    # 1b. Evaluate single task (zeroshot)
-    _ST_ZS="checkpoints/$MODEL/zeroshot_accuracies.json"
-    if [ -f "$_ST_ZS" ]; then
-      echo "[BASH] Skipping eval_single_task.py (zeroshot) | $_ST_ZS already exists"
-    else
-      echo "[BASH] Running eval_single_task.py | model: $MODEL | ft mode: none"
-      python scripts/vision/eval_single_task.py \
-        --finetuning-mode="none" \
-        --model="$MODEL" \
-        --openclip-cachedir="$OPENCLIP_DIR" \
-        --data-location="$DATA_DIR"
-    fi
-
-    # 2. Evaluate task addition w/ diff merge methods
+    # Evaluate task addition w/ diff merge methods
     for method in "${METHODS[@]}"; do
 
       # 2a. Run covariance/fisher script if needed
