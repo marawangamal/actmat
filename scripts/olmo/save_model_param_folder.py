@@ -25,23 +25,6 @@ def _parse_dtype(dtype_name: str):
     raise ValueError(f"Unsupported dtype: {dtype_name}")
 
 
-# MODELS = [
-#     "pmahdavi/Llama-3.1-8B-math-reasoning",
-#     "pmahdavi/Llama-3.1-8B-coding",
-#     "pmahdavi/Llama-3.1-8B-coding-tulu3-ebs128-lr5e6-wsdcr0p4",
-#     "pmahdavi/Llama-3.1-8B-precise-if",
-#     "pmahdavi/Llama-3.1-8B-general",
-#     "pmahdavi/Llama-3.1-8B-knowledge-recall",
-# ]
-
-# python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-coding --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-coding
-# python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-coding-tulu3-ebs128-lr5e6-wsdcr0p4 --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-coding-tulu3-ebs128-lr5e6-wsdcr0p4
-# python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-precise-if --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-precise-if
-# python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-general --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-general
-# python scripts/nlg/save_model_param_folder.py --model pmahdavi/Llama-3.1-8B-knowledge-recall --output-dir checkpoints/nlg/pmahdavi-Llama-3.1-8B-knowledge-recall
-# python scripts/nlg/save_model_param_folder.py --model meta-llama/Meta-Llama-3.1-8B --output-dir checkpoints/nlg/meta-llama-Meta-Llama-3.1-8B
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True, help="HF model id")
