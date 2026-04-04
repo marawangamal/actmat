@@ -17,6 +17,12 @@ if args.seed is not None:
 else:
     args.save = f"checkpoints/{args.model}"
 
+merge_name = getattr(args, "merge_func", "sum")
+results_file = Path(f"results/{args.model}-{merge_name}/metrics.json")
+if results_file.exists() and not args.overwrite:
+    print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")
+    exit(0)
+
 print("*" * 100)
 if args.finetuning_mode == "standard":
     print(f"Evaluating non-linear FT models. ({args.merge_func})")
@@ -52,7 +58,6 @@ eval_datasets = [
 ]
 
 task_vectors = []
-merge_name = getattr(args, "merge_func", "sum")
 
 for dataset in eval_datasets:
     checkpoint_dir = f"{args.save}/{dataset}Val"
@@ -197,8 +202,6 @@ metrics_json = {
     },
 }
 
-results_dir = Path(f"results/{args.model}-{merge_name}")
-results_dir.mkdir(parents=True, exist_ok=True)
-save_file = results_dir / "metrics.json"
-save_file.write_text(json.dumps(metrics_json, indent=2))
-print(f"Results saved to {save_file}")
+results_file.parent.mkdir(parents=True, exist_ok=True)
+results_file.write_text(json.dumps(metrics_json, indent=2))
+print(f"Results saved to {results_file}")
