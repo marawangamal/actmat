@@ -47,8 +47,8 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 # Evaluate all merging methods using their default settings.
 # Results are stored in the main results database.
-MODELS=(ViT-B-16)
-METHODS=(sum)
+MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+METHODS=(fisher)
 FT_MODE=standard
 HPO=""
 
@@ -63,12 +63,14 @@ for MODEL in "${MODELS[@]}"; do
       python scripts/vision/covariance.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
-        --mha=split
+        --mha=split 
     elif [ "$method" = "fisher" ]; then
       echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
       python scripts/vision/fisher.py \
         --model="$MODEL" \
-        --finetuning-mode="$FT_MODE"
+        --finetuning-mode="$FT_MODE" \
+        --mha=split \
+        --overwrite
     fi
 
     # 2b. Evaluate task addition

@@ -90,6 +90,8 @@ if __name__ == "__main__":
     args = parse_arguments()
     args.save = f"checkpoints/{args.model}"
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    args.cov_batch_size = 1
+    args.cov_num_batches = [100]
 
     tasks = [
         "Cars",
@@ -141,9 +143,7 @@ if __name__ == "__main__":
             # Divide in-place, then build saveable dict
             for v in fisher.values():
                 v.div_(n_batches)
-            saveable = {
-                k.replace(".weight", ""): v.cpu() for k, v in fisher.items()
-            }
+            saveable = {k.replace(".weight", ""): v.cpu() for k, v in fisher.items()}
             saveable["n_batches"] = n_batches
             torch.save(saveable, _fisher_path)
             print(f"  Saved to {_fisher_path}")
