@@ -305,7 +305,7 @@ def merge_fisher(
 
     # Shape: (N, Do*Di)
     f = torch.stack([x.reshape(-1).to(device=tau.device, dtype=tau.dtype) for x in f])
-    return _dinv(f.sum(dim=0)) * (f * tau.reshape(N, Do * Di)).sum(dim=0).reshape(
+    return (_dinv(f.sum(dim=0)) * (f * tau.reshape(N, Do * Di)).sum(dim=0)).reshape(
         Do, Di
     )
 
