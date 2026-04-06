@@ -198,6 +198,9 @@ def merge_isoc(taus: torch.Tensor, mode="mean", **kwargs):
     return torch.einsum("ik,k,kj->ij", u, s_iso, vt)
 
 
+merge_isoc2 = lambda *args, **kwargs: merge_isoc(*args, mode="mean", **kwargs) * 2.0
+
+
 # ---------------------------------------------------------------------------
 # KNOTS
 # ---------------------------------------------------------------------------

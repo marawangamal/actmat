@@ -47,8 +47,8 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 # Evaluate all merging methods using their default settings.
 # Results are stored in the main results database.
-MODELS=(ViT-B-32 ViT-L-14)
-METHODS=(fisher)
+MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+METHODS=(isoc2)
 FT_MODE=standard
 HPO=""
 

@@ -18,7 +18,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
-METHODS=(fisher)
+METHODS=(regmean)
 FT_MODE=standard
 HPO=""
 
@@ -29,7 +29,9 @@ for MODEL in "${MODELS[@]}"; do
     if [ "$method" = "regmean" ]; then
       echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
       python scripts/language/covariance.py \
-        --model="$MODEL"
+        --model="$MODEL" \
+        --finetuning-mode="$FT_MODE" \
+        --overwrite
     fi
 
     # Run fisher collection if needed
@@ -37,7 +39,8 @@ for MODEL in "${MODELS[@]}"; do
       echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
       python scripts/language/fisher.py \
         --model="$MODEL" \
-        --finetuning-mode="$FT_MODE"
+        --finetuning-mode="$FT_MODE" \
+        --overwrite
     fi
 
     # Evaluate task addition
