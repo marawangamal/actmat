@@ -1,3 +1,8 @@
 {
-    "python.languageServer": "None"
+    "python.languageServer": "None",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "notebook.formatOnCellExecution": true,
+    "notebook.formatOnSave.enabled": true
 }

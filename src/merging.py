@@ -1,14 +1,29 @@
 from argparse import Namespace
 from pyexpat import model
+import os
 import sys
 import time
 from pathlib import Path
 import torch
 from typing import Callable, Sequence, Union
 from tqdm import tqdm
-import numpy as np
 
 from src.task_vectors import _TaskVector
+
+
+def _load_stats_dict(path: str) -> dict:
+    """Load a statistics dict from a .pt file or a directory of per-layer .pt files."""
+    if os.path.isdir(path):
+        result = {}
+        for fname in os.listdir(path):
+            if fname.endswith(".pt"):
+                key = fname[:-3]  # strip .pt
+                result[key] = torch.load(
+                    os.path.join(path, fname), map_location="cpu", weights_only=False
+                )
+        return result
+    else:
+        return torch.load(path, map_location="cpu", weights_only=False)
 
 
 # Type: (key, [w1, w2, ...]) -> merged tensor
@@ -183,6 +198,9 @@ def merge_isoc(taus: torch.Tensor, mode="mean", **kwargs):
     return torch.einsum("ik,k,kj->ij", u, s_iso, vt)
 
 
+merge_isoc2 = lambda *args, **kwargs: merge_isoc(*args, mode="mean", **kwargs) * 2.0
+
+
 # ---------------------------------------------------------------------------
 # KNOTS
 # ---------------------------------------------------------------------------
@@ -226,24 +244,28 @@ def merge_regmean(
     **kwargs,
 ):
     c = []
-    # km = v.param_key_to_cov_key(key)
     for v in vectors:
         km = v.param_key_to_cov_key(key)
         cpath = v.covariance_path
         if cpath is None:
             raise ValueError(f"No covariance path provided for task vector {v}")
-        with np.load(cpath) as cdict:
-            if km not in cdict:
-                print(f"[skipped] {km} not found in {cpath}")
-                return tau.mean(dim=0)
-            ct = cdict[km]
-            if max_dim is not None and ct.shape[1] > max_dim:
-                print(f"[skipped] {km} has shape {cdict[km].shape} > {max_dim}")
-                return tau.mean(dim=0)
-            if sample_cov:
-                ct = (cdict[f"{km}_n"] * ct) / (cdict[f"{km}_n"] - 1)
-            c.append(ct)
-    c = torch.stack([torch.as_tensor(x, device=tau.device, dtype=tau.dtype) for x in c])
+        cdict = _load_stats_dict(cpath)
+        if km not in cdict:
+            print(f"[skipped] {km} not found in {cpath}")
+            return tau.mean(dim=0)
+        ct = cdict[km]
+        if not isinstance(ct, torch.Tensor):
+            ct = torch.as_tensor(ct)
+        if max_dim is not None and ct.shape[1] > max_dim:
+            print(f"[skipped] {km} has shape {ct.shape} > {max_dim}")
+            return tau.mean(dim=0)
+        if sample_cov:
+            n = cdict[f"{km}_n"]
+            if isinstance(n, torch.Tensor):
+                n = n.item()
+            ct = (n * ct) / (n - 1)
+        c.append(ct)
+    c = torch.stack([x.to(device=tau.device, dtype=tau.dtype) for x in c])
 
     if scale_coef is not None:
         m_diag = (
@@ -270,23 +292,25 @@ def merge_fisher(
 ):
     N, Do, Di = tau.shape
     f = []
-    # km = v.param_key_to_cov_key(key)
     for v in vectors:
         km = v.param_key_to_cov_key(key)
         fpath = v.fisher_path
         if fpath is None:
             raise ValueError(f"No fisher path provided for task vector {v}")
-        with np.load(fpath) as fdict:
-            if km not in fdict:
-                print(f"[skipped] {km} not found in {fpath}")
-                return tau.mean(dim=0)
-            f.append(fdict[km])
+        fdict = _load_stats_dict(fpath)
+        if km not in fdict:
+            print(f"[skipped] {km} not found in {fpath}")
+            return tau.mean(dim=0)
+        ft = fdict[km]
+        if not isinstance(ft, torch.Tensor):
+            ft = torch.as_tensor(ft)
+        f.append(ft)
 
     # Shape: (N, Do*Di)
-    f = torch.stack(
-        [torch.as_tensor(x.reshape(-1), device=tau.device, dtype=tau.dtype) for x in f]
+    f = torch.stack([x.reshape(-1).to(device=tau.device, dtype=tau.dtype) for x in f])
+    return (_dinv(f.sum(dim=0)) * (f * tau.reshape(N, Do * Di)).sum(dim=0)).reshape(
+        Do, Di
     )
-    return _dinv(f.sum(dim=0)) * (f * tau.reshape(N, Do * Di)).sum(dim=0)
 
 
 # ---------------------------------------------------------------------------

@@ -1,11 +1,11 @@
 import itertools
 import json
 import os
+from pathlib import Path
 
 # from mha import copy_from_pytorch_state_dict, copy_to_pytorch_state_dict
 from src import mhap, mhas
 from src.args import parse_arguments
-from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
 from src.vision.eval import evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
@@ -17,84 +17,15 @@ if args.seed is not None:
 else:
     args.save = f"checkpoints/{args.model}"
 
-# Fields that should NOT affect the run identity:
-#   - training-only hyperparameters (lr, wd, …) — not used during eval
-#   - environment/path args (cache dirs, save dir) — machine-specific
-#   - fields set dynamically *after* this point (eval_datasets, finetuning_accuracies, …)
-#   - metadata (results_db path, exp_name, overwrite flag, …)
-_HASH_IGNORE = {
-    # training-only
-    "lr",
-    "wd",
-    "ls",
-    "warmup_length",
-    "epochs",
-    "num_grad_accumulation",
-    "batch_size",
-    "checkpoint_every",
-    "keep_checkpoints",
-    "port",
-    "world_size",
-    "cosine_samples",
-    "grad_cross_matrix",
-    "max_steps",
-    "eigcov_reverse",
-    "lora_rank",
-    "lora_alpha",
-    "lora_dropout",
-    "lora_target_modules",
-    "lora_target_parameters",
-    # environment / paths
-    "openclip_cachedir",
-    "cache_dir",
-    "save",
-    "data_location",
-    # dynamically set after hash
-    "eval_datasets",
-    "finetuning_accuracies",
-    "control_dataset",
-    "eval_split",
-    "eval_max_batches",
-    # metadata
-    "results_db",
-    "exp_name",
-    "overwrite",
-    "num_workers",
-    "device",
-    "mid_checkpoint_step",
-}
-
-_run_hash = (
-    make_run_hash("eval_task_addition", args, ignore=_HASH_IGNORE)
-    if args.results_db
-    else None
-)
-if args.results_db and record_exists(args.results_db, _run_hash):
-    print(f"Skipping: matching record already exists in {args.results_db}")
+merge_name = getattr(args, "merge_func", "sum")
+results_file = Path(f"results/{args.model}-{merge_name}/metrics.json")
+if results_file.exists() and not args.overwrite:
+    print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")
     exit(0)
 
 print("*" * 100)
-if args.finetuning_mode == "standard":
-    print(f"Evaluating non-linear FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "ft_accuracies.json")
-elif args.finetuning_mode == "linear":
-    print(f"Evaluating linear FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "linear_ft_accuracies.json")
-elif args.finetuning_mode == "posthoc":
-    print(f"Evaluating post-hoc linearized models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "posthoc_ft_accuracies.json")
-elif args.finetuning_mode == "lora":
-    print(f"Evaluating LoRA FT models. ({args.merge_func})")
-    ft_accuracies_path = os.path.join(args.save, "lora_ft_accuracies.json")
-else:
-    raise ValueError(f"Invalid finetuning mode: {args.finetuning_mode}")
+print(f"Evaluating {args.finetuning_mode} FT models. ({args.merge_func})")
 print("*" * 100)
-
-with open(ft_accuracies_path) as f:
-    args.finetuning_accuracies = json.load(f)
-
-with open(os.path.join(args.save, "zeroshot_accuracies.json")) as f:
-    pretrained_accuracies = json.load(f)
 
 eval_datasets = [
     "SUN397",
@@ -108,51 +39,13 @@ eval_datasets = [
 ]
 
 task_vectors = []
-merge_name = getattr(args, "merge_func", "sum")
 
 for dataset in eval_datasets:
-    is_fisher = merge_name == "fisher"
-    cov_path = (
-        f"{args.cov_dir}/covariance_{dataset}.npz"
-        if args.cov_dir and not is_fisher
-        else None
-    )
-    fisher_path = (
-        f"{args.cov_dir}/fisher_{dataset}.npz" if args.cov_dir and is_fisher else None
-    )
+    checkpoint_dir = f"{args.save}/{dataset}Val"
     if args.finetuning_mode == "linear":
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/linear_zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/linear_finetuned.pt"
-        task_vectors.append(
-            LinearizedTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-                covariance_path=cov_path,
-                fisher_path=fisher_path,
-            )
-        )
-    elif args.finetuning_mode == "lora":
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/lora_finetuned.pt"
-        task_vectors.append(
-            NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-                covariance_path=cov_path,
-                fisher_path=fisher_path,
-            )
-        )
+        task_vectors.append(LinearizedTaskVector(checkpoint_dir=checkpoint_dir))
     else:
-        pretrained_checkpoint = f"{args.save}/{dataset}Val/zeroshot.pt"
-        finetuned_checkpoint = f"{args.save}/{dataset}Val/finetuned.pt"
-        task_vectors.append(
-            NonLinearTaskVector(
-                pretrained_checkpoint,
-                finetuned_checkpoint,
-                covariance_path=cov_path,
-                fisher_path=fisher_path,
-            )
-        )
+        task_vectors.append(NonLinearTaskVector(checkpoint_dir=checkpoint_dir))
     print(f"Task vector {dataset} loaded")
 
 # For use with RegMean and Projected RegMean.
@@ -177,6 +70,9 @@ hp_combos = (
 )
 
 args.control_dataset = None
+
+# Use last checkpoint_dir for apply_to (all share same pretrained model)
+pretrained_dir = f"{args.save}/{eval_datasets[-1]}Val"
 
 
 def _set_eval_split(split):
@@ -222,13 +118,13 @@ else:
         task_vector = _merge_and_remap(merge_kwargs)
         metrics = evaluate_task_vector_at_coef(
             task_vector,
-            pretrained_checkpoint,
+            pretrained_dir,
             args,
             1.0,
             posthoc_linearization=args.finetuning_mode == "posthoc",
         )
-        score = metrics["avg_normalized_top1"]
-        print(f"  {merge_kwargs} -> avg_normalized_top1={score:.4f}")
+        score = metrics["avg_top1"]
+        print(f"  {merge_kwargs} -> avg_top1={score:.4f}")
         if score > best_val_score:
             best_val_score = score
             best_merge_kwargs = merge_kwargs
@@ -245,42 +141,42 @@ print("=" * 100)
 task_vector = _merge_and_remap(best_merge_kwargs)
 test_metrics = evaluate_task_vector_at_coef(
     task_vector,
-    pretrained_checkpoint,
+    pretrained_dir,
     args,
     1.0,
     posthoc_linearization=args.finetuning_mode == "posthoc",
 )
 
 print("=" * 100)
-print(f"Test normalized accuracy: {test_metrics['avg_normalized_top1']}")
-print(f"Test absolute accuracy: {test_metrics['avg_top1']}")
-additive_accuracies = {
-    "test": test_metrics,
-    "val": best_val_metrics,
-    "optimal_merge_hp": best_merge_kwargs,
+print(f"Test accuracy: {test_metrics['avg_top1']}")
+
+# Build olmes-style metrics.json
+tasks = []
+for dataset in eval_datasets:
+    top1 = test_metrics[f"{dataset}:top1"]
+    tasks.append(
+        {
+            "alias": dataset,
+            "metrics": {"top1": top1, "primary_score": top1},
+            "task_config": {"primary_metric": "top1"},
+        }
+    )
+
+metrics_json = {
+    "all_primary_scores": [
+        f"{t['alias']}: {t['metrics']['primary_score']:.6f}" for t in tasks
+    ],
+    "tasks": tasks,
+    "model_config": {
+        "model": args.model,
+        "merge_func": merge_name,
+        "finetuning_mode": args.finetuning_mode,
+        "seed": args.seed,
+        "mha": args.mha,
+        "optimal_merge_hp": best_merge_kwargs,
+    },
 }
 
-if args.finetuning_mode == "standard":
-    save_file = f"{args.save}/additions_{merge_name}.json"
-elif args.finetuning_mode == "linear":
-    save_file = f"{args.save}/linear_additions_{merge_name}.json"
-elif args.finetuning_mode == "posthoc":
-    save_file = f"{args.save}/posthoc_additions_{merge_name}.json"
-elif args.finetuning_mode == "lora":
-    save_file = f"{args.save}/lora_additions_{merge_name}.json"
-with open(save_file, "w") as f:
-    json.dump(additive_accuracies, f, indent=4)
-
-if args.results_db:
-    append_result(
-        args.results_db,
-        {
-            "script": "eval_task_addition",
-            **args_to_dict(args),
-            "optimal_merge_hp": best_merge_kwargs,
-            **{f"test_{k}": v for k, v in test_metrics.items()},
-            **{f"val_{k}": v for k, v in best_val_metrics.items()},
-        },
-        _run_hash,
-    )
-    print("Results appended to", args.results_db)
+results_file.parent.mkdir(parents=True, exist_ok=True)
+results_file.write_text(json.dumps(metrics_json, indent=2))
+print(f"Results saved to {results_file}")

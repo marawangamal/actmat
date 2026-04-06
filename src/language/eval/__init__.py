@@ -90,13 +90,13 @@ def evaluate(split, model, args):
 def evaluate_task_vector_at_coef(
     split,
     task_vector,
-    pretrained_checkpoint,
+    checkpoint_dir,
     args,
     scaling_coef,
     posthoc_linearization=False,
 ):
     """Apply task vector at a fixed coefficient and evaluate."""
-    model = task_vector.apply_to(pretrained_checkpoint, scaling_coef=scaling_coef)
+    model = task_vector.apply_to(checkpoint_dir, scaling_coef=scaling_coef)
     coef_info = evaluate(split, model, args)
 
     coef_info = add_normalized_accuracy(coef_info, args)
@@ -113,7 +113,7 @@ def evaluate_task_vector_at_coef(
 def evaluate_task_vector(
     split,
     task_vector,
-    pretrained_checkpoint,
+    checkpoint_dir,
     args,
     posthoc_linearization=False,
 ):
@@ -124,7 +124,7 @@ def evaluate_task_vector(
         info[scaling_coef] = evaluate_task_vector_at_coef(
             split,
             task_vector,
-            pretrained_checkpoint,
+            checkpoint_dir,
             args,
             scaling_coef,
             posthoc_linearization,

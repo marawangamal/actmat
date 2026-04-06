@@ -57,10 +57,11 @@ def evaluate(image_encoder, args):
     if args.eval_datasets is None:
         return
     per_dataset_results = {}
+    control = getattr(args, "control_dataset", None)
     eval_datasets = (
         args.eval_datasets
-        if args.control_dataset is None
-        else args.eval_datasets + [args.control_dataset]
+        if control is None
+        else args.eval_datasets + [control]
     )
     for dataset_name in eval_datasets:
         print("Evaluating on", dataset_name)
@@ -74,24 +75,20 @@ def evaluate(image_encoder, args):
 
 
 def evaluate_task_vector_at_coef(
-    task_vector, pretrained_checkpoint, args, scaling_coef, posthoc_linearization=False
+    task_vector, checkpoint_dir, args, scaling_coef, posthoc_linearization=False
 ):
     image_encoder = task_vector.apply_to(
-        pretrained_checkpoint, scaling_coef=scaling_coef
+        checkpoint_dir, scaling_coef=scaling_coef
     )
     if posthoc_linearization:
         pretrained_encoder = task_vector.apply_to(
-            pretrained_checkpoint, scaling_coef=0.0
+            checkpoint_dir, scaling_coef=0.0
         )
         image_encoder = LinearizedImageEncoder(
             init_encoder=pretrained_encoder, image_encoder=image_encoder, args=args
         )
     coef_info = evaluate(image_encoder, args)
 
-    coef_info = add_normalized_accuracy(coef_info, args)
-    coef_info["avg_normalized_top1"] = np.mean(
-        [coef_info[dataset + ":normalized_top1"] for dataset in args.eval_datasets]
-    )
     coef_info["avg_top1"] = np.mean(
         [coef_info[dataset + ":top1"] for dataset in args.eval_datasets]
     )
@@ -100,7 +97,7 @@ def evaluate_task_vector_at_coef(
 
 
 def evaluate_task_vector(
-    task_vector, pretrained_checkpoint, args, posthoc_linearization=False
+    task_vector, checkpoint_dir, args, posthoc_linearization=False
 ):
     info = {}
     for scaling_coef in np.linspace(
@@ -109,22 +106,13 @@ def evaluate_task_vector(
         print(f"Evaluating for scaling coefficient {scaling_coef:.2f}")
         info[scaling_coef] = evaluate_task_vector_at_coef(
             task_vector,
-            pretrained_checkpoint,
+            checkpoint_dir,
             args,
             scaling_coef,
             posthoc_linearization,
         )
 
     return info
-
-
-def add_normalized_accuracy(results, args):
-    for dataset_name in args.eval_datasets:
-        results[dataset_name + ":normalized_top1"] = (
-            results[dataset_name + ":top1"] / args.finetuning_accuracies[dataset_name]
-        )
-
-    return results
 
 
 def nonlinear_advantage(acc_linear, acc_nonlinear, num_classes):

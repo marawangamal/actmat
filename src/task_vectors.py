@@ -1,41 +1,73 @@
 import abc
+import os
 
 import torch
 
 
 class _TaskVector(abc.ABC):
+    PRETRAINED_FILENAME = "zeroshot.pt"
+    FINETUNED_FILENAME = "finetuned.pt"
+
     def __init__(
         self,
-        pretrained_checkpoint=None,
-        finetuned_checkpoint=None,
+        checkpoint_dir=None,
         vector=None,
         lazy=False,
         cache_window=50,  # Keeps `cache_window` layers in memory at a time
-        covariance_path=None,
-        fisher_path=None,
         _transform_fn=None,
     ):
-        """Initializes the task vector from a pretrained and a finetuned checkpoints.
+        """Initializes the task vector from a checkpoint directory or a pre-computed vector.
 
-        This can either be done by passing two state dicts (one corresponding to the
-        pretrained model, and another to the finetuned model), or by directly passying in
-        the task vector state dict.
+        When checkpoint_dir is provided, loads pretrained and finetuned checkpoints
+        from that directory using PRETRAINED_FILENAME and FINETUNED_FILENAME class
+        attributes. Also auto-discovers covariance.pt and fisher.pt in the directory.
+
+        When vector is provided, uses the pre-computed task vector dict directly
+        (used by arithmetic operations).
         """
         self.lazy = lazy
-        self._pretrained_checkpoint = pretrained_checkpoint
-        self._finetuned_checkpoint = finetuned_checkpoint
+        self.checkpoint_dir = checkpoint_dir
         self.cache_window = cache_window
         self._cache = {}
         self._lazy_keys = None
-        self.covariance_path = covariance_path
-        self.fisher_path = fisher_path
         self._transform_fn = _transform_fn
+
+        # Resolve checkpoint file paths from directory
+        if checkpoint_dir is not None:
+            self._pretrained_checkpoint = os.path.join(
+                checkpoint_dir, self.PRETRAINED_FILENAME
+            )
+            self._finetuned_checkpoint = os.path.join(
+                checkpoint_dir, self.FINETUNED_FILENAME
+            )
+        else:
+            self._pretrained_checkpoint = None
+            self._finetuned_checkpoint = None
+
+        # Auto-discover statistics files
+        self.covariance_path = None
+        self.fisher_path = None
+        if checkpoint_dir is not None:
+            cov_file = os.path.join(checkpoint_dir, "covariance.pt")
+            cov_dir = os.path.join(checkpoint_dir, "covariance")
+            if os.path.exists(cov_file):
+                self.covariance_path = cov_file
+            elif os.path.isdir(cov_dir):
+                self.covariance_path = cov_dir
+
+            fisher_file = os.path.join(checkpoint_dir, "fisher.pt")
+            fisher_dir = os.path.join(checkpoint_dir, "fisher")
+            if os.path.exists(fisher_file):
+                self.fisher_path = fisher_file
+            elif os.path.isdir(fisher_dir):
+                self.fisher_path = fisher_dir
+
         if vector is not None:
             assert not self.lazy, "Cannot pass a vector if lazy is True"
             self._vector = vector
         else:
-            assert (
-                pretrained_checkpoint is not None and finetuned_checkpoint is not None
+            assert checkpoint_dir is not None, (
+                "Either checkpoint_dir or vector must be provided"
             )
 
             if self.lazy:
@@ -141,6 +173,13 @@ class _TaskVector(abc.ABC):
     def _cast_to_same_type(self, other):
         raise NotImplementedError
 
+    def _copy_metadata(self, result):
+        """Copy covariance/fisher paths and checkpoint_dir to a derived task vector."""
+        result.covariance_path = self.covariance_path
+        result.fisher_path = self.fisher_path
+        result.checkpoint_dir = self.checkpoint_dir
+        return result
+
     def __add__(self, other):
         """Add two task vectors together."""
         other = self._cast_to_same_type(other)
@@ -151,9 +190,7 @@ class _TaskVector(abc.ABC):
                     print(f"Warning, key {key} is not present in both task vectors.")
                     continue
                 new_vector[key] = self.vector[key] + other.vector[key]
-        return self.__class__(
-            vector=new_vector, covariance_path=self.covariance_path, fisher_path=self.fisher_path, lazy=self.lazy
-        )
+        return self._copy_metadata(self.__class__(vector=new_vector))
 
     def __sub__(self, other):
         """Subtract two task vectors."""
@@ -170,9 +207,7 @@ class _TaskVector(abc.ABC):
             new_vector = {}
             for key in self.vector:
                 new_vector[key] = -self.vector[key]
-        return self.__class__(
-            vector=new_vector, covariance_path=self.covariance_path, fisher_path=self.fisher_path, lazy=self.lazy
-        )
+        return self._copy_metadata(self.__class__(vector=new_vector))
 
     def __pow__(self, power):
         """Power of a task vector."""
@@ -180,9 +215,7 @@ class _TaskVector(abc.ABC):
             new_vector = {}
             for key in self.vector:
                 new_vector[key] = self.vector[key] ** power
-        return self.__class__(
-            vector=new_vector, covariance_path=self.covariance_path, fisher_path=self.fisher_path, lazy=self.lazy
-        )
+        return self._copy_metadata(self.__class__(vector=new_vector))
 
     def __mul__(self, other):
         """Multiply a task vector by a scalar."""
@@ -190,9 +223,7 @@ class _TaskVector(abc.ABC):
             new_vector = {}
             for key in self.vector:
                 new_vector[key] = other * self.vector[key]
-        return self.__class__(
-            vector=new_vector, covariance_path=self.covariance_path, fisher_path=self.fisher_path, lazy=self.lazy
-        )
+        return self._copy_metadata(self.__class__(vector=new_vector))
 
     def dot(self, other):
         """Dot product of two task vectors."""
@@ -210,10 +241,11 @@ class _TaskVector(abc.ABC):
         """Norm of a task vector."""
         return torch.sqrt(self.dot(self))
 
-    def apply_to(self, pretrained_checkpoint, scaling_coef=1.0):
-        """Apply a task vector to a pretrained model."""
+    def apply_to(self, checkpoint_dir, scaling_coef=1.0):
+        """Apply a task vector to a pretrained model from checkpoint_dir."""
+        pretrained_path = os.path.join(checkpoint_dir, self.PRETRAINED_FILENAME)
         with torch.no_grad():
-            pretrained_model = self._load_checkpoint(pretrained_checkpoint)
+            pretrained_model = self._load_checkpoint(pretrained_path)
             new_state_dict = {}
             pretrained_state_dict = pretrained_model.state_dict()
             for key in pretrained_state_dict:
@@ -233,21 +265,15 @@ class _TaskVector(abc.ABC):
         if self.lazy:
             existing = self._transform_fn
             composed = (lambda v: fn(existing(v))) if existing is not None else fn
-            return self.__class__(
-                pretrained_checkpoint=self._pretrained_checkpoint,
-                finetuned_checkpoint=self._finetuned_checkpoint,
+            result = self.__class__(
+                checkpoint_dir=self.checkpoint_dir,
                 lazy=True,
-                covariance_path=self.covariance_path,
-                fisher_path=self.fisher_path,
                 _transform_fn=composed,
             )
+            return result
         with torch.no_grad():
-            return self.__class__(
-                vector=fn(self.vector),
-                covariance_path=self.covariance_path,
-                fisher_path=self.fisher_path,
-                lazy=False,
-            )
+            result = self.__class__(vector=fn(self.vector))
+            return self._copy_metadata(result)
 
     def param_key_to_cov_key(self, key: str):
         raise NotImplementedError("Subclasses must implement this method")

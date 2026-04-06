@@ -117,7 +117,6 @@ if __name__ == "__main__":
         "SUN397",
         "SVHN",
     ]
-    pretrained_ckpt = f"checkpoints/{model}/{datasets[0]}Val/zeroshot.pt"
     print(f"Results will be saved to: {results_dir}/")
 
     for ds in datasets:
@@ -127,10 +126,9 @@ if __name__ == "__main__":
             continue
 
         print(f"\nComputing gradient magnitudes for {ds}")
-        tv = NonLinearTaskVector(
-            pretrained_ckpt, f"checkpoints/{model}/{ds}Val/finetuned.pt"
-        )
-        encoder = tv.apply_to(pretrained_ckpt, scaling_coef=1.0)
+        checkpoint_dir = f"checkpoints/{model}/{ds}Val"
+        tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dir)
+        encoder = tv.apply_to(checkpoint_dir, scaling_coef=1.0)
         del tv
 
         layer_gmag = compute_gradient_magnitudes(encoder, f"{ds}Val", args)

@@ -1,15 +1,41 @@
 [project]
 name = "eigcov"
 version = "0.1.0"
-description = "Data-free model merging via eigenvalue covariance estimation of task vectors"
-requires-python = ">=3.11"
+description = "Add your description here"
+requires-python = ">=3.10,<3.14"
 dependencies = []
 
-[[tool.uv.index]]
-name = "pytorch-cu121"
-url = "https://download.pytorch.org/whl/cu121"
+[dependency-groups]
+vision-language = [
+    "datasets>=4.5.0",
+    "evaluate>=0.4.6",
+    "huggingface-hub>=0.36.2",
+    "numpy>=2.0.2",
+    "open-clip-torch==2.10.1",
+    "peft>=0.17.1",
+    "pillow>=11.3.0",
+    "promptsource",
+    "scikit-learn>=1.6.1",
+    "scipy>=1.13.1",
+    "sentencepiece>=0.2.1",
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "tqdm>=4.67.3",
+    "transformers==4.57.6",
+    "trl>=0.24.0",
+]
+olmo = [
+    "ai2-olmes",
+]
+
+[tool.uv]
+conflicts = [
+    [
+        { group = "vision-language" },
+        { group = "olmo" },
+    ],
+]
 
 [tool.uv.sources]
-torch = { index = "pytorch-cu121" }
-torchvision = { index = "pytorch-cu121" }
 promptsource = { git = "https://github.com/bigscience-workshop/promptsource.git" }
+ai2-olmes = { path = "./olmes", editable = false }

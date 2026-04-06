@@ -1,37 +1,27 @@
 #!/bin/bash
-# Merge + evaluate rl models in one shot.
+# Merge + evaluate OLMo models via olmes, then collect results.
 #
-# For each merge method: runs merge.py, optionally uploads to HF Hub,
-# evaluates via olmes, then collects all results into a summary table.
+# Prerequisites: run scripts/olmo/download_models.sh first.
 #
 # Usage:
-#   bash scripts/olmo/eval_task_addition.sh \
-#     --pretrained-dir checkpoints/olmo/meta-llama-Meta-Llama-3.1-8B \
-#     --finetuned-dirs \
-#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-math-reasoning \
-#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-coding \
-#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-precise-if \
-#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-general \
-#       checkpoints/olmo/pmahdavi-Llama-3.1-8B-knowledge-recall \
-#     --merge-funcs "eigcov tsv isoc mean" \
-#     --gpus 4
-
+#   bash scripts/olmo/eval_task_addition.sh
 set -euo pipefail
 
-# ── Defaults ──────────────────────────────────────────────────────────────────
-PRETRAINED_DIR=""
-FINETUNED_DIRS=()
-MERGE_FUNCS="eigcov tsv mean isoc"
-OUTPUT_BASE="checkpoints/olmo"
-RESULTS_BASE="results-olmo"
-GPUS=4
-UPLOAD=""          # HF Hub user/org prefix; empty = skip upload
-MERGE_KWARGS=""    # JSON string forwarded to merge.py --merge-kwargs
-IGNORE_KEYS=""     # space-separated keys forwarded to merge.py --ignore-keys
-NO_CODE=""         # set to 1 to pass --no-code to collect_results.py
-BATCH_SIZE=128     # olmes batch size
+# 0. Setup environment
+source "$SCRATCH/eigcov/.venv-olmo/bin/activate"
+export PYTHONPATH="$PYTHONPATH:$PWD"
+export SSL_CERT_DIR=/etc/ssl/certs
 
-# ── Olmes config ──────────────────────────────────────────────────────────────
+# ── CONFIG ────────────────────────────────────────────────────────────────────
+MODEL="Olmo-3-7b"
+METHODS=(eigcov tsv mean isoc)
+TASK_DIRS=(
+  "checkpoints/${MODEL}/Math"
+  "checkpoints/${MODEL}/Code"
+  "checkpoints/${MODEL}/IF"
+)
+
+# ── OLMES ─────────────────────────────────────────────────────────────────────
 OLMES_TASKS=(
   "codex_humaneval::tulu"
   "codex_humanevalplus::tulu"
@@ -39,152 +29,37 @@ OLMES_TASKS=(
   "aime:zs_cot_r1::pass_at_32_2024_deepseek"
   "aime:zs_cot_r1::pass_at_32_2025_deepseek"
 )
-OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}' # for aime
-# OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'  # otherwise
+OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
+GPUS=4
+BATCH_SIZE=128
 
-# ── Argument parsing ──────────────────────────────────────────────────────────
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --pretrained-dir)
-      PRETRAINED_DIR="$2"; shift 2 ;;
-    --finetuned-dirs)
-      shift
-      while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
-        FINETUNED_DIRS+=("$1"); shift
-      done
-      ;;
-    --merge-funcs)
-      MERGE_FUNCS="$2"; shift 2 ;;
-    --output-base)
-      OUTPUT_BASE="$2"; shift 2 ;;
-    --results-base)
-      RESULTS_BASE="$2"; shift 2 ;;
-    --gpus)
-      GPUS="$2"; shift 2 ;;
-    --upload)
-      UPLOAD="$2"; shift 2 ;;
-    --merge-kwargs)
-      MERGE_KWARGS="$2"; shift 2 ;;
-    --ignore-keys)
-      shift
-      while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
-        IGNORE_KEYS+="$1 "; shift
-      done
-      IGNORE_KEYS="${IGNORE_KEYS% }"  # trim trailing space
-      ;;
-    --batch-size)
-      BATCH_SIZE="$2"; shift 2 ;;
-    --no-code)
-      NO_CODE=1; shift ;;
-    *)
-      echo "Unknown argument: $1" >&2; exit 1 ;;
-  esac
-done
-
-# ── Validation ────────────────────────────────────────────────────────────────
-if [[ -z "$PRETRAINED_DIR" ]]; then
-  echo "Error: --pretrained-dir is required" >&2; exit 1
-fi
-if [[ ${#FINETUNED_DIRS[@]} -eq 0 ]]; then
-  echo "Error: --finetuned-dirs requires at least one directory" >&2; exit 1
-fi
-
-# ── Auto-convert HF model IDs to param-folder format ─────────────────────────
-# If a dir doesn't exist locally, treat it as an HF model ID and download it.
-# Sets PARAM_FOLDER_RESULT (global) to avoid stdout-capture issues.
-ensure_param_folder() {
-  local dir="$1"
-  if [[ -d "$dir" ]]; then
-    PARAM_FOLDER_RESULT="$dir"
-    return
-  fi
-  # HF model ID (e.g. meta-llama/Meta-Llama-3.1-8B) → local path
-  local local_dir="${OUTPUT_BASE}/$(echo "$dir" | tr '/' '-')"
-  if [[ ! -d "$local_dir" ]]; then
-    echo ">>> Downloading ${dir} to ${local_dir} ..."
-    python scripts/olmo/save_model_param_folder.py --model "$dir" --output-dir "$local_dir"
-  else
-    echo ">>> Using cached ${local_dir} for ${dir}"
-  fi
-  PARAM_FOLDER_RESULT="$local_dir"
-}
-
-ensure_param_folder "$PRETRAINED_DIR"
-PRETRAINED_DIR="$PARAM_FOLDER_RESULT"
-NEW_FT_DIRS=()
-for ft_dir in "${FINETUNED_DIRS[@]}"; do
-  ensure_param_folder "$ft_dir"
-  NEW_FT_DIRS+=("$PARAM_FOLDER_RESULT")
-done
-FINETUNED_DIRS=("${NEW_FT_DIRS[@]}")
-
-# ── Build name suffix from merge-kwargs ───────────────────────────────────────
-KWARGS_SUFFIX=""
-if [[ -n "$MERGE_KWARGS" ]]; then
-  KWARGS_SUFFIX=$(python3 -c "
-import json, sys
-def flatten(v):
-    if isinstance(v, list): return [str(x) for x in v]
-    return [str(v)]
-d = json.loads(sys.argv[1])
-print('_'.join(x for v in d.values() for x in flatten(v)))
-" "$MERGE_KWARGS")
-fi
-
-# ── Run ───────────────────────────────────────────────────────────────────────
-MODEL_PREFIX="$(basename "$PRETRAINED_DIR")"
-RESULT_DIRS=()
-
-for method in $MERGE_FUNCS; do
-  RUN_NAME="${MODEL_PREFIX}-${method}"
-  if [[ -n "$KWARGS_SUFFIX" ]]; then
-    RUN_NAME="${RUN_NAME}-${KWARGS_SUFFIX}"
-  fi
-  OUTPUT_DIR="${OUTPUT_BASE}/${RUN_NAME}"
-  RESULTS_DIR="${RESULTS_BASE}/${RUN_NAME}"
+# ── Merge + Evaluate ────────────────────────────────────────────────────────
+for method in "${METHODS[@]}"; do
+  MERGED_DIR="checkpoints/${MODEL}/${method}"
+  RESULTS_DIR="results/${MODEL}-${method}"
 
   echo "============================================================"
-  echo "Method     : ${method}"
-  echo "Output     : ${OUTPUT_DIR}"
-  echo "Results    : ${RESULTS_DIR}"
+  echo "Method: ${method}"
+  echo "Merged: ${MERGED_DIR}"
+  echo "Results: ${RESULTS_DIR}"
   echo "============================================================"
 
-  # 1. Merge (skip if output dir already exists)
-  if [[ -d "$OUTPUT_DIR" ]]; then
-    echo ">>> Skipping merge: ${OUTPUT_DIR} already exists"
+  # 1. Merge (skip if already done)
+  if [[ -d "$MERGED_DIR" ]]; then
+    echo ">>> Skipping merge: ${MERGED_DIR} already exists"
   else
-    MERGE_CMD=(
-      python scripts/olmo/merge.py
-      --pretrained-dir "$PRETRAINED_DIR"
-      --finetuned-dirs "${FINETUNED_DIRS[@]}"
-      --merge-func "$method"
-      --output-dir "$OUTPUT_DIR"
-    )
-    if [[ -n "$MERGE_KWARGS" ]]; then
-      MERGE_CMD+=(--merge-kwargs "$MERGE_KWARGS")
-    fi
-    if [[ -n "$IGNORE_KEYS" ]]; then
-      MERGE_CMD+=(--ignore-keys $IGNORE_KEYS)
-    fi
-
-    echo ">>> Merging with ${method} ..."
-    "${MERGE_CMD[@]}"
+    python scripts/olmo/merge.py \
+      --task-dirs "${TASK_DIRS[@]}" \
+      --merge-func "$method" \
+      --output-dir "$MERGED_DIR"
   fi
 
-  # 2. Optional HF Hub upload
-  if [[ -n "$UPLOAD" ]]; then
-    REPO_NAME="${UPLOAD}/$(basename "$OUTPUT_DIR")"
-    echo ">>> Uploading to ${REPO_NAME} ..."
-    hf upload "$REPO_NAME" "$OUTPUT_DIR" --repo-type model
-  fi
-
-  # 3. Evaluate via olmes (skip if results already exist)
+  # 2. Evaluate (skip if already done)
   if ls "$RESULTS_DIR"/*-metrics-all.json &>/dev/null; then
     echo ">>> Skipping eval: ${RESULTS_DIR} already has results"
   else
-    echo ">>> Evaluating with olmes ..."
     olmes \
-      --model "$OUTPUT_DIR" \
+      --model "$MERGED_DIR" \
       --task "${OLMES_TASKS[@]}" \
       --output-dir "$RESULTS_DIR" \
       --gpus "$GPUS" \
@@ -192,17 +67,4 @@ for method in $MERGE_FUNCS; do
       --model-args "$OLMES_MODEL_ARGS" \
       --batch-size "$BATCH_SIZE"
   fi
-
-  RESULT_DIRS+=("$RESULTS_DIR")
-  echo ""
 done
-
-# 4. Collect results across all methods
-echo "============================================================"
-echo "Collecting results ..."
-echo "============================================================"
-COLLECT_CMD=(python scripts/olmo/collect_results.py --dirs "${RESULT_DIRS[@]}")
-if [[ -n "$NO_CODE" ]]; then
-  COLLECT_CMD+=(--no-code)
-fi
-"${COLLECT_CMD[@]}"

@@ -171,16 +171,6 @@ def parse_arguments():
         help="Name of tensor-level merge function in src.merging for task arithmetic.",
     )
     parser.add_argument(
-        "--cov-dir",
-        type=lambda x: None if x == "None" else x,
-        default=None,
-        help=(
-            "Directory of per-dataset covariance .npz files produced by scripts/covariance.py. "
-            "Expected layout: {cov_dir}/covariance_{dataset}.npz. "
-            "Used by eval_task_addition.py and merging.py."
-        ),
-    )
-    parser.add_argument(
         "--cov-split",
         type=str,
         choices=["train", "test"],
