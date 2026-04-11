@@ -313,6 +313,29 @@ def merge_fisher(
     )
 
 
+# BUG: this version is incorrect
+# def merge_difisher(d: torch.Tensor, *args, **kwargs):
+#     N, Do, Di = d.shape
+#     fl = d.pow(2).sum(dim=1)
+#     fr = d.pow(2).sum(dim=2)
+#     f = (fl.reshape(N, -1, 1) @ fr.reshape(N, 1, -1)).reshape(N, -1)
+#     # f = (fr.reshape(N, -1, 1) @ fl.reshape(N, 1, -1)).reshape(N, -1)  # [N, Do, Di]
+#     return (_dinv(f.sum(dim=0)) * (f * d.reshape(N, Do * Di)).sum(dim=0)).reshape(
+#         Do, Di
+#     )
+
+
+def merge_difisher(d: torch.Tensor, *args, **kwargs):
+    N, Do, Di = d.shape
+    fl = d.pow(2).sum(dim=1)
+    fr = d.pow(2).sum(dim=2)
+    # f = (fl.reshape(N, -1, 1) @ fr.reshape(N, 1, -1)).reshape(N, -1)
+    f = (fr.reshape(N, -1, 1) @ fl.reshape(N, 1, -1)).reshape(N, -1)  # [N, Do, Di]
+    return (_dinv(f.sum(dim=0)) * (f * d.reshape(N, Do * Di)).sum(dim=0)).reshape(
+        Do, Di
+    )
+
+
 # ---------------------------------------------------------------------------
 # Eigenvalue Covariance (EigCov)
 # ---------------------------------------------------------------------------
