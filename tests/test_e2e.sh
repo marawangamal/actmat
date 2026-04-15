@@ -25,7 +25,7 @@ if [ ! -d "$DATA_DIR" ]; then
   unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
 fi
 
-echo "=== [1/2] finetune (max-steps=2 on $DATASETS) ==="
+echo "=== [1/4] finetune (max-steps=2 on $DATASETS) ==="
 python scripts/vision/finetune.py \
     --model="$MODEL" \
     --finetuning-mode=standard \
@@ -36,7 +36,25 @@ python scripts/vision/finetune.py \
     --batch-size=16 \
     --num-workers=1
 
-echo "=== [2/2] eval_task_addition ==="
+echo "=== [2/4] eval_experts (mode=none, writes -zeroshot) ==="
+python scripts/vision/eval_experts.py \
+    --model="$MODEL" \
+    --finetuning-mode=none \
+    --eval-datasets="$DATASETS" \
+    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --cache-dir="$CACHE_DIR" \
+    --results-dir="$TEST_RESULTS_DIR"
+
+echo "=== [3/4] eval_experts (mode=standard, writes -experts) ==="
+python scripts/vision/eval_experts.py \
+    --model="$MODEL" \
+    --finetuning-mode=standard \
+    --eval-datasets="$DATASETS" \
+    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --cache-dir="$CACHE_DIR" \
+    --results-dir="$TEST_RESULTS_DIR"
+
+echo "=== [4/4] eval_task_addition ==="
 python scripts/vision/eval_task_addition.py \
     --model="$MODEL" \
     --finetuning-mode=standard \
@@ -47,9 +65,13 @@ python scripts/vision/eval_task_addition.py \
     --eval-val-max-batches=1 \
     --overwrite
 
-RESULTS_FILE="$TEST_RESULTS_DIR/$MODEL-sum/metrics.json"
-if [[ ! -f "$RESULTS_FILE" ]]; then
-    echo "FAIL: expected $RESULTS_FILE to exist"
-    exit 1
-fi
-echo "PASS: $RESULTS_FILE"
+for f in \
+    "$TEST_RESULTS_DIR/$MODEL-zeroshot/metrics.json" \
+    "$TEST_RESULTS_DIR/$MODEL-experts/metrics.json" \
+    "$TEST_RESULTS_DIR/$MODEL-sum/metrics.json"; do
+    if [[ ! -f "$f" ]]; then
+        echo "FAIL: expected $f to exist"
+        exit 1
+    fi
+    echo "PASS: $f"
+done
