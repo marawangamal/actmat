@@ -14,7 +14,6 @@ CACHE_DIR="$SCRATCH/openclip"
 DATA_DIR="$SLURM_TMPDIR/datasets"
 SAVE_DIR="$SCRATCH/eigcov/analysis-checkpoints"
 EPOCHS=2
-MAX_STEPS=10
 
 # Prepare datasets
 if [ ! -d "$DATA_DIR" ]; then
@@ -33,5 +32,4 @@ python scripts/vision/finetune.py \
     --cache-dir="$CACHE_DIR" \
     --data-location="$DATA_DIR" \
     --save="$SAVE_DIR" \
-    --grad-cross-matrix \
-    --max-steps="$MAX_STEPS"
+    --grad-cross-matrix
