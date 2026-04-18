@@ -34,6 +34,7 @@ class _TaskVector(abc.ABC):
         self._lazy_keys = None
         self._transform_fn = _transform_fn
         self._prefix = prefix
+        self._pretrained_state_dict = None
 
         # Resolve checkpoint file paths from directory
         if checkpoint_dir is not None:

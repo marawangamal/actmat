@@ -166,6 +166,13 @@ def parse_arguments():
         default={},
         help="JSON dict of extra kwargs forwarded to the merge function.",
     )
+    parser.add_argument(
+        "--merge-mode",
+        type=str,
+        choices=["d", "w"],
+        default="d",
+        help="'d': merge deltas (default). 'w': task vectors hold full weights; merged output used directly.",
+    )
 
     # ─── Statistics (covariance / fisher) ─────────────────────────────────────
     parser.add_argument(

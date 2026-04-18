@@ -9,7 +9,12 @@ from src.args import parse_arguments
 from src.vision.eval import evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors
 from src.utils import get_prefix
-from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
+from src.vision.task_vectors import (
+    LinearizedTaskVector,
+    LinearizedWeightVector,
+    NonLinearTaskVector,
+    NonLinearWeightVector,
+)
 
 args = parse_arguments()
 
@@ -46,9 +51,10 @@ task_vectors = []
 for dataset in eval_datasets:
     checkpoint_dir = f"{args.save}/{dataset}Val"
     if args.finetuning_mode == "linear":
-        task_vectors.append(LinearizedTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix))
+        Cls = LinearizedWeightVector if args.merge_mode == "w" else LinearizedTaskVector
     else:
-        task_vectors.append(NonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix))
+        Cls = NonLinearWeightVector if args.merge_mode == "w" else NonLinearTaskVector
+    task_vectors.append(Cls(checkpoint_dir=checkpoint_dir, prefix=prefix))
     print(f"Task vector {dataset} loaded")
 
 # For use with RegMean and Projected RegMean.
