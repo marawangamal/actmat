@@ -25,14 +25,14 @@ if [ ! -d "$DATA_DIR" ]; then
   unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
 fi
 
-echo "=== [1/4] finetune (max-steps=2 on $DATASETS) ==="
+echo "=== [1/4] finetune (max-batches=2 on $DATASETS) ==="
 python scripts/vision/finetune.py \
     --model="$MODEL" \
     --finetuning-mode=standard \
     --train-dataset="$DATASETS" \
     --save="$TEST_CKPT_DIR" \
     --cache-dir="$CACHE_DIR" \
-    --max-steps=2 \
+    --max-batches=2 \
     --batch-size=16 \
     --num-workers=1
 
@@ -41,7 +41,7 @@ python scripts/vision/eval_experts.py \
     --model="$MODEL" \
     --finetuning-mode=none \
     --eval-datasets="$DATASETS" \
-    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --save="$TEST_CKPT_DIR/$MODEL/max_batches_2" \
     --cache-dir="$CACHE_DIR" \
     --results-dir="$TEST_RESULTS_DIR"
 
@@ -50,7 +50,7 @@ python scripts/vision/eval_experts.py \
     --model="$MODEL" \
     --finetuning-mode=standard \
     --eval-datasets="$DATASETS" \
-    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --save="$TEST_CKPT_DIR/$MODEL/max_batches_2" \
     --cache-dir="$CACHE_DIR" \
     --results-dir="$TEST_RESULTS_DIR"
 
@@ -59,7 +59,7 @@ python scripts/vision/eval_task_addition.py \
     --model="$MODEL" \
     --finetuning-mode=standard \
     --eval-datasets="$DATASETS" \
-    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --save="$TEST_CKPT_DIR/$MODEL/max_batches_2" \
     --cache-dir="$CACHE_DIR" \
     --results-dir="$TEST_RESULTS_DIR" \
     --eval-val-max-batches=1 \
