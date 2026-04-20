@@ -1,4 +1,5 @@
 import copy
+import itertools
 import os
 import time
 from typing import Dict, Optional
@@ -32,7 +33,7 @@ class GradCrossTermTracker:
     and between gram_sum (S_bar) and stilde_sum (S_tilde).
     """
 
-    def __init__(self, model, max_layers=8):
+    def __init__(self, model, max_layers=8, compute_cross_term_dist=False):
         linear_layers = [
             (name, module)
             for name, module in model.named_modules()
@@ -46,17 +47,16 @@ class GradCrossTermTracker:
             else [0]
         )
         self.layers = {linear_layers[i][0]: linear_layers[i][1] for i in indices}
-
-        # V1:
-        # self.grad_sum = {name: None for name in self.layers}
-        # self.gram_sum = {name: None for name in self.layers}
-        # self.stilde_sum = {name: None for name in self.layers}
-        # self.zzT_total = {name: None for name in self.layers}
+        self.compute_cross_term_dist = compute_cross_term_dist
 
         # V2:
         self.gbar = dict()
         self.sbar = dict()
         self.stilde = dict()
+        self.grads_cross_hist = []  # ... histogram
+        self.grads_diag_hist = []  # ... histogram
+
+        # NOTE: these are collected but no used in analysis:
         self.stilde_zzT = dict()
         self.stilde_gtg = dict()
 
@@ -90,60 +90,6 @@ class GradCrossTermTracker:
 
         return hook
 
-    # V1:
-    # def step(self, model, inputs, labels, loss_fn):
-    #     """Compute per-sample gradients for one batch and accumulate statistics."""
-    #     batch_size = inputs.shape[0]
-
-    #     # Accumulators for batch-mean E[zz^T] and E[||gy||^2]
-    #     zzT_sum = {name: None for name in self.layers}
-    #     gynorm_sum = {name: 0.0 for name in self.layers}
-
-    #     for b in range(batch_size):
-    #         model.zero_grad()
-    #         logits = model(inputs[b : b + 1])
-    #         loss = loss_fn(logits, labels[b : b + 1])
-    #         loss.backward()
-
-    #         for name, module in self.layers.items():
-    #             g = module.weight.grad.detach().float()  # (d_out, d_in)
-    #             if self.grad_sum[name] is None:
-    #                 d_in = g.shape[1]
-    #                 self.grad_sum[name] = torch.zeros_like(g, device="cpu")
-    #                 self.gram_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
-    #                 self.stilde_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
-    #                 self.zzT_total[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
-    #             self.grad_sum[name] += g.cpu() / batch_size
-    #             self.gram_sum[name] += (g.T @ g).cpu() / batch_size
-
-    #             # Accumulate z and gy statistics from hooks.
-    #             # Activations may be (T, B, d_in), (B, T, d_in), or (B, d_in);
-    #             # flatten everything except the feature dim.
-    #             z = (
-    #                 self._activations[name]
-    #                 .float()
-    #                 .reshape(-1, self._activations[name].shape[-1])
-    #             )  # (N, d_in)
-    #             gy = (
-    #                 self._output_grads[name]
-    #                 .float()
-    #                 .reshape(-1, self._output_grads[name].shape[-1])
-    #             )  # (N, d_out)
-    #             if zzT_sum[name] is None:
-    #                 d_in = z.shape[-1]
-    #                 zzT_sum[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
-    #             zzT_sum[name] += (z.cpu().T @ z.cpu()) / batch_size
-    #             gynorm_sum[name] += (gy.norm() ** 2).cpu().item() / batch_size
-    #             self.zzT_total[name] += (z.cpu().T @ z.cpu()) / batch_size
-
-    #     # S_tilde_k = E[zz^T] * E[||gy||^2]
-    #     for name in self.layers:
-    #         if zzT_sum[name] is not None:
-    #             self.stilde_sum[name] += zzT_sum[name] * gynorm_sum[name]
-
-    #     self.num_batches += 1
-    #     model.zero_grad()
-
     def step(self, model, inputs, labels, loss_fn):
         """Compute per-sample gradients for one batch and accumulate statistics."""
         B = inputs.shape[0]
@@ -151,6 +97,32 @@ class GradCrossTermTracker:
         # Create accumulators for the iteration.
         stilde_zzT = dict()
         stilde_gtg = dict()
+
+        for i, j in itertools.combinations_with_replacement(range(B), 2):
+            grads_i = dict()
+            grads_j = dict()
+
+            # collect gradients for i
+            model.zero_grad()
+            logits_i = model(inputs[i : i + 1])
+            loss_i = loss_fn(logits_i, labels[i : i + 1])
+            loss_i.backward()
+            for name, module in self.layers.items():
+                grads_i[name] = module.weight.grad.detach().float()  # (d_out, d_in)
+
+            # collect gradients for j
+            logits_j = model(inputs[j : j + 1])
+            loss_j = loss_fn(logits_j, labels[j : j + 1])
+            loss_j.backward()
+            # collect gradients for j
+            for name, module in self.layers.items():
+                grads_j[name] = module.weight.grad.detach().float()  # (d_out, d_in)
+
+            for name, module in self.layers.items():
+                if i == j:
+                    self.grads_diag_hist[name].append(grads_i[name].T @ grads_j[name])
+                else:
+                    self.grads_cross_hist[name].append(grads_i[name].T @ grads_j[name])
 
         for b in range(B):
             model.zero_grad()
