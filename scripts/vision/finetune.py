@@ -438,9 +438,6 @@ def finetune(rank, args):
                 optimizer.step()
                 optimizer.zero_grad()
 
-            if args.max_steps is not None and step >= args.max_steps:
-                break
-
             batch_time = time.time() - start_time
 
             if (
@@ -473,8 +470,8 @@ def finetune(rank, args):
                     flush=True,
                 )
 
-        if args.max_steps is not None and step >= args.max_steps:
-            break
+            if args.max_batches is not None and (i + 1) >= args.max_batches:
+                break
 
     if grad_cross_tracker is not None:
         grad_cross_tracker.save(ckpdir)
@@ -541,9 +538,9 @@ if __name__ == "__main__":
     if args.seed is not None:
         args.save = os.path.join(args.save, f"seed_{args.seed}")
 
-    # Append max_steps to save directory
-    if args.max_steps is not None:
-        args.save = os.path.join(args.save, f"max_steps_{args.max_steps}")
+    # Append max_batches to save directory
+    if args.max_batches is not None:
+        args.save = os.path.join(args.save, f"max_batches_{args.max_batches}")
 
     if args.train_dataset is not None:
         train_datasets = [ds.strip() for ds in args.train_dataset]

@@ -43,7 +43,9 @@ def parse_arguments():
     parser.add_argument(
         "--cache-dir",
         type=str,
-        default=os.path.join(os.environ.get("SCRATCH", os.path.expanduser("~/.cache")), "models"),
+        default=os.path.join(
+            os.environ.get("SCRATCH", os.path.expanduser("~/.cache")), "models"
+        ),
         help="Cache dir for downloaded model weights (vision: openclip cache; language/OLMo: HF_HOME).",
     )
     parser.add_argument(
@@ -93,10 +95,10 @@ def parse_arguments():
         help="Language: maximum sequence length for the tokenizer.",
     )
     parser.add_argument(
-        "--max-steps",
+        "--max-batches",
         type=int,
         default=None,
-        help="Cap on optimizer steps for training. None means train all epochs.",
+        help="Per-epoch cap on batches processed. Breaks the batch loop when reached. None means no cap.",
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed.")
     parser.add_argument(
@@ -152,7 +154,7 @@ def parse_arguments():
         "--hpo",
         type=json.loads,
         default=None,
-        help='JSON dict of HP grid. Example: \'{"lam": [0.0, 0.1, 0.2]}\'.',
+        help="JSON dict of HP grid. Example: '{\"lam\": [0.0, 0.1, 0.2]}'.",
     )
     parser.add_argument(
         "--ignore-keys",
@@ -188,7 +190,10 @@ def parse_arguments():
         help="Max batches for covariance collection. Comma-separated for multiple snapshots.",
     )
     parser.add_argument(
-        "--cov-batch-size", type=int, default=32, help="Batch size for covariance collection."
+        "--cov-batch-size",
+        type=int,
+        default=32,
+        help="Batch size for covariance collection.",
     )
     parser.add_argument(
         "--cov-type",
