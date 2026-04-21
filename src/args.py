@@ -253,6 +253,18 @@ def parse_arguments():
         default=False,
         help="Per-layer matrix measurement of gradient cross-term condition.",
     )
+    parser.add_argument(
+        "--grad-hist-bins",
+        type=int,
+        default=201,
+        help="Number of bins for gradient cross/diag histograms in GradCrossTermTracker.",
+    )
+    parser.add_argument(
+        "--grad-hist-range",
+        type=float,
+        default=1e-3,
+        help="Symmetric half-range R for gradient histograms; bins cover [-R, +R].",
+    )
 
     # ─── OLMo / NLG ───────────────────────────────────────────────────────────
     parser.add_argument(

@@ -20,6 +20,37 @@ from src.mhas import swap_mha, unswap_mha
 from src.utils import LabelSmoothing, cosine_lr, get_prefix
 
 
+class Hist:
+    """Fixed-bin running histogram over symmetric range [-R, R] with overflow counts."""
+
+    def __init__(self, num_bins=201, range_=1e-3):
+        self.num_bins = int(num_bins)
+        self.range = float(range_)
+        self.bin_edges = torch.linspace(-self.range, self.range, self.num_bins + 1)
+        self.counts = torch.zeros(self.num_bins, dtype=torch.float64)
+        self.underflow = torch.tensor(0, dtype=torch.int64)
+        self.overflow = torch.tensor(0, dtype=torch.int64)
+
+    def add(self, x):
+        flat = x.reshape(-1)
+        h = torch.histc(
+            flat, bins=self.num_bins, min=-self.range, max=self.range
+        ).cpu()
+        self.counts += h.to(torch.float64)
+        self.underflow += (flat < -self.range).sum().cpu().to(torch.int64)
+        self.overflow += (flat > self.range).sum().cpu().to(torch.int64)
+
+    def state_dict(self):
+        return {
+            "num_bins": self.num_bins,
+            "range": self.range,
+            "bin_edges": self.bin_edges,
+            "counts": self.counts,
+            "underflow": self.underflow,
+            "overflow": self.overflow,
+        }
+
+
 class GradCrossTermTracker:
     """Measures per-layer gradient cross-term error during training.
 
@@ -33,7 +64,14 @@ class GradCrossTermTracker:
     and between gram_sum (S_bar) and stilde_sum (S_tilde).
     """
 
-    def __init__(self, model, max_layers=8, compute_cross_term_dist=False):
+    def __init__(
+        self,
+        model,
+        max_layers=8,
+        compute_cross_term_dist=False,
+        hist_num_bins=201,
+        hist_range=1e-3,
+    ):
         linear_layers = [
             (name, module)
             for name, module in model.named_modules()
@@ -53,8 +91,13 @@ class GradCrossTermTracker:
         self.gbar = dict()
         self.sbar = dict()
         self.stilde = dict()
-        self.grads_cross_hist = []  # ... histogram
-        self.grads_diag_hist = []  # ... histogram
+
+        # Cumulative histograms of entries of G_i^T @ G_j per tracked layer.
+        # Cross: i != j (off-diagonal, expected small). Diag: i == j.
+        self.hist_num_bins = int(hist_num_bins)
+        self.hist_range = float(hist_range)
+        self.grads_cross_hist = dict()
+        self.grads_diag_hist = dict()
 
         # NOTE: these are collected but no used in analysis:
         self.stilde_zzT = dict()
@@ -119,10 +162,11 @@ class GradCrossTermTracker:
                 grads_j[name] = module.weight.grad.detach().float()  # (d_out, d_in)
 
             for name, module in self.layers.items():
-                if i == j:
-                    self.grads_diag_hist[name].append(grads_i[name].T @ grads_j[name])
-                else:
-                    self.grads_cross_hist[name].append(grads_i[name].T @ grads_j[name])
+                tens = grads_i[name].T @ grads_j[name]
+                target = self.grads_diag_hist if i == j else self.grads_cross_hist
+                if name not in target:
+                    target[name] = Hist(self.hist_num_bins, self.hist_range)
+                target[name].add(tens.reshape(-1))
 
         for b in range(B):
             model.zero_grad()
@@ -204,6 +248,17 @@ class GradCrossTermTracker:
             print(f"    cos_dist(cross)   = {cos_dist_cross.item():.6e}")
             print(f"    cos_dist(corr)    = {cos_dist_corr.item():.6e}")
             print(f"    ||S-St||/||S||    = {corr_diff_ratio.item():.6e}")
+            cross_hist = self.grads_cross_hist.get(name)
+            diag_hist = self.grads_diag_hist.get(name)
+            if cross_hist is not None:
+                print(
+                    f"    hist(cross): in={cross_hist.counts.sum().item():.0f} "
+                    f"under={cross_hist.underflow.item()} over={cross_hist.overflow.item()}"
+                )
+                print(
+                    f"    hist(diag) : in={diag_hist.counts.sum().item():.0f} "
+                    f"under={diag_hist.underflow.item()} over={diag_hist.overflow.item()}"
+                )
             fname = f"grad_cross_matrix_{name.replace('.', '_')}.pt"
             torch.save(
                 {
@@ -217,6 +272,8 @@ class GradCrossTermTracker:
                     "cos_dist_cross": cos_dist_cross.item(),
                     "cos_dist_corr": cos_dist_corr.item(),
                     "corr_diff_ratio": corr_diff_ratio.item(),
+                    "grads_cross_hist": cross_hist.state_dict() if cross_hist else None,
+                    "grads_diag_hist": diag_hist.state_dict() if diag_hist else None,
                 },
                 os.path.join(ckpdir, fname),
             )
@@ -375,7 +432,11 @@ def finetune(rank, args):
 
     grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
-        grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
+        grad_cross_tracker = GradCrossTermTracker(
+            ddp_model.module.image_encoder,
+            hist_num_bins=args.grad_hist_bins,
+            hist_range=args.grad_hist_range,
+        )
 
     run_start_time = time.perf_counter()
     for epoch in range(args.epochs):
