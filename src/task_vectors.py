@@ -69,9 +69,9 @@ class _TaskVector(abc.ABC):
             assert not self.lazy, "Cannot pass a vector if lazy is True"
             self._vector = vector
         else:
-            assert checkpoint_dir is not None, (
-                "Either checkpoint_dir or vector must be provided"
-            )
+            assert (
+                checkpoint_dir is not None
+            ), "Either checkpoint_dir or vector must be provided"
 
             if self.lazy:
                 self._vector = None
@@ -101,10 +101,13 @@ class _TaskVector(abc.ABC):
             return self._lazy_keys
         with torch.no_grad():
             pretrained = self._load_checkpoint(self._pretrained_checkpoint)
-            sd = pretrained.state_dict() if hasattr(pretrained, "state_dict") else pretrained
+            sd = (
+                pretrained.state_dict()
+                if hasattr(pretrained, "state_dict")
+                else pretrained
+            )
             self._lazy_keys = [
-                k for k in sd
-                if sd[k].dtype not in (torch.int64, torch.uint8)
+                k for k in sd if sd[k].dtype not in (torch.int64, torch.uint8)
             ]
             del pretrained, sd
         return self._lazy_keys
