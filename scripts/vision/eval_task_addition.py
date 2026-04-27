@@ -21,7 +21,10 @@ if args.save is None:
 
 prefix = get_prefix(args.finetuning_mode)
 merge_name = getattr(args, "merge_func", "sum")
-results_file = Path(f"{args.results_dir}/{args.model}-{merge_name}/{prefix}metrics.json")
+merge_mode_str = f"-{args.merge_mode}" if args.merge_mode != "d" else ""
+results_file = Path(
+    f"{args.results_dir}/{args.model}-{merge_name}{merge_mode_str}/{prefix}metrics.json"
+)
 if results_file.exists() and not args.overwrite:
     print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")
     exit(0)
@@ -43,12 +46,24 @@ eval_datasets = args.eval_datasets or [
 
 task_vectors = []
 
-for dataset in eval_datasets:
+for i, dataset in enumerate(eval_datasets):
     checkpoint_dir = f"{args.save}/{dataset}Val"
     if args.finetuning_mode == "linear":
-        task_vectors.append(LinearizedTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix))
+        task_vectors.append(
+            LinearizedTaskVector(
+                checkpoint_dir=checkpoint_dir,
+                prefix=prefix,
+                save_pt=args.merge_mode == "w" and i == 0,
+            )
+        )
     else:
-        task_vectors.append(NonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix))
+        task_vectors.append(
+            NonLinearTaskVector(
+                checkpoint_dir=checkpoint_dir,
+                prefix=prefix,
+                save_pt=args.merge_mode == "w" and i == 0,
+            )
+        )
     print(f"Task vector {dataset} loaded")
 
 # For use with RegMean and Projected RegMean.
@@ -89,7 +104,9 @@ def _set_eval_split(split):
 
 def _merge_and_remap(merge_kwargs):
     """Merge task vectors with given kwargs and apply MHA reverse remap if needed."""
-    tv = combine_task_vectors(task_vectors, merge_name, **merge_kwargs)
+    tv = combine_task_vectors(
+        task_vectors, merge_name, merge_mode=args.merge_mode, **merge_kwargs
+    )
     if args.mha is not None:
         reverse_fn = {
             "packed": mhap.copy_to_pytorch_state_dict,
