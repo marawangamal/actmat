@@ -47,7 +47,7 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 # Evaluate all merging methods using their default settings.
 # Results are stored in the main results database.
-MODELS=(ViT-B-16 ViT-B-32)
+MODELS=(ViT-L-14)
 METHODS=(regmean)
 FT_MODE=standard
 MERGE_MODE=d
@@ -70,8 +70,7 @@ for MODEL in "${MODELS[@]}"; do
       python scripts/vision/fisher.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
-        --mha=split \
-        --overwrite
+        --mha=split
     fi
 
     # 2b. Evaluate task addition

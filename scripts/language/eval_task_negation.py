@@ -44,10 +44,10 @@ for dataset in T5_DATASETS:
         task_vector = -LanguageNonLinearTaskVector(checkpoint_dir=checkpoint_dir)
 
     # Phase 1: choose optimal coefficient on validation split
+    args.eval_split = "validation"
     args.eval_datasets = [dataset]
     args.control_dataset = control_dataset
     val_metrics = evaluate_task_vector(
-        "validation",
         task_vector,
         checkpoint_dir,
         args,
@@ -65,10 +65,10 @@ for dataset in T5_DATASETS:
     )
 
     # Phase 2: evaluate on test split with optimal coefficient
+    args.eval_split = "test"
     args.eval_datasets = [dataset]
     args.control_dataset = control_dataset
     test_metrics = evaluate_task_vector_at_coef(
-        "test",
         task_vector,
         checkpoint_dir,
         args,

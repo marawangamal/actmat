@@ -66,11 +66,12 @@ def eval_single_dataset(split, model, tokenizer, dataset_name, args):
     return {"top1": top1}
 
 
-def evaluate(split, model, args):
+def evaluate(model, args):
     """Evaluate model on all datasets in args.eval_datasets (+ optional control dataset)."""
     if args.eval_datasets is None:
         return {}
 
+    split = args.eval_split
     per_dataset_results = {}
     eval_datasets = (
         args.eval_datasets
@@ -88,7 +89,6 @@ def evaluate(split, model, args):
 
 
 def evaluate_task_vector_at_coef(
-    split,
     task_vector,
     checkpoint_dir,
     args,
@@ -97,12 +97,13 @@ def evaluate_task_vector_at_coef(
 ):
     """Apply task vector at a fixed coefficient and evaluate."""
     model = task_vector.apply_to(checkpoint_dir, scaling_coef=scaling_coef)
-    coef_info = evaluate(split, model, args)
+    coef_info = evaluate(model, args)
 
-    coef_info = add_normalized_accuracy(coef_info, args)
-    coef_info["avg_normalized_top1"] = np.mean(
-        [coef_info[dataset + ":normalized_top1"] for dataset in args.eval_datasets]
-    )
+    if getattr(args, "finetuning_accuracies", None) is not None:
+        coef_info = add_normalized_accuracy(coef_info, args)
+        coef_info["avg_normalized_top1"] = np.mean(
+            [coef_info[dataset + ":normalized_top1"] for dataset in args.eval_datasets]
+        )
     coef_info["avg_top1"] = np.mean(
         [coef_info[dataset + ":top1"] for dataset in args.eval_datasets]
     )
@@ -111,7 +112,6 @@ def evaluate_task_vector_at_coef(
 
 
 def evaluate_task_vector(
-    split,
     task_vector,
     checkpoint_dir,
     args,
@@ -119,10 +119,11 @@ def evaluate_task_vector(
 ):
     """Grid-search over scaling coefficients and return per-coefficient metrics."""
     info = {}
-    for scaling_coef in np.linspace(args.coeff_start, args.coeff_end, args.n_eval_points):
+    for scaling_coef in np.linspace(
+        args.coeff_start, args.coeff_end, args.n_eval_points
+    ):
         print(f"Evaluating for scaling coefficient {scaling_coef:.2f}")
         info[scaling_coef] = evaluate_task_vector_at_coef(
-            split,
             task_vector,
             checkpoint_dir,
             args,
