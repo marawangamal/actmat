@@ -1,5 +1,6 @@
 import abc
 import os
+from typing import Optional
 
 import torch
 
@@ -16,6 +17,7 @@ class _TaskVector(abc.ABC):
         cache_window=50,  # Keeps `cache_window` layers in memory at a time
         _transform_fn=None,
         prefix="",
+        save_pt=False,  # useful for RegMean on weights vs on differences
     ):
         """Initializes the task vector from a checkpoint directory or a pre-computed vector.
 
@@ -30,10 +32,13 @@ class _TaskVector(abc.ABC):
         self.lazy = lazy
         self.checkpoint_dir = checkpoint_dir
         self.cache_window = cache_window
+        self.save_pt = save_pt
         self._cache = {}
         self._lazy_keys = None
         self._transform_fn = _transform_fn
         self._prefix = prefix
+        self._vector = None
+        self._pt_vector = None
 
         # Resolve checkpoint file paths from directory
         if checkpoint_dir is not None:
@@ -69,14 +74,15 @@ class _TaskVector(abc.ABC):
             assert not self.lazy, "Cannot pass a vector if lazy is True"
             self._vector = vector
         else:
-            assert checkpoint_dir is not None, (
-                "Either checkpoint_dir or vector must be provided"
-            )
+            assert (
+                checkpoint_dir is not None
+            ), "Either checkpoint_dir or vector must be provided"
 
-            if self.lazy:
-                self._vector = None
-            else:
-                self._vector = self._build_vector()
+            if not self.lazy:
+                self._vector = self._build_vector(mode="task")
+                self._pt_vector = (
+                    self._build_vector(mode="pretrained") if save_pt else None
+                )
 
     @property
     def vector(self):
@@ -87,6 +93,16 @@ class _TaskVector(abc.ABC):
             return v
         else:
             return self._vector
+
+    @property
+    def pt_vector(self) -> Optional[dict]:
+        if self.lazy:
+            v = self._build_vector(mode="pretrained")
+            if self._transform_fn is not None:
+                v = self._transform_fn(v)
+            return v
+        else:
+            return self._pt_vector
 
     def lazy_keys(self):
         """Return parameter keys without building the full diff vector.
@@ -101,10 +117,13 @@ class _TaskVector(abc.ABC):
             return self._lazy_keys
         with torch.no_grad():
             pretrained = self._load_checkpoint(self._pretrained_checkpoint)
-            sd = pretrained.state_dict() if hasattr(pretrained, "state_dict") else pretrained
+            sd = (
+                pretrained.state_dict()
+                if hasattr(pretrained, "state_dict")
+                else pretrained
+            )
             self._lazy_keys = [
-                k for k in sd
-                if sd[k].dtype not in (torch.int64, torch.uint8)
+                k for k in sd if sd[k].dtype not in (torch.int64, torch.uint8)
             ]
             del pretrained, sd
         return self._lazy_keys
@@ -143,7 +162,7 @@ class _TaskVector(abc.ABC):
             raise KeyError(f"Key {key} not found in vector.")
         return self._cache[key]
 
-    def _build_vector(self):
+    def _build_vector(self, mode="task"):
         with torch.no_grad():
             pretrained = self._load_checkpoint(self._pretrained_checkpoint)
             pretrained_state_dict = (
@@ -163,7 +182,12 @@ class _TaskVector(abc.ABC):
                     continue
                 if pretrained_state_dict[key].dtype == torch.uint8:
                     continue
-                vector[key] = finetuned_state_dict[key] - pretrained_state_dict[key]
+                if mode == "pretrained":
+                    vector[key] = pretrained_state_dict[key]
+                elif mode == "task":
+                    vector[key] = finetuned_state_dict[key] - pretrained_state_dict[key]
+                else:
+                    raise ValueError(f"Invalid mode: {mode}")
 
         return vector
 
@@ -278,6 +302,8 @@ class _TaskVector(abc.ABC):
             return result
         with torch.no_grad():
             result = self.__class__(vector=fn(self.vector))
+            if self._pt_vector is not None:
+                result._pt_vector = fn(self._pt_vector)
             return self._copy_metadata(result)
 
     def param_key_to_cov_key(self, key: str):

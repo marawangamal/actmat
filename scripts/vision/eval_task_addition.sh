@@ -47,10 +47,11 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 # Evaluate all merging methods using their default settings.
 # Results are stored in the main results database.
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-METHODS=(isoc3)
+MODELS=(ViT-L-14)
+METHODS=(regmean)
 FT_MODE=standard
-HPO=""
+MERGE_MODE=d
+HPO=''
 
 
 for MODEL in "${MODELS[@]}"; do
@@ -69,17 +70,17 @@ for MODEL in "${MODELS[@]}"; do
       python scripts/vision/fisher.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
-        --mha=split \
-        --overwrite
+        --mha=split
     fi
 
     # 2b. Evaluate task addition
-    echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
+    echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | mode: $MERGE_MODE"
     python scripts/vision/eval_task_addition.py \
       --model="$MODEL" \
       --finetuning-mode="$FT_MODE" \
       --data-location="$DATA_DIR" \
       --merge-func="$method" \
+      --merge-mode="$MERGE_MODE" \
       --mha=split \
       ${HPO:+--hpo="$HPO"}
 

@@ -1,20 +1,20 @@
 {
   "all_primary_scores": [
-    "SUN397: 0.684282",
-    "Cars: 0.686482",
-    "DTD: 0.673936",
-    "EuroSAT: 0.944074",
-    "GTSRB: 0.876326",
-    "MNIST: 0.985200",
-    "RESISC45: 0.856667",
-    "SVHN: 0.934696"
+    "SUN397: 0.560302",
+    "Cars: 0.601542",
+    "DTD: 0.626596",
+    "EuroSAT: 0.932222",
+    "GTSRB: 0.850356",
+    "MNIST: 0.987800",
+    "RESISC45: 0.815079",
+    "SVHN: 0.932852"
   ],
   "tasks": [
     {
       "alias": "SUN397",
       "metrics": {
-        "top1": 0.6842821158690177,
-        "primary_score": 0.6842821158690177
+        "top1": 0.5603022670025188,
+        "primary_score": 0.5603022670025188
       },
       "task_config": {
         "primary_metric": "top1"
@@ -23,8 +23,8 @@
     {
       "alias": "Cars",
       "metrics": {
-        "top1": 0.6864817808730257,
-        "primary_score": 0.6864817808730257
+        "top1": 0.6015420967541351,
+        "primary_score": 0.6015420967541351
       },
       "task_config": {
         "primary_metric": "top1"
@@ -33,8 +33,8 @@
     {
       "alias": "DTD",
       "metrics": {
-        "top1": 0.673936170212766,
-        "primary_score": 0.673936170212766
+        "top1": 0.6265957446808511,
+        "primary_score": 0.6265957446808511
       },
       "task_config": {
         "primary_metric": "top1"
@@ -43,8 +43,8 @@
     {
       "alias": "EuroSAT",
       "metrics": {
-        "top1": 0.9440740740740741,
-        "primary_score": 0.9440740740740741
+        "top1": 0.9322222222222222,
+        "primary_score": 0.9322222222222222
       },
       "task_config": {
         "primary_metric": "top1"
@@ -53,8 +53,8 @@
     {
       "alias": "GTSRB",
       "metrics": {
-        "top1": 0.876326207442597,
-        "primary_score": 0.876326207442597
+        "top1": 0.850356294536817,
+        "primary_score": 0.850356294536817
       },
       "task_config": {
         "primary_metric": "top1"
@@ -63,8 +63,8 @@
     {
       "alias": "MNIST",
       "metrics": {
-        "top1": 0.9852,
-        "primary_score": 0.9852
+        "top1": 0.9878,
+        "primary_score": 0.9878
       },
       "task_config": {
         "primary_metric": "top1"
@@ -73,8 +73,8 @@
     {
       "alias": "RESISC45",
       "metrics": {
-        "top1": 0.8566666666666667,
-        "primary_score": 0.8566666666666667
+        "top1": 0.8150793650793651,
+        "primary_score": 0.8150793650793651
       },
       "task_config": {
         "primary_metric": "top1"
@@ -83,8 +83,8 @@
     {
       "alias": "SVHN",
       "metrics": {
-        "top1": 0.9346957590657652,
-        "primary_score": 0.9346957590657652
+        "top1": 0.9328518746158574,
+        "primary_score": 0.9328518746158574
       },
       "task_config": {
         "primary_metric": "top1"

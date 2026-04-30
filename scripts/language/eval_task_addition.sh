@@ -20,8 +20,9 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
-METHODS=(isoc3)
+METHODS=(regmean)
 FT_MODE=standard
+MERGE_MODE=w
 HPO=""
 
 for MODEL in "${MODELS[@]}"; do
@@ -32,8 +33,7 @@ for MODEL in "${MODELS[@]}"; do
       echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
       python scripts/language/covariance.py \
         --model="$MODEL" \
-        --finetuning-mode="$FT_MODE" \
-        --overwrite
+        --finetuning-mode="$FT_MODE" 
     fi
 
     # Run fisher collection if needed
@@ -41,15 +41,15 @@ for MODEL in "${MODELS[@]}"; do
       echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
       python scripts/language/fisher.py \
         --model="$MODEL" \
-        --finetuning-mode="$FT_MODE" \
-        --overwrite
+        --finetuning-mode="$FT_MODE" 
     fi
 
     # Evaluate task addition
-    echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
+    echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | merge mode: $MERGE_MODE"
     python scripts/language/eval_task_addition.py \
       --model="$MODEL" \
       --finetuning-mode="$FT_MODE" \
+      --merge-mode="$MERGE_MODE" \
       --merge-func="$method" \
       ${HPO:+--hpo="$HPO"}
 

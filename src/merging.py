@@ -5,7 +5,7 @@ import sys
 import time
 from pathlib import Path
 import torch
-from typing import Callable, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 from tqdm import tqdm
 
 from src.task_vectors import _TaskVector
@@ -31,7 +31,7 @@ TensorMergeFn = Callable[[str, Sequence[torch.Tensor]], torch.Tensor]
 
 
 def combine_task_vectors(
-    vectors: Sequence[_TaskVector], merge: str, *args, **kwargs
+    vectors: Sequence[_TaskVector], merge_fn_name: str, **kwargs
 ) -> _TaskVector:
     """Generic combiner for task vectors.
 
@@ -46,7 +46,7 @@ def combine_task_vectors(
     assert len(vectors) > 0, "Need at least one task vector"
 
     # Get the function (must be defined in this module)
-    if merge == "mix":
+    if merge_fn_name == "mix":
         _primary_fn = getattr(
             sys.modules[__name__], "merge_" + kwargs.pop("mix_primary")
         )
@@ -57,7 +57,7 @@ def combine_task_vectors(
         merge_fn = None  # resolved per-key
     else:
         _mix_targets = None
-        merge_fn = getattr(sys.modules[__name__], "merge_" + merge)
+        merge_fn = getattr(sys.modules[__name__], "merge_" + merge_fn_name)
 
     # Prefer GPU for merging if available; results are moved back to CPU so they
     # stay compatible with the rest of the pipeline.
@@ -236,12 +236,13 @@ pinv = torch.linalg.pinv
 
 
 def merge_regmean(
-    tau: torch.Tensor,
+    taus: torch.Tensor,  # Shape: (N, Do, Di)
     key: str,
     vectors: Sequence[_TaskVector],
     scale_coef=None,
     max_dim=None,  # default to mean for dim(x) > max_dim
     sample_cov=False,  # sample covariance instead of population covariance
+    merge_mode="d",
     **kwargs,
 ):
     c = []
@@ -253,20 +254,20 @@ def merge_regmean(
         cdict = _load_stats_dict(cpath)
         if km not in cdict:
             print(f"[skipped] {km} not found in {cpath}")
-            return tau.mean(dim=0)
+            return taus.mean(dim=0)
         ct = cdict[km]
         if not isinstance(ct, torch.Tensor):
             ct = torch.as_tensor(ct)
         if max_dim is not None and ct.shape[1] > max_dim:
             print(f"[skipped] {km} has shape {ct.shape} > {max_dim}")
-            return tau.mean(dim=0)
+            return taus.mean(dim=0)
         if sample_cov:
             n = cdict[f"{km}_n"]
             if isinstance(n, torch.Tensor):
                 n = n.item()
             ct = (n * ct) / (n - 1)
         c.append(ct)
-    c = torch.stack([x.to(device=tau.device, dtype=tau.dtype) for x in c])
+    c = torch.stack([x.to(device=taus.device, dtype=taus.dtype) for x in c])
 
     if scale_coef is not None:
         m_diag = (
@@ -275,7 +276,13 @@ def merge_regmean(
             .expand(c.shape[0], -1, -1)
         )
         c = scale_coef * c + (1 - scale_coef) * m_diag * c
-    return (tau @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+    if merge_mode == "w":
+        w0 = vectors[0].pt_vector[key].to(device=taus.device, dtype=taus.dtype)
+        ws = taus + w0.unsqueeze(0)
+        return ((ws @ c).sum(dim=0) @ pinv(c.sum(dim=0))) - w0
+
+    return (taus @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
 # ---------------------------------------------------------------------------

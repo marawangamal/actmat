@@ -23,7 +23,10 @@ if args.save is None:
 
 prefix = get_prefix(args.finetuning_mode)
 merge_name = getattr(args, "merge_func", "sum")
-results_file = Path(f"{args.results_dir}/{args.model}-{merge_name}/{prefix}metrics.json")
+merge_mode_str = f"-{args.merge_mode}" if args.merge_mode != "d" else ""
+results_file = Path(
+    f"{args.results_dir}/{args.model}-{merge_name}{merge_mode_str}/{prefix}metrics.json"
+)
 if results_file.exists() and not args.overwrite:
     print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")
     exit(0)
@@ -35,12 +38,24 @@ print("*" * 100)
 eval_datasets = args.eval_datasets or list(T5_DATASETS)
 task_vectors = []
 
-for dataset in eval_datasets:
+for i, dataset in enumerate(eval_datasets):
     checkpoint_dir = f"{args.save}/{dataset}"
     if args.finetuning_mode == "linear":
-        task_vectors.append(LanguageLinearizedTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix))
+        task_vectors.append(
+            LanguageLinearizedTaskVector(
+                checkpoint_dir=checkpoint_dir,
+                prefix=prefix,
+                save_pt=args.merge_mode == "w" and i == 0,
+            )
+        )
     else:
-        task_vectors.append(LanguageNonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix))
+        task_vectors.append(
+            LanguageNonLinearTaskVector(
+                checkpoint_dir=checkpoint_dir,
+                prefix=prefix,
+                save_pt=args.merge_mode == "w" and i == 0,
+            )
+        )
     print(f"Task vector {dataset} loaded")
 
 # Build HP grid
@@ -60,8 +75,16 @@ pretrained_dir = f"{args.save}/{eval_datasets[-1]}"
 
 
 def _set_eval_split(split):
+    """Set args.eval_split and args.eval_datasets for the given split."""
+    args.eval_split = split
     args.eval_datasets = list(eval_datasets)
-    args.eval_max_batches = None
+
+
+def _merge_and_remap(merge_kwargs):
+    """Merge task vectors with given kwargs."""
+    return combine_task_vectors(
+        task_vectors, merge_name, merge_mode=args.merge_mode, **merge_kwargs
+    )
 
 
 # Phase 1: HP grid search on eval-val-split
@@ -83,13 +106,13 @@ else:
     print("=" * 100)
     for merge_kwargs in hp_combos:
         print(f"  {merge_kwargs}")
-        task_vector = combine_task_vectors(task_vectors, merge_name, **merge_kwargs)
+        task_vector = _merge_and_remap(merge_kwargs)
         metrics = evaluate_task_vector_at_coef(
-            "validation",
             task_vector,
             pretrained_dir,
             args,
             1.0,
+            posthoc_linearization=args.finetuning_mode == "posthoc",
         )
         score = metrics["avg_top1"]
         print(f"  {merge_kwargs} -> avg_top1={score:.4f}")
@@ -106,13 +129,13 @@ args.eval_max_batches = None
 print("=" * 100)
 print("PHASE 2: SPLIT=TEST — evaluating at best HP combo")
 print("=" * 100)
-task_vector = combine_task_vectors(task_vectors, merge_name, **best_merge_kwargs)
+task_vector = _merge_and_remap(best_merge_kwargs)
 test_metrics = evaluate_task_vector_at_coef(
-    "test",
     task_vector,
     pretrained_dir,
     args,
     1.0,
+    posthoc_linearization=args.finetuning_mode == "posthoc",
 )
 
 print("=" * 100)
