@@ -50,7 +50,7 @@ BATCH_SIZE=32
 MODELS=(ViT-L-14)
 METHODS=(regmean)
 FT_MODE=standard
-MERGE_MODE=d
+MERGE_MODE=w
 HPO=''
 
 
