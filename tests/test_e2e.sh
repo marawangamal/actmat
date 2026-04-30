@@ -9,7 +9,7 @@ set -euo pipefail
 export PYTHONPATH="$PYTHONPATH:$(pwd)" # Add src to python path
 export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
-source "$SCRATCH/eigcov/.venv-vl/bin/activate"
+source "$SCRATCH/actmat/.venv-vl/bin/activate"
 
 # Set vars
 TEST_CKPT_DIR="testing-checkpoints"

@@ -196,7 +196,7 @@ if __name__ == "__main__":
     main()
 
 
-# EigCov
+# ACTMat
 # codex_humaneval::tulu: 0.837081
 # codex_humanevalplus::tulu: 0.797757
 # ifeval::tulu: 0.469501

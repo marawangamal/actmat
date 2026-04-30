@@ -11,7 +11,7 @@ Merge 3 RL-Zero finetuned experts
 module load cuda/12.6 arrow python/3.12 httpproxy
 cd ../olmes-fixed
 source .venv/bin/activate
-cd ../eigcov
+cd ../actmat
 export HF_HOME=$SCRATCH/huggingface
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
@@ -96,7 +96,7 @@ MODEL_ID=allenai/Olmo-3-1025-7B
 ## Collect results
 ```sh
 # 5. Collect results
-python scripts/olmo/collect_results.py --dirs results-rl/meta-llama-Meta-Llama-3.1-8B-eigcov
+python scripts/olmo/collect_results.py --dirs results-rl/meta-llama-Meta-Llama-3.1-8B-actmat
 ```
 
 
