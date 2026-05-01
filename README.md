@@ -1,6 +1,10 @@
-# EigenCov
+# ACTMat
 
-Data-free model merging via eigenvalue covariance estimation of task vectors.
+This is the source code to reproduce the experiments of the paper [Model Merging via Data-Free Covariance Estimation](https://arxiv.org/pdf/2604.01329).
+
+<p align="center">
+  <img src="figures/crown-jewel.png" alt="Overview" width="70%">
+</p>
 
 
 ## Setup
@@ -24,11 +28,7 @@ UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo
 # Set env vars
 export PYTHONPATH="$PYTHONPATH:$(pwd)" # Add src to python path
 export HF_HOME=$SCRATCH/huggingface
-# python -c "import nltk; nltk.download('punkt', download_dir='$SCRATCH/nltk_data')"
 export NLTK_DATA=$SCRATCH/nltk_data
-# TamIA: 
-# export HF_HUB_DISABLE_HF_TRANSFER=1
-# module load cuda/12.6 arrow python/3.11 httpproxy
 ```
 
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
@@ -70,9 +70,5 @@ bash scripts/olmo/eval_task_addition.sh # (default gpus: 4)
 
 
 ## Reproducing Plots
-```sh
-
-# Fig. 1-3 (cross|corr|drift) errors
-# run finetune using --grad
-```
+See [analysis.ipynb](analysis.ipynb) notebook.
 
