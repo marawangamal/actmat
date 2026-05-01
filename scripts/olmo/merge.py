@@ -6,8 +6,8 @@ parameter is loaded per model at a time.
 Usage:
     python scripts/olmo/merge.py \\
         --save checkpoints/Olmo-3-7b \\
-        --merge-func eigcov \\
-        --output-dir checkpoints/olmo-merged-eigcov
+        --merge-func actmat \\
+        --output-dir checkpoints/olmo-merged-actmat
 """
 
 import os

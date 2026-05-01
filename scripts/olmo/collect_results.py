@@ -1,7 +1,7 @@
 """Collect olmes evaluation results.
 
 Usage:
-    python scripts/olmo/collect_results.py --dirs results-olmo-mean results-olmo-eigcov
+    python scripts/olmo/collect_results.py --dirs results-olmo-mean results-olmo-actmat
 """
 
 import argparse

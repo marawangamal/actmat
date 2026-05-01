@@ -8,13 +8,13 @@
 set -euo pipefail
 
 # 0. Setup environment
-source "$SCRATCH/eigcov/.venv-olmo/bin/activate"
+source "$SCRATCH/actmat/.venv-olmo/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(eigcov tsv mean isoc)
+METHODS=(actmat tsv mean isoc)
 
 # ── OLMES ─────────────────────────────────────────────────────────────────────
 OLMES_TASKS=(

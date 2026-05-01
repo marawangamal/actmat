@@ -6,7 +6,7 @@ from typing import Dict, Optional
 import torch
 
 
-# --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=datasets   --save=$SCRATCH/eigcov/checkpoints/vision
+# --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=datasets   --save=$SCRATCH/actmat/checkpoints/vision
 from src.args import parse_arguments
 from src.vision.datasets.common import get_dataloader, maybe_dictionarize
 from src.vision.datasets.registry import get_dataset

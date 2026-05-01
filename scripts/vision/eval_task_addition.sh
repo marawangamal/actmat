@@ -12,7 +12,7 @@ set -euo pipefail
 mkdir -p logs
 
 # 0. Setup environment
-source "$SCRATCH/eigcov/.venv-vl/bin/activate"
+source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
@@ -37,10 +37,10 @@ BATCH_SIZE=32
 # FT_MODES=(lora)
 # HPO='{"alpha": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]}'
 
-# # ===== EigCov General sweep =====
+# # ===== ACTMat General sweep =====
 # # Sweep lam with alpha_weighted + cov_weighted enabled.
 # MODELS=(ViT-B-16)
-# METHODS=(eigcov_general)
+# METHODS=(actmat_general)
 # FT_MODES=(standard)
 # HPO='{"lam": [0.0001, 0.001, 0.01], "alpha_weighted": [true], "cov_weighted": [true]}'
 

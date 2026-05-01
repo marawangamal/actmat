@@ -322,9 +322,9 @@ def merge_fisher(
 
 
 # ---------------------------------------------------------------------------
-# Eigenvalue Covariance (EigCov)
+# Eigenvalue Covariance (ACTMat)
 # ---------------------------------------------------------------------------
-def merge_eigcov(d: torch.Tensor, *args, **kwargs):
+def merge_actmat(d: torch.Tensor, *args, **kwargs):
     c = d.transpose(1, 2) @ d
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
@@ -337,7 +337,7 @@ def merge_ace(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
-def merge_eigcov_general(
+def merge_actmat_general(
     d: torch.Tensor,
     lam=0.0,
     alpha_weighted=False,
@@ -392,7 +392,7 @@ def merge_eigcov_general(
         return d.mean(dim=0)
 
 
-def merge_eigcov_gd(
+def merge_actmat_gd(
     d: torch.Tensor,
     lam=0.0,
     alpha_weighted=False,
@@ -402,9 +402,9 @@ def merge_eigcov_gd(
     thresh=1e-3,
     **kwargs,
 ) -> torch.Tensor:
-    """Gradient-descent solver for the EigCov objective.
+    """Gradient-descent solver for the ACTMat objective.
 
-    Minimizes the same weighted least-squares loss as merge_eigcov_general:
+    Minimizes the same weighted least-squares loss as merge_actmat_general:
         L(W) = Σ_t tr((W - d_t) C_t (W - d_t)^T) + λ ‖W‖_F²
     where C_t = d_t^T @ d_t.
     """

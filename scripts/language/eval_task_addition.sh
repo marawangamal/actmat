@@ -12,7 +12,7 @@ set -euo pipefail
 mkdir -p logs
 
 # 0. Setup environment
-source "$SCRATCH/eigcov/.venv-vl/bin/activate"
+source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
 export PYTHONPATH="$PYTHONPATH:$PWD"
