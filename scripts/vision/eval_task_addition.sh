@@ -31,7 +31,7 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 METHODS=(sum mean tsv isoc regmean actmat)
-FT_MODE=standard
+FT_MODE=lora
 MERGE_MODE=d
 HPO=''
 

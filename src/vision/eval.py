@@ -24,7 +24,9 @@ def eval_single_dataset(image_encoder, dataset_name, args):
         num_workers=args.num_workers,
     )
     use_train = getattr(args, "eval_split", "test") == "train"
-    dataloader = get_dataloader(dataset, is_train=use_train, args=args, image_encoder=None)
+    dataloader = get_dataloader(
+        dataset, is_train=use_train, args=args, image_encoder=None
+    )
     device = args.device
 
     max_batches = getattr(args, "eval_max_batches", None)
@@ -59,9 +61,7 @@ def evaluate(image_encoder, args):
     per_dataset_results = {}
     control = getattr(args, "control_dataset", None)
     eval_datasets = (
-        args.eval_datasets
-        if control is None
-        else args.eval_datasets + [control]
+        args.eval_datasets if control is None else args.eval_datasets + [control]
     )
     for dataset_name in eval_datasets:
         print("Evaluating on", dataset_name)
@@ -74,16 +74,25 @@ def evaluate(image_encoder, args):
     return per_dataset_results
 
 
+def evaluate_v2(task_vector, pretrained_dir, eval_datasets, args, scaling_coef=1.0):
+    image_encoder = task_vector.apply_to(pretrained_dir, scaling_coef=scaling_coef)
+    per_dataset_results = {}
+    for dataset_name in eval_datasets:
+        results = eval_single_dataset(image_encoder, dataset_name, args)
+        print(f"{dataset_name} Top-1 accuracy: {results['top1']:.4f}")
+        per_dataset_results[dataset_name + ":top1"] = results["top1"]
+    per_dataset_results["avg_top1"] = np.mean(
+        [per_dataset_results[dataset + ":top1"] for dataset in args.eval_datasets]
+    )
+    return per_dataset_results
+
+
 def evaluate_task_vector_at_coef(
     task_vector, checkpoint_dir, args, scaling_coef, posthoc_linearization=False
 ):
-    image_encoder = task_vector.apply_to(
-        checkpoint_dir, scaling_coef=scaling_coef
-    )
+    image_encoder = task_vector.apply_to(checkpoint_dir, scaling_coef=scaling_coef)
     if posthoc_linearization:
-        pretrained_encoder = task_vector.apply_to(
-            checkpoint_dir, scaling_coef=0.0
-        )
+        pretrained_encoder = task_vector.apply_to(checkpoint_dir, scaling_coef=0.0)
         image_encoder = LinearizedImageEncoder(
             init_encoder=pretrained_encoder, image_encoder=image_encoder, args=args
         )
