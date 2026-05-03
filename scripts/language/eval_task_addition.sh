@@ -20,9 +20,9 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
-METHODS=(regmean)
+METHODS=(sum mean tsv isoc regmean actmat)
 FT_MODE=standard
-MERGE_MODE=w
+MERGE_MODE=d
 HPO=""
 
 for MODEL in "${MODELS[@]}"; do
