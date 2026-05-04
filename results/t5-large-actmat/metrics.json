@@ -82,7 +82,7 @@
   ],
   "model_config": {
     "model": "t5-large",
-    "merge_func": "eigcov",
+    "merge_func": "actmat",
     "finetuning_mode": "standard",
     "seed": null,
     "optimal_merge_hp": {}

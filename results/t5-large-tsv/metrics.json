@@ -1,6 +1,6 @@
 {
   "all_primary_scores": [
-    "qasc: 0.934000",
+    "qasc: 0.935000",
     "wiki_qa: 0.906000",
     "quartz: 0.848000",
     "paws: 0.878000",
@@ -12,8 +12,8 @@
     {
       "alias": "qasc",
       "metrics": {
-        "top1": 0.934,
-        "primary_score": 0.934
+        "top1": 0.935,
+        "primary_score": 0.935
       },
       "task_config": {
         "primary_metric": "top1"

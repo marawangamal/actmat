@@ -14,7 +14,6 @@
       "alias": "SUN397",
       "metrics": {
         "top1": 0.6760201511335012,
-        "normalized_top1": 0.898975011723722,
         "primary_score": 0.6760201511335012
       },
       "task_config": {
@@ -25,7 +24,6 @@
       "alias": "Cars",
       "metrics": {
         "top1": 0.7111055838826017,
-        "normalized_top1": 0.8997639653815894,
         "primary_score": 0.7111055838826017
       },
       "task_config": {
@@ -36,7 +34,6 @@
       "alias": "DTD",
       "metrics": {
         "top1": 0.6808510638297872,
-        "normalized_top1": 0.8672086720867209,
         "primary_score": 0.6808510638297872
       },
       "task_config": {
@@ -47,7 +44,6 @@
       "alias": "EuroSAT",
       "metrics": {
         "top1": 0.9114814814814814,
-        "normalized_top1": 0.923105776444111,
         "primary_score": 0.9114814814814814
       },
       "task_config": {
@@ -58,7 +54,6 @@
       "alias": "GTSRB",
       "metrics": {
         "top1": 0.9087094220110847,
-        "normalized_top1": 0.9173527295979539,
         "primary_score": 0.9087094220110847
       },
       "task_config": {
@@ -69,7 +64,6 @@
       "alias": "MNIST",
       "metrics": {
         "top1": 0.9914,
-        "normalized_top1": 0.9946824520919032,
         "primary_score": 0.9914
       },
       "task_config": {
@@ -80,7 +74,6 @@
       "alias": "RESISC45",
       "metrics": {
         "top1": 0.8638095238095238,
-        "normalized_top1": 0.9015904572564613,
         "primary_score": 0.8638095238095238
       },
       "task_config": {
@@ -91,7 +84,6 @@
       "alias": "SVHN",
       "metrics": {
         "top1": 0.9189843269821758,
-        "normalized_top1": 0.9434103635933434,
         "primary_score": 0.9189843269821758
       },
       "task_config": {

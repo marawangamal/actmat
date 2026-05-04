@@ -3,7 +3,7 @@
     "qasc: 0.980000",
     "wiki_qa: 0.953000",
     "quartz: 0.798000",
-    "paws: 0.920000",
+    "paws: 0.921000",
     "story_cloze: 0.512000",
     "winogrande: 0.555000",
     "wsc: 0.611000"
@@ -42,8 +42,8 @@
     {
       "alias": "paws",
       "metrics": {
-        "top1": 0.92,
-        "primary_score": 0.92
+        "top1": 0.921,
+        "primary_score": 0.921
       },
       "task_config": {
         "primary_metric": "top1"
@@ -82,7 +82,7 @@
   ],
   "model_config": {
     "model": "t5-base",
-    "merge_func": "eigcov",
+    "merge_func": "actmat",
     "finetuning_mode": "standard",
     "seed": null,
     "optimal_merge_hp": {}
