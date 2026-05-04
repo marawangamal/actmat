@@ -1,16 +1,19 @@
 """Collects per-layer ||dL/dy||² and sampled entries of yy^T per sample.
 
-For each layer, saves:
-  - g_sq/<layer>:         (N,) array of ||dL/dy||²
-  - aat_samples/<layer>:  (N, K) array of sampled entries of yy^T
-  - index_pairs/<layer>:  (K, 2) array of which (i,j) pairs were sampled
+For each task, saves a single file at:
+  checkpoints/{model}/{task}Val/correlation.pt
+
+with keys:
+  - g_sq/<layer>:         (N,) tensor of ||dL/dy||²
+  - aat_samples/<layer>:  (N, K) tensor of sampled entries of yy^T
+  - index_pairs/<layer>:  (K, 2) tensor of which (i,j) pairs were sampled
 
 Activations are flattened (seq_len * D) so aa^T captures the full structure.
 K = 32 (i,j) pairs, randomly sampled with a fixed seed for reproducibility.
 
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/vision/correlation.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets --finetuning-mode=lora
+python scripts/vision/correlation.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets --finetuning-mode=lora --cov-num-batches=100
 """
 
 # TODO: rename to correlation.py
@@ -131,12 +134,13 @@ def collect_norms(encoder, dataset_name, args):
 if __name__ == "__main__":
     args = parse_arguments()
     args.batch_size = 1
-    args.save = f"checkpoints/{args.model}"
+    if args.save is None:
+        args.save = f"checkpoints/{args.model}"
     prefix = get_prefix(args.finetuning_mode)
     args.num_samples = 100
     args.num_indices = 32
 
-    tasks = [
+    all_tasks = [
         "Cars",
         "DTD",
         "EuroSAT",
@@ -146,33 +150,23 @@ if __name__ == "__main__":
         "SUN397",
         "SVHN",
     ]
-
-    ss_batch_size = args.batch_size
-    ss_num_samples = args.num_samples
-    ss_num_indices = args.num_indices
-    ss_finetuning_mode = args.finetuning_mode
-    correlation_dir = f"results/{args.model}/correlations_b{ss_batch_size}_n{ss_num_samples}_k{ss_num_indices}_ft{ss_finetuning_mode}"
-    os.makedirs(correlation_dir, exist_ok=True)
+    tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
 
     for task in tasks:
-        cache_path = f"{correlation_dir}/correlation_{task}.npz"
-        if os.path.exists(cache_path) and not args.overwrite:
-            print(f"[Skipped] {cache_path} already exists")
+        checkpoint_dir = f"{args.save}/{task}Val"
+        corr_path = os.path.join(checkpoint_dir, "correlation.pt")
+
+        if os.path.exists(corr_path) and not args.overwrite:
+            print(f"Skipping {task} (cached: {corr_path})")
             continue
 
-        # print(f"\nCollecting norms for {task}")
-        # tv = NonLinearTaskVector(
-        #     pretrained_ckpt, f"checkpoints/{args.model}/{task}Val/finetuned.pt"
-        # )
-        # encoder = tv.apply_to(pretrained_ckpt, scaling_coef=1.0)
-        # del tv
-
         print(f"\nCollecting covariance for {task}")
-        checkpoint_dir = f"{args.save}/{task}Val"
         if args.finetuning_mode == "linear":
             # Get param names from the nonlinear pretrained model
             nonlinear_encoder = torch.load(
-                os.path.join(checkpoint_dir, "zeroshot.pt"), map_location="cpu", weights_only=False
+                os.path.join(checkpoint_dir, "zeroshot.pt"),
+                map_location="cpu",
+                weights_only=False,
             )
             param_names = [n for n, _ in nonlinear_encoder.named_parameters()]
             del nonlinear_encoder
@@ -183,7 +177,9 @@ if __name__ == "__main__":
             )
         elif args.finetuning_mode == "lora":
             # NOTE: LoRA mode not yet supported with checkpoint_dir convention
-            raise NotImplementedError("LoRA mode not yet supported with checkpoint_dir convention")
+            raise NotImplementedError(
+                "LoRA mode not yet supported with checkpoint_dir convention"
+            )
         else:
             tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
             encoder = tv.apply_to(checkpoint_dir, scaling_coef=1.0)
@@ -195,12 +191,14 @@ if __name__ == "__main__":
 
         save_dict = {}
         for layer in g_sq:
-            save_dict[f"g_sq/{layer}"] = g_sq[layer]
-            save_dict[f"aat_samples/{layer}"] = aat_samples[layer]
-            save_dict[f"index_pairs/{layer}"] = np.array(index_pairs[layer])
+            save_dict[f"g_sq/{layer}"] = torch.from_numpy(g_sq[layer])
+            save_dict[f"aat_samples/{layer}"] = torch.from_numpy(aat_samples[layer])
+            save_dict[f"index_pairs/{layer}"] = torch.from_numpy(
+                np.array(index_pairs[layer])
+            )
 
-        np.savez(cache_path, **save_dict)
-        print(f"  Saved to {cache_path}")
+        torch.save(save_dict, corr_path)
+        print(f"  Saved to {corr_path}")
 
         # Quick summary
         all_rhos = []
