@@ -21,7 +21,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
 METHODS=(sum mean tsv isoc regmean actmat)
-FT_MODE=standard
+FT_MODE=lora
 MERGE_MODE=d
 HPO=""
 
