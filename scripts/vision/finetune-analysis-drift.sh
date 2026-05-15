@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=finetune_vision
+#SBATCH --job-name=finetune_vision_analysis_drift
 #SBATCH --partition=main
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=8
@@ -26,9 +26,9 @@ if [ ! -d "$DATA_DIR" ]; then
 fi
 
 # 3. Finetune models (using FFT & LoRA)
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-FT_MODES=(standard lora)
-SAVE_DIR="checkpoints"
+MODELS=(ViT-B-16)
+FT_MODES=(standard)
+SAVE_DIR="checkpoints-analysis-drift"
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
@@ -39,9 +39,10 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --world-size=1 \
       --num-workers=1 \
-      --openclip-cachedir="$OPENCLIP_DIR" \
+      --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
-      --save="$SAVE_DIR"
+      --save="$SAVE_DIR" \
+      --checkpoint-every=200
 
   done
 done

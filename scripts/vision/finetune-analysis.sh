@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=finetune_vision_models
+#SBATCH --job-name=finetune_vision_analysis
 #SBATCH --partition=main
-#SBATCH --gres=gpu:rtx8000:1
+#SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
@@ -39,7 +39,7 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --world-size=1 \
       --num-workers=1 \
-      --openclip-cachedir="$OPENCLIP_DIR" \
+      --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \
       --grad-cross-matrix
