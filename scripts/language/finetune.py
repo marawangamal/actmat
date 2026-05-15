@@ -18,7 +18,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from src.args import parse_arguments
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 from src.language.modeling import T5Wrapper
 from src.language.linearize import LinearizedT5Wrapper
 from src.language.datasets.pytorch_dataset import PytorchDataset
@@ -228,15 +228,7 @@ if __name__ == "__main__":
         "wsc",
     ]
 
-    # Append model name to save directory
-    if args.save is None:
-        args.save = f"checkpoints/{args.model}"
-    else:
-        args.save = os.path.join(args.save, args.model)
-
-    # Append seed to save directory
-    if args.seed is not None:
-        args.save = os.path.join(args.save, f"seed_{args.seed}")
+    args.save = resolve_run_dir(args)
 
     for dataset in T5_DATASETS:
         args.train_dataset = dataset

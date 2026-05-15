@@ -25,7 +25,7 @@ from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
 from src.vision.heads import get_classification_head
 from src.vision.modeling import ImageClassifier
 from src.args import parse_arguments
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 from src.vision.datasets.registry import get_dataset
 
 # K_SAMPLES = 32
@@ -134,8 +134,7 @@ def collect_norms(encoder, dataset_name, args):
 if __name__ == "__main__":
     args = parse_arguments()
     args.batch_size = 1
-    if args.save is None:
-        args.save = f"checkpoints/{args.model}"
+    args.save = resolve_run_dir(args)
     prefix = get_prefix(args.finetuning_mode)
     args.num_samples = 100
     args.num_indices = 32

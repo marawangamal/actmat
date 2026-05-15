@@ -29,7 +29,7 @@ from src.vision.modeling import ImageClassifier
 from src.args import parse_arguments
 from src.vision.datasets.registry import get_dataset
 from src import mhap, mhas
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 
 
 def compute_fisher(encoder, dataset_name, args, on_end=None):
@@ -89,7 +89,7 @@ def compute_fisher(encoder, dataset_name, args, on_end=None):
 
 if __name__ == "__main__":
     args = parse_arguments()
-    args.save = f"checkpoints/{args.model}"
+    args.save = resolve_run_dir(args)
     prefix = get_prefix(args.finetuning_mode)
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.cov_batch_size = 1

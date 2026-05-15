@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
+#SBATCH --job-name=test_e2e
+#SBATCH --partition=main
+#SBATCH --gres=gpu:l40s:1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=00:30:00
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
 # Minimal end-to-end smoke test: finetune a couple datasets briefly, then merge & eval.
 # Writes to dedicated test dirs so it doesn't collide with real runs.
 
 set -euo pipefail
+mkdir -p logs
 
 
 # Setup environment
@@ -41,7 +50,8 @@ python scripts/vision/eval_experts.py \
     --model="$MODEL" \
     --finetuning-mode=none \
     --eval-datasets="$DATASETS" \
-    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --save="$TEST_CKPT_DIR" \
+    --max-steps=2 \
     --cache-dir="$CACHE_DIR" \
     --results-dir="$TEST_RESULTS_DIR"
 
@@ -50,7 +60,8 @@ python scripts/vision/eval_experts.py \
     --model="$MODEL" \
     --finetuning-mode=standard \
     --eval-datasets="$DATASETS" \
-    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --save="$TEST_CKPT_DIR" \
+    --max-steps=2 \
     --cache-dir="$CACHE_DIR" \
     --results-dir="$TEST_RESULTS_DIR"
 
@@ -59,7 +70,8 @@ python scripts/vision/eval_task_addition.py \
     --model="$MODEL" \
     --finetuning-mode=standard \
     --eval-datasets="$DATASETS" \
-    --save="$TEST_CKPT_DIR/$MODEL/max_steps_2" \
+    --save="$TEST_CKPT_DIR" \
+    --max-steps=2 \
     --cache-dir="$CACHE_DIR" \
     --results-dir="$TEST_RESULTS_DIR" \
     --eval-val-max-batches=1 \

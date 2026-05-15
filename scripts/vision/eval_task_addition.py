@@ -8,16 +8,11 @@ from src import mhap, mhas
 from src.args import parse_arguments
 from src.vision.eval import evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
 
 args = parse_arguments()
-
-if args.save is None:
-    if args.seed is not None:
-        args.save = f"checkpoints_{args.seed}/{args.model}"
-    else:
-        args.save = f"checkpoints/{args.model}"
+args.save = resolve_run_dir(args)
 
 prefix = get_prefix(args.finetuning_mode)
 merge_name = getattr(args, "merge_func", "sum")

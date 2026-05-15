@@ -3,17 +3,13 @@ from pathlib import Path
 
 from src.args import parse_arguments
 from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 from src.vision.eval import eval_single_dataset
 from src.vision.linearize import LinearizedImageEncoder
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
 
 args = parse_arguments()
-if args.save is None:
-    if args.seed is not None:
-        args.save = f"checkpoints_{args.seed}/{args.model}"
-    else:
-        args.save = f"checkpoints/{args.model}"
+args.save = resolve_run_dir(args)
 
 prefix = get_prefix(args.finetuning_mode)
 _run_hash = make_run_hash("eval_experts", args) if args.results_db else None

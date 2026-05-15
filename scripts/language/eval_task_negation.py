@@ -7,11 +7,12 @@ from src.language.task_vectors import (
     LanguageLinearizedTaskVector,
     LanguageNonLinearTaskVector,
 )
-from src.utils import find_optimal_coef
+from src.utils import find_optimal_coef, resolve_run_dir
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
 args = parse_arguments()
+args.save = resolve_run_dir(args)
 
 print("*" * 100)
 if args.finetuning_mode == "standard":
