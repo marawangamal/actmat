@@ -112,20 +112,17 @@ if __name__ == "__main__":
         "SUN397",
         "SVHN",
     ]
-    ignore = [
-        "zeroshot"
-    ]
+    ignore = ["zeroshot"]
     tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
     prefix = get_prefix(args.finetuning_mode)
-    
+
     for task in tasks:
         checkpoint_dir = f"{args.save}/{task}Val"
         for ckpt in os.listdir(checkpoint_dir):
-           
+            if not ckpt.startswith(prefix):
+                continue
+            suffix = ckpt.replace("prexix")
 
-            
-
-        suffix = 
         cov_path = os.path.join(checkpoint_dir, "covariance.pt")
 
         if os.path.exists(cov_path) and not args.overwrite:
