@@ -163,7 +163,7 @@ if __name__ == "__main__":
         if args.finetuning_mode == "linear":
             # Get param names from the nonlinear pretrained model
             nonlinear_encoder = torch.load(
-                os.path.join(checkpoint_dir, "zeroshot.pt"),
+                os.path.join(checkpoint_dir, "pretrained.pt"),
                 map_location="cpu",
                 weights_only=False,
             )

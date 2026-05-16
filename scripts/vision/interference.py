@@ -133,7 +133,7 @@ def compute_interference(
     compare merged vs each single-task model.
 
     Args:
-        checkpoint_dirs: list of checkpoint directories (each containing zeroshot.pt and finetuned.pt).
+        checkpoint_dirs: list of checkpoint directories (each containing pretrained.pt and finetuned.pt).
         dataset_names: list of dataset names corresponding to each task.
         args: parsed arguments.
         alpha: scaling coefficient applied to all task vectors.

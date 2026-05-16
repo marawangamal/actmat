@@ -288,7 +288,7 @@ def finetune(rank, args):
     # Check if checkpoints already exist
     prefix = get_prefix(args.finetuning_mode)
     ft_path = os.path.join(ckpdir, f"{prefix}finetuned.pt")
-    zs_path = os.path.join(ckpdir, "zeroshot.pt")
+    zs_path = os.path.join(ckpdir, "pretrained.pt")
     if os.path.exists(zs_path) and os.path.exists(ft_path) and not args.overwrite:
         print(f"Skipping fine-tuning because {ft_path} already exists.")
         cleanup_ddp()
@@ -309,10 +309,10 @@ def finetune(rank, args):
         else:
             image_encoder = ImageEncoder(args)
 
-    # Save the zeroshot encoder before applying LoRA (reuses standard zeroshot.pt)
+    # Save the pretrained encoder before applying LoRA (reuses standard pretrained.pt)
     if lora_finetuning and args.save is not None and is_main_process():
         os.makedirs(ckpdir, exist_ok=True)
-        zs_path = os.path.join(ckpdir, "zeroshot.pt")
+        zs_path = os.path.join(ckpdir, "pretrained.pt")
         if not os.path.exists(zs_path):
             image_encoder.save(zs_path)
 
@@ -335,7 +335,7 @@ def finetune(rank, args):
     # (LoRA zeroshot is already saved above, before LoRA is applied.)
     if args.save is not None and is_main_process() and not lora_finetuning:
         os.makedirs(ckpdir, exist_ok=True)
-        model.image_encoder.save(os.path.join(ckpdir, "zeroshot.pt"))
+        model.image_encoder.save(os.path.join(ckpdir, "pretrained.pt"))
 
     # Swap nn.MultiheadAttention -> MultiHeadAttentionSplit so forward hooks
     # fire on per-projection Linear layers (needed for grad cross-term tracking).
@@ -491,7 +491,7 @@ def finetune(rank, args):
         eval_single_dataset(image_encoder, train_dataset, args)
 
     if args.save is not None and is_main_process():
-        zs_path = os.path.join(ckpdir, "zeroshot.pt")
+        zs_path = os.path.join(ckpdir, "pretrained.pt")
         ft_path = os.path.join(ckpdir, f"{prefix}finetuned.pt")
         enc_to_save = image_encoder
         if args.grad_cross_matrix:

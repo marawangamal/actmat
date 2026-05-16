@@ -133,7 +133,7 @@ if __name__ == "__main__":
             # Direct checkpoint path supplied via --load; skip task-vector construction.
             encoder = torch.load(args.load, map_location="cpu", weights_only=False)
         elif args.finetuning_mode == "linear":
-            zeroshot_path = os.path.join(checkpoint_dir, "zeroshot.pt")
+            zeroshot_path = os.path.join(checkpoint_dir, "pretrained.pt")
 
             # Get param names from nonlinear model
             nonlinear_encoder = torch.load(

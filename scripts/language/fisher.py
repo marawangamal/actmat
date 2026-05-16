@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
         print(f"\nCollecting Fisher for {dataset}")
         if args.finetuning_mode == "linear":
-            zeroshot_path = os.path.join(checkpoint_dir, "zeroshot.pt")
+            zeroshot_path = os.path.join(checkpoint_dir, "pretrained.pt")
             nonlinear_model = torch.load(
                 zeroshot_path, map_location="cpu", weights_only=False
             )
