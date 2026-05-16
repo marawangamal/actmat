@@ -13,7 +13,7 @@ K = 32 (i,j) pairs, randomly sampled with a fixed seed for reproducibility.
 
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/vision/correlation.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets --finetuning-mode=lora --cov-num-batches=100
+python scripts/vision/correlation.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision --finetuning-mode=lora --cov-num-batches=100
 """
 
 # TODO: rename to correlation.py

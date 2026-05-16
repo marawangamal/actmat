@@ -33,7 +33,7 @@ Vision experiments expect `vit_datasets_08.zip` (symlinked from `~/scratch/actma
 End-to-end smoke test (uses 2 training steps on MNIST+SVHN with ViT-B-32):
 
 ```sh
-bash tests/test_e2e.sh
+bash scripts/tests/test_e2e.sh
 ```
 
 Run a single vision merge eval directly (skip SLURM):

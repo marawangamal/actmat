@@ -16,13 +16,14 @@ source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-DATA_DIR="$SLURM_TMPDIR/datasets"
+DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 
-if [ ! -d "$DATA_DIR" ]; then
-  cp vit_datasets_08.zip "$SLURM_TMPDIR/"
-  unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
+ln -sfn "$SLURM_TMPDIR/data" data
 
 # Common parameters
 NUM_BATCHES=10

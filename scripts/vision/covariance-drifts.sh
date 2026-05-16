@@ -36,10 +36,11 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 export HF_HOME=$SCRATCH/huggingface
 
-if [ ! -d "$SLURM_TMPDIR/datasets" ]; then
-  cp vit_datasets_08.zip "$SLURM_TMPDIR/"
-  unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
+ln -sfn "$SLURM_TMPDIR/data" data
 
 for DATASET in "${DATASETS[@]}"; do
     CKPT_DIR="$ROOTDIR/$RUN_DIR/${MODEL}/${DATASET}Val"
@@ -66,6 +67,6 @@ for DATASET in "${DATASETS[@]}"; do
             --cov-type="$COV_TYPE" \
             --cov-estimator="$COV_ESTIMATOR" \
             --cache-dir="$SCRATCH/openclip" \
-            --data-location="$SLURM_TMPDIR/datasets"
+            --data-location="data/vision"
     done
 done

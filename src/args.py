@@ -37,7 +37,7 @@ def parse_arguments():
     parser.add_argument(
         "--data-location",
         type=str,
-        default=os.path.join(os.environ.get("SLURM_TMPDIR", "/tmp"), "datasets"),
+        default="data/vision",
         help="Vision: root dir for image datasets.",
     )
     parser.add_argument(

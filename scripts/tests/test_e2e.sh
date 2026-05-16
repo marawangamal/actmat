@@ -25,14 +25,15 @@ TEST_CKPT_DIR="artifacts/testing-checkpoints"
 TEST_RESULTS_DIR="artifacts/testing-results"
 MODEL="ViT-B-32"
 DATASETS="MNIST,SVHN"
-DATA_DIR="$SLURM_TMPDIR/datasets"
+DATA_DIR="data/vision"
 CACHE_DIR="$SCRATCH/openclip"
 
 # Prepare datasets
-if [ ! -d "$DATA_DIR" ]; then
-  cp vit_datasets_08.zip "$SLURM_TMPDIR/"
-  unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
+ln -sfn "$SLURM_TMPDIR/data" data
 
 echo "=== [1/4] finetune (max-steps=2 on $DATASETS) ==="
 python scripts/vision/finetune.py \

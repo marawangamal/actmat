@@ -15,15 +15,16 @@ mkdir -p artifacts/logs
 source ".venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
-DATA_DIR="$SLURM_TMPDIR/datasets"
+DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 
 
 # 2. Download datasets (NOTE: change this to your environment)
-if [ ! -d "$DATA_DIR" ]; then
-  cp vit_datasets_08.zip "$SLURM_TMPDIR/"
-  unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
+ln -sfn "$SLURM_TMPDIR/data" data
 
 # 3. Finetune models (using FFT & LoRA)
 MODELS=(ViT-B-16)

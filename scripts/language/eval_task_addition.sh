@@ -18,6 +18,12 @@ export NLTK_DATA=$SCRATCH/nltk_data
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
+fi
+ln -sfn "$SLURM_TMPDIR/data" data
+
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
 METHODS=(sum mean tsv isoc regmean actmat)

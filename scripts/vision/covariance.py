@@ -10,11 +10,11 @@ K = 32 (i,j) pairs, randomly sampled with a fixed seed for reproducibility.
 
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/vision/covariance.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets
+python scripts/vision/covariance.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision
 python scripts/vision/covariance.py --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split ...
 
 # Generate covariance matrices
-python scripts/vision/covariance.py --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets \
+python scripts/vision/covariance.py --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision \
 --model=ViT-B-16 --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split
 
 """

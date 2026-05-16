@@ -1,11 +1,15 @@
 .venv*
 *.zip
+*.tar.gz
 *.pt
 *.pyc
 *.vscode
 
 .claude/
 .vscode/
+downloads/
+data/
 artifacts/logs
 artifacts/checkpoints*
+
 

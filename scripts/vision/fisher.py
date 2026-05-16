@@ -9,7 +9,7 @@ The empirical Fisher diagonal is estimated as:
 
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/vision/fisher.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets
+python scripts/vision/fisher.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision
 """
 
 import gc

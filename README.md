@@ -31,6 +31,19 @@ export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
 ```
 
+## Data
+
+Download `data.zip` (~36 GB extracted) — contains vision (Cars, DTD, EuroSAT, GTSRB, MNIST, RESISC45, SUN397, SVHN) and language (`story_cloze`) data — and unpack it into `data/`:
+
+```sh
+gdown <URL>                  # download data.tar.gz
+tar -xzvf data.tar.gz        # produces data/vision/ and data/language/
+```
+
+Then pass `--data-location=data/vision` to the vision scripts. On SLURM, the driver scripts copy the zip to `$SLURM_TMPDIR/` and unzip there instead.
+
+OLMo datasets are pulled from the HuggingFace Hub at runtime — just make sure `HF_HOME=$SCRATCH/huggingface` is set (see Setup).
+
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 
 ```sh
