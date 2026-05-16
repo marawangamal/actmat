@@ -37,7 +37,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 export HF_HOME=$SCRATCH/huggingface
 
 if [ ! -d "$SLURM_TMPDIR/data" ]; then
-  cp data.tar.gz "$SLURM_TMPDIR/"
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
   tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
 ln -sfn "$SLURM_TMPDIR/data" data

@@ -21,7 +21,7 @@ OPENCLIP_DIR="$SCRATCH/openclip"
 
 # 2. Download datasets (NOTE: change this to your environment)
 if [ ! -d "$SLURM_TMPDIR/data" ]; then
-  cp data.tar.gz "$SLURM_TMPDIR/"
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
   tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
 ln -sfn "$SLURM_TMPDIR/data" data

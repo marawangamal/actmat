@@ -20,7 +20,7 @@ DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 
 if [ ! -d "$SLURM_TMPDIR/data" ]; then
-  cp data.tar.gz "$SLURM_TMPDIR/"
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
   tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
@@ -32,7 +32,7 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 METHODS=(sum mean tsv isoc regmean actmat)
-FT_MODE=lora
+FT_MODES=(standard lora)
 MERGE_MODE=d
 HPO=''
 
@@ -44,6 +44,7 @@ HPO=''
 # HPO='{"alpha": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]}'
 
 
+for FT_MODE in "${FT_MODES[@]}"; do
 for MODEL in "${MODELS[@]}"; do
   # Evaluate task addition w/ diff merge methods
   for method in "${METHODS[@]}"; do
@@ -75,5 +76,6 @@ for MODEL in "${MODELS[@]}"; do
       ${HPO:+--hpo="$HPO"}
 
   done
+done
 done
 
