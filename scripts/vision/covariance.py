@@ -27,7 +27,6 @@ from typing import Dict
 import torch
 from tqdm import tqdm
 
-
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -39,7 +38,7 @@ from src.args import parse_arguments
 from src.vision.datasets.registry import get_dataset
 from src import mhap, mhas
 from src.covariance import OnlineCovariance, register_hooks
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 
 
 def compute_covs(encoder, dataset_name, args, on_end=None):
@@ -99,9 +98,7 @@ def compute_covs(encoder, dataset_name, args, on_end=None):
 
 if __name__ == "__main__":
     args = parse_arguments()
-    if args.save is None:
-        args.save = f"checkpoints/{args.model}"
-    prefix = get_prefix(args.finetuning_mode)
+    args.save = resolve_run_dir(args)
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.cov_device = torch.device("cpu")
 
@@ -115,11 +112,17 @@ if __name__ == "__main__":
         "SUN397",
         "SVHN",
     ]
+    # ignore = ["zeroshot"]
     tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
+    prefix = get_prefix(args.finetuning_mode)
 
     for task in tasks:
         checkpoint_dir = f"{args.save}/{task}Val"
-        cov_path = os.path.join(checkpoint_dir, "covariance.pt")
+        if args.load is not None:
+            ckpt_name = os.path.basename(args.load)  # e.g., 'checkpoint_100.pt'
+            cov_path = os.path.join(checkpoint_dir, f"covariance_{ckpt_name}")
+        else:
+            cov_path = os.path.join(checkpoint_dir, "covariance.pt")
 
         if os.path.exists(cov_path) and not args.overwrite:
             print(f"Skipping {task} (cached: {cov_path})")

@@ -16,7 +16,7 @@ from src.vision.heads import get_classification_head
 from src.vision.linearize import LinearizedImageEncoder
 from src.vision.modeling import ImageClassifier, ImageEncoder, apply_lora, merge_lora
 from src.mhas import swap_mha, unswap_mha
-from src.utils import LabelSmoothing, cosine_lr, get_prefix
+from src.utils import LabelSmoothing, cosine_lr, get_prefix, resolve_run_dir
 
 
 class GradCrossTermTracker:
@@ -531,19 +531,7 @@ if __name__ == "__main__":
 
     args = parse_arguments()
 
-    # Append model name to save directory
-    if args.save is None:
-        args.save = f"checkpoints/{args.model}"
-    else:
-        args.save = os.path.join(args.save, args.model)
-
-    # Append seed to save directory
-    if args.seed is not None:
-        args.save = os.path.join(args.save, f"seed_{args.seed}")
-
-    # Append max_steps to save directory
-    if args.max_steps is not None:
-        args.save = os.path.join(args.save, f"max_steps_{args.max_steps}")
+    args.save = resolve_run_dir(args)
 
     if args.train_dataset is not None:
         train_datasets = [ds.strip() for ds in args.train_dataset]

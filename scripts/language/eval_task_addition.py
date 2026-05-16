@@ -10,16 +10,12 @@ from src.language.task_vectors import (
     LanguageNonLinearTaskVector,
 )
 from src.merging import combine_task_vectors
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
 args = parse_arguments()
-if args.save is None:
-    if args.seed is not None:
-        args.save = f"checkpoints_{args.seed}/{args.model}"
-    else:
-        args.save = f"checkpoints/{args.model}"
+args.save = resolve_run_dir(args)
 
 prefix = get_prefix(args.finetuning_mode)
 merge_name = getattr(args, "merge_func", "sum")

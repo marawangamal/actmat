@@ -16,7 +16,7 @@ from collections import OrderedDict
 
 from src.vision.task_vectors import NonLinearTaskVector
 from src.args import parse_arguments
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 from src.vision.datasets.registry import get_dataset
 
 
@@ -189,7 +189,7 @@ def compute_interference(
 if __name__ == "__main__":
     args = parse_arguments()
     args.batch_size = 64 if args.model == "ViT-L-14" else 128
-    args.save = f"checkpoints/{args.model}"
+    args.save = resolve_run_dir(args)
     prefix = get_prefix(args.finetuning_mode)
 
     model = args.model

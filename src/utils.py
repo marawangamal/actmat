@@ -9,6 +9,22 @@ def get_prefix(finetuning_mode):
     return {"linear": "linear_", "lora": "lora_"}.get(finetuning_mode, "")
 
 
+def resolve_run_dir(args):
+    """Resolve the per-run checkpoint directory: <save>/<model>[/seed_X][/max_steps_Y].
+
+    Defaults args.save to 'checkpoints' when unset. Used by both writers
+    (finetune scripts that create the dir) and readers (eval/cov/fisher
+    scripts that load from it) so the layout stays in one place.
+    """
+    base = args.save if args.save is not None else "checkpoints"
+    run = os.path.join(base, args.model)
+    if getattr(args, "seed", None) is not None:
+        run = os.path.join(run, f"seed_{args.seed}")
+    if getattr(args, "max_steps", None) is not None:
+        run = os.path.join(run, f"max_steps_{args.max_steps}")
+    return run
+
+
 def assign_learning_rate(param_group, new_lr):
     param_group["lr"] = new_lr
 

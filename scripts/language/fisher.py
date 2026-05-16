@@ -31,7 +31,7 @@ from src.language.task_vectors import (
 from src.language.datasets.pytorch_dataset import PytorchDataset
 from src.language.datasets.batcher import Batcher
 from src.language.datasets.dataset_readers import get_datasetReader
-from src.utils import get_prefix
+from src.utils import get_prefix, resolve_run_dir
 
 
 def compute_fisher(model, dataset_name, args, on_end=None):
@@ -104,8 +104,7 @@ if __name__ == "__main__":
     args.cov_batch_size = 1
     args.cov_num_batches = [100]
 
-    if args.save is None:
-        args.save = f"checkpoints/{args.model}"
+    args.save = resolve_run_dir(args)
     prefix = get_prefix(args.finetuning_mode)
 
     T5_DATASETS = [

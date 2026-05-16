@@ -13,8 +13,8 @@ This is the source code to reproduce the experiments of the paper [Model Merging
 
 ```sh
 # Clone the repository (with submodules)
-git clone --recurse-submodules <repo-url>
-cd eigcov
+git clone --recurse-submodules git@github.com:marawangamal/actmat.git
+cd actmat
 
 # If you already cloned without submodules, initialize them with:
 #   git submodule update --init --recursive

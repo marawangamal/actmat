@@ -4,15 +4,10 @@ import os
 from src.args import parse_arguments
 from src.vision.eval import evaluate_task_vector, evaluate_task_vector_at_coef
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
-from src.utils import find_optimal_coef
+from src.utils import find_optimal_coef, resolve_run_dir
 
 args = parse_arguments()
-
-
-if args.seed is not None:
-    args.save = f"checkpoints_{args.seed}/{args.model}"
-else:
-    args.save = f"checkpoints/{args.model}"
+args.save = resolve_run_dir(args)
 
 with open(os.path.join(args.save, "zeroshot_accuracies.json")) as f:
     pretrained_accuracies = json.load(f)
