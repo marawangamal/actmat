@@ -5,11 +5,11 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
-mkdir -p logs
+mkdir -p artifacts/logs
 
 # 0. Setup environment
 source "$SCRATCH/actmat/.venv-vl/bin/activate"

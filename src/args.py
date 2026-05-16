@@ -231,7 +231,7 @@ def parse_arguments():
     parser.add_argument(
         "--results-dir",
         type=str,
-        default="results",
+        default="artifacts/results",
         help="Base directory for results output.",
     )
     parser.add_argument(

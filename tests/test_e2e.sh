@@ -5,13 +5,13 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --time=00:30:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 # Minimal end-to-end smoke test: finetune a couple datasets briefly, then merge & eval.
 # Writes to dedicated test dirs so it doesn't collide with real runs.
 
 set -euo pipefail
-mkdir -p logs
+mkdir -p artifacts/logs
 
 
 # Setup environment
@@ -21,8 +21,8 @@ export NLTK_DATA=$SCRATCH/nltk_data
 source "$SCRATCH/actmat/.venv-vl/bin/activate"
 
 # Set vars
-TEST_CKPT_DIR="testing-checkpoints"
-TEST_RESULTS_DIR="testing-results"
+TEST_CKPT_DIR="artifacts/testing-checkpoints"
+TEST_RESULTS_DIR="artifacts/testing-results"
 MODEL="ViT-B-32"
 DATASETS="MNIST,SVHN"
 DATA_DIR="$SLURM_TMPDIR/datasets"

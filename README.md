@@ -3,7 +3,7 @@
 This is the source code to reproduce the experiments of the paper [Model Merging via Data-Free Covariance Estimation](https://arxiv.org/pdf/2604.01329).
 
 <p align="center">
-  <img src="figures/crown-jewel.png" alt="Overview" width="70%">
+  <img src="docs/crown-jewel.png" alt="Overview" width="70%">
 </p>
 
 
@@ -42,7 +42,7 @@ bash scripts/vision/eval_single_task.sh
 bash scripts/vision/eval_task_addition.sh
 ```
 
-Results are saved to `results/{model}-{method}/metrics.json`.
+Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
 
 ## Language Experiments (T5-Base / T5-Large)
 
@@ -55,7 +55,7 @@ bash scripts/language/eval_single_task.sh
 bash scripts/language/eval_task_addition.sh
 ```
 
-Results are saved to `results/{model}-{method}/metrics.json`.
+Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
 
 ## OLMo Experiments (Olmo-3-7b)
 

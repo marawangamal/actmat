@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo *)",
+      "Bash(gh label *)",
+      "Bash(git -C /network/scratch/m/marawan.gamal/actmat remote -v)",
+      "Bash(gh auth *)"
+    ]
+  }
+}

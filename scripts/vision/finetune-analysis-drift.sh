@@ -5,11 +5,11 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
-mkdir -p logs
+mkdir -p artifacts/logs
 
 # 1. Setup environment (NOTE: change this to your environment)
 source ".venv-vl/bin/activate"
@@ -28,7 +28,7 @@ fi
 # 3. Finetune models (using FFT & LoRA)
 MODELS=(ViT-B-16)
 FT_MODES=(standard)
-SAVE_DIR="checkpoints-analysis-drift"
+SAVE_DIR="artifacts/checkpoints-analysis-drift"
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do

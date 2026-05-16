@@ -1,7 +1,7 @@
 """Collects per-layer ||dL/dy||² and sampled entries of yy^T per sample.
 
 For each task, saves a single file at:
-  checkpoints/{model}/{task}Val/correlation.pt
+  artifacts/checkpoints/{model}/{task}Val/correlation.pt
 
 with keys:
   - g_sq/<layer>:         (N,) tensor of ||dL/dy||²

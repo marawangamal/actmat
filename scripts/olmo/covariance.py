@@ -9,10 +9,10 @@ Usage:
     export PYTHONPATH="$PYTHONPATH:$PWD"
 
     # Single capability
-    python scripts/olmo/covariance.py --capability math --save checkpoints/olmo
+    python scripts/olmo/covariance.py --capability math --save artifacts/checkpoints/olmo
 
     # All capabilities
-    python scripts/olmo/covariance.py --capability all --save checkpoints/olmo
+    python scripts/olmo/covariance.py --capability all --save artifacts/checkpoints/olmo
 """
 
 import os
@@ -147,7 +147,7 @@ def collect_covariance(capability, args):
 def main():
     args = parse_arguments()
     if args.save is None:
-        args.save = "checkpoints/Olmo-3-7b"
+        args.save = "artifacts/checkpoints/Olmo-3-7b"
 
     if args.capability == "all":
         for cap in CAPABILITY_DATASETS:

@@ -31,8 +31,8 @@ NUM_WORKERS=1
 
 # ── Merge + Evaluate ────────────────────────────────────────────────────────
 for method in "${METHODS[@]}"; do
-  MERGED_DIR="checkpoints/${MODEL}/${method}"
-  RESULTS_DIR="results/${MODEL}-${method}"
+  MERGED_DIR="artifacts/checkpoints/${MODEL}/${method}"
+  RESULTS_DIR="artifacts/results/${MODEL}-${method}"
 
   echo "============================================================"
   echo "Method: ${method}"
@@ -45,7 +45,7 @@ for method in "${METHODS[@]}"; do
     echo ">>> Skipping merge: ${MERGED_DIR} already exists"
   else
     python scripts/olmo/merge.py \
-      --save "checkpoints/${MODEL}" \
+      --save "artifacts/checkpoints/${MODEL}" \
       --merge-func "$method" \
       --output-dir "$MERGED_DIR"
   fi
