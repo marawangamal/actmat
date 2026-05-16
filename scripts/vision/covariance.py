@@ -112,25 +112,27 @@ if __name__ == "__main__":
         "SUN397",
         "SVHN",
     ]
-    ignore = ["zeroshot"]
+    # ignore = ["zeroshot"]
     tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
     prefix = get_prefix(args.finetuning_mode)
 
     for task in tasks:
         checkpoint_dir = f"{args.save}/{task}Val"
-        for ckpt in os.listdir(checkpoint_dir):
-            if not ckpt.startswith(prefix):
-                continue
-            suffix = ckpt.replace("prexix")
-
-        cov_path = os.path.join(checkpoint_dir, "covariance.pt")
+        if args.load is not None:
+            ckpt_name = os.path.basename(args.load)  # e.g., 'checkpoint_100.pt'
+            cov_path = os.path.join(checkpoint_dir, f"covariance_{ckpt_name}")
+        else:
+            cov_path = os.path.join(checkpoint_dir, "covariance.pt")
 
         if os.path.exists(cov_path) and not args.overwrite:
             print(f"Skipping {task} (cached: {cov_path})")
             continue
 
         print(f"\nCollecting covariance for {task}")
-        if args.finetuning_mode == "linear":
+        if args.load is not None:
+            # Direct checkpoint path supplied via --load; skip task-vector construction.
+            encoder = torch.load(args.load, map_location="cpu", weights_only=False)
+        elif args.finetuning_mode == "linear":
             zeroshot_path = os.path.join(checkpoint_dir, "zeroshot.pt")
 
             # Get param names from nonlinear model
