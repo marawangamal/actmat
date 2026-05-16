@@ -4,6 +4,7 @@
 *.pt
 *.pyc
 *.vscode
+*.misc
 
 .claude/
 .vscode/
