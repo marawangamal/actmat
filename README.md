@@ -3,7 +3,7 @@
 This is the source code to reproduce the experiments of the paper [Model Merging via Data-Free Covariance Estimation](https://arxiv.org/pdf/2604.01329).
 
 <p align="center">
-  <img src="figures/crown-jewel.png" alt="Overview" width="70%">
+  <img src="docs/crown-jewel.png" alt="Overview" width="70%">
 </p>
 
 
@@ -31,31 +31,46 @@ export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
 ```
 
+## Data
+
+Download `data.tar.gz` (~36 GB extracted) — contains vision (Cars, DTD, EuroSAT, GTSRB, MNIST, RESISC45, SUN397, SVHN) and language (`story_cloze`) data — and unpack it into `data/`:
+
+```sh
+mkdir -p downloads
+uvx gdown <URL> -O downloads/data.tar.gz   # download archive into downloads/
+tar -xzvf downloads/data.tar.gz        # produces data/vision/ and data/language/
+```
+
+Then pass `--data-location=data/vision` to the vision scripts. On SLURM, the driver scripts copy `downloads/data.tar.gz` to `$SLURM_TMPDIR/` and extract there instead.
+
+OLMo datasets are pulled from the HuggingFace Hub at runtime — just make sure `HF_HOME=$SCRATCH/huggingface` is set (see Setup).
+
+
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 
 ```sh
 # 1. Download checkpoints
-gdown <URL> # or finetune using bash scripts/vision/finetune.sh
+uvx gdown 1KPFLGzz4zK5O7-ta8TIq0V4XyO16Jn1c -O checkpoints # or finetune using bash scripts/vision/finetune.sh
 # 2. (Optional) Evaluate experts
 bash scripts/vision/eval_single_task.sh
 # 3. Evaluate merged models
 bash scripts/vision/eval_task_addition.sh
 ```
 
-Results are saved to `results/{model}-{method}/metrics.json`.
+Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
 
 ## Language Experiments (T5-Base / T5-Large)
 
 ```sh
 # 1. Download checkpoints
-gdown <URL>  # or finetune using bash scripts/vision/finetune.sh
+uvx gdown 1KPFLGzz4zK5O7-ta8TIq0V4XyO16Jn1c -O checkpoints # or finetune using bash scripts/language/finetune.sh
 # 2. (Optional) Evaluate experts
 bash scripts/language/eval_single_task.sh
 # 3. Evaluate merged models
 bash scripts/language/eval_task_addition.sh
 ```
 
-Results are saved to `results/{model}-{method}/metrics.json`.
+Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
 
 ## OLMo Experiments (Olmo-3-7b)
 

@@ -6,8 +6,8 @@ import torch
 
 
 class _TaskVector(abc.ABC):
-    PRETRAINED_FILENAME = "zeroshot"
-    FINETUNED_FILENAME = "finetuned"
+    PRETRAINED_FILENAME = "pretrained.pt"
+    FINETUNED_FILENAME = "finetuned.pt"
 
     def __init__(
         self,
@@ -17,7 +17,6 @@ class _TaskVector(abc.ABC):
         cache_window=50,  # Keeps `cache_window` layers in memory at a time
         _transform_fn=None,
         prefix="",
-        suffix="",
         save_pt=False,  # useful for RegMean on weights vs on differences
     ):
         """Initializes the task vector from a checkpoint directory or a pre-computed vector.
@@ -44,10 +43,10 @@ class _TaskVector(abc.ABC):
         # Resolve checkpoint file paths from directory
         if checkpoint_dir is not None:
             self._pretrained_checkpoint = os.path.join(
-                checkpoint_dir, f"{self.PRETRAINED_FILENAME}.pt"
+                checkpoint_dir, self.PRETRAINED_FILENAME
             )
             self._finetuned_checkpoint = os.path.join(
-                checkpoint_dir, f"{prefix}{self.FINETUNED_FILENAME}{suffix}.pt"
+                checkpoint_dir, f"{prefix}{self.FINETUNED_FILENAME}"
             )
         else:
             self._pretrained_checkpoint = None

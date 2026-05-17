@@ -9,7 +9,7 @@ The empirical Fisher diagonal is estimated as:
 
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/vision/fisher.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets
+python scripts/vision/fisher.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision
 """
 
 import gc
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         print(f"\nCollecting Fisher for {task}")
         if args.finetuning_mode == "linear":
             checkpoint_dir_path = checkpoint_dir
-            zeroshot_path = os.path.join(checkpoint_dir_path, "zeroshot.pt")
+            zeroshot_path = os.path.join(checkpoint_dir_path, "pretrained.pt")
             nonlinear_encoder = torch.load(
                 zeroshot_path, map_location="cpu", weights_only=False
             )

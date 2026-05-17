@@ -133,7 +133,7 @@ def compute_interference(
     compare merged vs each single-task model.
 
     Args:
-        checkpoint_dirs: list of checkpoint directories (each containing zeroshot.pt and finetuned.pt).
+        checkpoint_dirs: list of checkpoint directories (each containing pretrained.pt and finetuned.pt).
         dataset_names: list of dataset names corresponding to each task.
         args: parsed arguments.
         alpha: scaling coefficient applied to all task vectors.
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     prefix = get_prefix(args.finetuning_mode)
 
     model = args.model
-    results_dir = f"results/{model}"
+    results_dir = f"artifacts/results/{model}"
     os.makedirs(results_dir, exist_ok=True)
 
     datasets = [
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         "SVHN",
     ]
 
-    ckpt_dirs = [f"checkpoints/{model}/{ds}Val" for ds in datasets]
+    ckpt_dirs = [f"artifacts/checkpoints/{model}/{ds}Val" for ds in datasets]
     dataset_names = [f"{ds}Val" for ds in datasets]
 
     alpha_range = np.linspace(0.0, 1.0, 11)  # [0.0, 0.1, ..., 1.0]

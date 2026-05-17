@@ -1,6 +1,7 @@
 import torch
 import os
 import pandas as pd
+from tqdm import tqdm
 
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -8,8 +9,8 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 
 model = "ViT-B-16"
-checkpoints_dir = f"checkpoints-analysis-drift/{model}"
-results_dir = f"results-analysis-drift/{model}"
+checkpoints_dir = f"artifacts/checkpoints-analysis-drift/{model}"
+results_dir = f"artifacts/results-analysis-drift/{model}"
 os.makedirs(results_dir, exist_ok=True)
 
 datasets = [
@@ -24,21 +25,16 @@ datasets = [
 ]
 
 rows = []
-for d in datasets:
+for d in tqdm(datasets, desc="datasets"):
+    task_dir = os.path.join(checkpoints_dir, d + "Val")
     covariance_filenames = sorted(
-        [
-            f
-            for f in os.listdir(os.path.join(checkpoints_dir, d + "Val"))
-            if "covariance_" in f
-        ],
+        [f for f in os.listdir(task_dir) if "covariance_" in f],
         key=lambda f: int(f.split("_")[-1].replace(".pt", "")),
     )
 
     c_final = None
-    # DEBUG:
-    print(f"Covariance order: {covariance_filenames[::-1]}")
-    for filename in covariance_filenames[::-1]:
-        c_t = torch.load(os.path.join(checkpoints_dir, d + "Val", filename))
+    for filename in tqdm(covariance_filenames[::-1], desc=d, leave=False):
+        c_t = torch.load(os.path.join(task_dir, filename))
         c_final = c_t if c_final is None else c_final
         step = int(filename.split("_")[-1].replace(".pt", ""))
         for layer in c_final:

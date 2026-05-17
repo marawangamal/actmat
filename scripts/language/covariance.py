@@ -110,7 +110,7 @@ if __name__ == "__main__":
     args.cov_device = torch.device("cpu")
     args.max_seq_len = 128
 
-    args.save = resolve_run_dir(args)  # e.g., checkpoints/ViT-B-16/
+    args.save = resolve_run_dir(args)  # e.g., artifacts/checkpoints/ViT-B-16/
     prefix = get_prefix(args.finetuning_mode)  # "" or "lora_"
 
     # Set cov_num_batches to the max for compute_covs
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
         print(f"\nCollecting covariance for {dataset}")
         if args.finetuning_mode == "linear":
-            zeroshot_path = os.path.join(checkpoint_dir, "zeroshot.pt")
+            zeroshot_path = os.path.join(checkpoint_dir, "pretrained.pt")
             nonlinear_model = torch.load(
                 zeroshot_path, map_location="cpu", weights_only=False
             )

@@ -1,11 +1,20 @@
 #!/bin/bash
+#SBATCH --job-name=eval_olmo
+#SBATCH --partition=main
+#SBATCH --gres=gpu:l40s:4
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 # Merge + evaluate OLMo models via olmes, then collect results.
 #
 # Prerequisites: run scripts/olmo/download_models.sh first.
 #
 # Usage:
-#   bash scripts/olmo/eval_task_addition.sh
+#   sbatch scripts/olmo/eval_task_addition.sh
 set -euo pipefail
+mkdir -p artifacts/logs
 
 # 0. Setup environment
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"
@@ -31,8 +40,8 @@ NUM_WORKERS=1
 
 # ── Merge + Evaluate ────────────────────────────────────────────────────────
 for method in "${METHODS[@]}"; do
-  MERGED_DIR="checkpoints/${MODEL}/${method}"
-  RESULTS_DIR="results/${MODEL}-${method}"
+  MERGED_DIR="artifacts/checkpoints/${MODEL}/${method}"
+  RESULTS_DIR="artifacts/results/${MODEL}-${method}"
 
   echo "============================================================"
   echo "Method: ${method}"
@@ -45,7 +54,7 @@ for method in "${METHODS[@]}"; do
     echo ">>> Skipping merge: ${MERGED_DIR} already exists"
   else
     python scripts/olmo/merge.py \
-      --save "checkpoints/${MODEL}" \
+      --save "artifacts/checkpoints/${MODEL}" \
       --merge-func "$method" \
       --output-dir "$MERGED_DIR"
   fi

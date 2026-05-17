@@ -5,9 +5,9 @@ parameter is loaded per model at a time.
 
 Usage:
     python scripts/olmo/merge.py \\
-        --save checkpoints/Olmo-3-7b \\
+        --save artifacts/checkpoints/Olmo-3-7b \\
         --merge-func actmat \\
-        --output-dir checkpoints/olmo-merged-actmat
+        --output-dir artifacts/checkpoints/olmo-merged-actmat
 """
 
 import os
@@ -91,5 +91,5 @@ def merge(args):
 if __name__ == "__main__":
     args = parse_arguments()
     if args.save is None:
-        args.save = "checkpoints/Olmo-3-7b"
+        args.save = "artifacts/checkpoints/Olmo-3-7b"
     merge(args)

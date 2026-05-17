@@ -5,24 +5,25 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
-mkdir -p logs
+mkdir -p artifacts/logs
 
 # 0. Setup environment
 source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-DATA_DIR="$SLURM_TMPDIR/datasets"
+DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 
-if [ ! -d "$DATA_DIR" ]; then
-  cp vit_datasets_08.zip "$SLURM_TMPDIR/"
-  unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
+ln -sfn "$SLURM_TMPDIR/data" data
 
 # Common parameters
 NUM_BATCHES=10
@@ -31,7 +32,7 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 METHODS=(sum mean tsv isoc regmean actmat)
-FT_MODE=lora
+FT_MODES=(standard lora)
 MERGE_MODE=d
 HPO=''
 
@@ -43,6 +44,7 @@ HPO=''
 # HPO='{"alpha": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]}'
 
 
+for FT_MODE in "${FT_MODES[@]}"; do
 for MODEL in "${MODELS[@]}"; do
   # Evaluate task addition w/ diff merge methods
   for method in "${METHODS[@]}"; do
@@ -74,5 +76,6 @@ for MODEL in "${MODELS[@]}"; do
       ${HPO:+--hpo="$HPO"}
 
   done
+done
 done
 

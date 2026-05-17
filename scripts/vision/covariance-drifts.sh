@@ -4,13 +4,13 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 MODEL="ViT-B-16"
 ROOTDIR="$SCRATCH/actmat"   # repo root on the cluster
-RUN_DIR="checkpoints-analysis-drift"   # subdir under ROOTDIR containing drift snapshots
+RUN_DIR="artifacts/checkpoints-analysis-drift"   # subdir under ROOTDIR containing drift snapshots
 
 DATASETS=(
     "Cars"
@@ -36,10 +36,11 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 export HF_HOME=$SCRATCH/huggingface
 
-if [ ! -d "$SLURM_TMPDIR/datasets" ]; then
-  cp vit_datasets_08.zip "$SLURM_TMPDIR/"
-  unzip -q "$SLURM_TMPDIR/vit_datasets_08.zip" -d "$SLURM_TMPDIR/"
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
 fi
+ln -sfn "$SLURM_TMPDIR/data" data
 
 for DATASET in "${DATASETS[@]}"; do
     CKPT_DIR="$ROOTDIR/$RUN_DIR/${MODEL}/${DATASET}Val"
@@ -66,6 +67,6 @@ for DATASET in "${DATASETS[@]}"; do
             --cov-type="$COV_TYPE" \
             --cov-estimator="$COV_ESTIMATOR" \
             --cache-dir="$SCRATCH/openclip" \
-            --data-location="$SLURM_TMPDIR/datasets"
+            --data-location="data/vision"
     done
 done

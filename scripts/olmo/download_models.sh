@@ -1,7 +1,7 @@
 #!/bin/bash
 # Download OLMo models and organize into checkpoint structure matching vision layout:
 #
-#   checkpoints/Olmo-3-7b/
+#   artifacts/checkpoints/Olmo-3-7b/
 #     pretrained/          (param folder — shared)
 #     Math/
 #       zeroshot/          (symlink → pretrained)
@@ -25,7 +25,7 @@ FINETUNED_IDS=(
   "allenai/Olmo-3-7B-RL-Zero-IF"
 )
 
-BASE="checkpoints/Olmo-3-7b"
+BASE="artifacts/checkpoints/Olmo-3-7b"
 PRETRAINED_DIR="${BASE}/pretrained"
 
 # 1. Download pretrained model

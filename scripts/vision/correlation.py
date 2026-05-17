@@ -1,7 +1,7 @@
 """Collects per-layer ||dL/dy||² and sampled entries of yy^T per sample.
 
 For each task, saves a single file at:
-  checkpoints/{model}/{task}Val/correlation.pt
+  artifacts/checkpoints/{model}/{task}Val/correlation.pt
 
 with keys:
   - g_sq/<layer>:         (N,) tensor of ||dL/dy||²
@@ -13,7 +13,7 @@ K = 32 (i,j) pairs, randomly sampled with a fixed seed for reproducibility.
 
 Example usage:
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/vision/correlation.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=$SLURM_TMPDIR/datasets --finetuning-mode=lora --cov-num-batches=100
+python scripts/vision/correlation.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision --finetuning-mode=lora --cov-num-batches=100
 """
 
 # TODO: rename to correlation.py
@@ -163,7 +163,7 @@ if __name__ == "__main__":
         if args.finetuning_mode == "linear":
             # Get param names from the nonlinear pretrained model
             nonlinear_encoder = torch.load(
-                os.path.join(checkpoint_dir, "zeroshot.pt"),
+                os.path.join(checkpoint_dir, "pretrained.pt"),
                 map_location="cpu",
                 weights_only=False,
             )

@@ -30,7 +30,7 @@ from src.language.eval import eval_single_dataset  # noqa: E402 (eval is a packa
 def finetune(args):
     """Fine-tune a T5 model (standard, linearized, or LoRA) on a single dataset.
 
-    Saves ``zeroshot.pt`` and ``{prefix}finetuned.pt`` inside
+    Saves ``pretrained.pt`` and ``{prefix}finetuned.pt`` inside
     ``{args.save}/{args.train_dataset}/``.
     """
     train_dataset = args.train_dataset
@@ -51,7 +51,7 @@ def finetune(args):
 
     prefix = get_prefix(args.finetuning_mode)
     ft_path = os.path.join(ckpdir, f"{prefix}finetuned.pt")
-    zs_path = os.path.join(ckpdir, "zeroshot.pt")
+    zs_path = os.path.join(ckpdir, "pretrained.pt")
 
     if os.path.exists(zs_path) and os.path.exists(ft_path):
         print(f"Skipping fine-tuning because {ft_path} already exists.")

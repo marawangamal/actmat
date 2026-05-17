@@ -183,7 +183,7 @@ def train_capability(capability, args):
 def main():
     args = parse_arguments()
     if args.save is None:
-        args.save = "checkpoints/Olmo-3-7b"
+        args.save = "artifacts/checkpoints/Olmo-3-7b"
 
     if args.capability == "all":
         for cap in CAPABILITY_DATASETS:

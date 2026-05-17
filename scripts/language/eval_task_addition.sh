@@ -5,11 +5,11 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
-mkdir -p logs
+mkdir -p artifacts/logs
 
 # 0. Setup environment
 source "$SCRATCH/actmat/.venv-vl/bin/activate"
@@ -18,13 +18,20 @@ export NLTK_DATA=$SCRATCH/nltk_data
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
+fi
+ln -sfn "$SLURM_TMPDIR/data" data
+
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
 METHODS=(sum mean tsv isoc regmean actmat)
-FT_MODE=lora
+FT_MODES=(standard lora)
 MERGE_MODE=d
 HPO=""
 
+for FT_MODE in "${FT_MODES[@]}"; do
 for MODEL in "${MODELS[@]}"; do
   for method in "${METHODS[@]}"; do
 
@@ -54,4 +61,5 @@ for MODEL in "${MODELS[@]}"; do
       ${HPO:+--hpo="$HPO"}
 
   done
+done
 done
