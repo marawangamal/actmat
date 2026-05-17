@@ -329,6 +329,33 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def _per_layer_topk_mask(d: torch.Tensor, keep_frac: float) -> torch.Tensor:
+    """Per-layer top-k magnitude mask over (N, Do, Di) stack of task vectors."""
+    n, do, di = d.shape
+    numel = do * di
+    n_keep = max(1, int(round(keep_frac * numel)))
+    if n_keep >= numel:
+        return torch.ones_like(d, dtype=torch.bool)
+    flat = d.abs().reshape(n, numel)
+    _, idx = flat.topk(n_keep, dim=1)
+    mask = torch.zeros_like(flat, dtype=torch.bool)
+    mask.scatter_(1, idx, True)
+    return mask.reshape(n, do, di)
+
+
+def merge_tact(d: torch.Tensor, tact_k: float = 0.5, **kwargs):
+    """TACT: ACTMat with a per-layer magnitude-trimmed covariance estimator.
+
+    Builds C_t = trim(d_t)^T @ trim(d_t) from the top-tact_k fraction of |d_t|
+    entries (per layer), but keeps the full d_t in the merge target. Implements
+    Algorithm 1 of the TACT paper with the per-layer trim variant (Appendix C).
+    """
+    mask = _per_layer_topk_mask(d, tact_k)
+    d_tilde = d * mask
+    c = d_tilde.transpose(1, 2) @ d_tilde
+    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
 def merge_ace(d: torch.Tensor, *args, **kwargs):
     T, Do, Di = d.shape
     mu = d.sum(dim=1) * (1 / Do)
