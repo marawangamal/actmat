@@ -30,6 +30,7 @@ vision-language = [
 ]
 olmo = [
     "ai2-olmes[gpu]",
+    "numpy<2.3",
     "setuptools<81",
 ]
 

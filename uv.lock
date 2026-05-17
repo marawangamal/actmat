@@ -86,6 +86,7 @@ dependencies = [
 [package.dev-dependencies]
 olmo = [
     { name = "ai2-olmes", extra = ["gpu"], marker = "extra == 'group-6-actmat-olmo'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
     { name = "setuptools" },
 ]
 vision-language = [
@@ -121,6 +122,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 olmo = [
     { name = "ai2-olmes", extras = ["gpu"], directory = "olmes" },
+    { name = "numpy", specifier = "<2.3" },
     { name = "setuptools", specifier = "<81" },
 ]
 vision-language = [
