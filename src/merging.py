@@ -322,7 +322,7 @@ def merge_fisher(
 
 
 # ---------------------------------------------------------------------------
-# Eigenvalue Covariance (ACTMat)
+# ACTMat
 # ---------------------------------------------------------------------------
 def merge_actmat(d: torch.Tensor, *args, **kwargs):
     c = d.transpose(1, 2) @ d
@@ -354,6 +354,29 @@ def merge_tact(d: torch.Tensor, tact_k: float = 0.5, **kwargs):
     d_tilde = d * mask
     c = d_tilde.transpose(1, 2) @ d_tilde
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
+# ---------------------------------------------------------------------------
+# TIES (Yadav et al., 2023 — https://arxiv.org/abs/2306.01708)
+# ---------------------------------------------------------------------------
+def merge_ties(d: torch.Tensor, ties_k: float = 0.2, **kwargs) -> torch.Tensor:
+    """TIES-Merging: Trim, Elect Sign, Disjoint Merge.
+
+    Per layer:
+      1. Trim   — zero out all but the top-`ties_k` fraction of |d_t| entries.
+      2. Elect  — per parameter, pick the sign of Σ_t d̂_t (sign with larger
+                  total magnitude).
+      3. Merge  — average only the task vectors whose sign matches the elected
+                  sign at each parameter.
+    """
+    mask = _per_layer_topk_mask(d, ties_k)
+    d_trim = d * mask
+
+    elected_sign = torch.sign(d_trim.sum(dim=0))  # (Do, Di)
+    sign_match = torch.sign(d_trim) == elected_sign.unsqueeze(0)  # (N, Do, Di)
+    kept = d_trim * sign_match
+    n_contrib = sign_match.sum(dim=0).clamp(min=1).to(d.dtype)
+    return kept.sum(dim=0) / n_contrib
 
 
 def merge_ace(d: torch.Tensor, *args, **kwargs):
