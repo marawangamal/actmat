@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=eval_olmo
-#SBATCH --partition=main
+#SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:4
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
@@ -23,7 +23,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(sum mean tsv isoc regmean actmat)
+METHODS=(tact actmat)
 
 # ── OLMES ─────────────────────────────────────────────────────────────────────
 OLMES_TASKS=(
