@@ -37,7 +37,7 @@ Download `data.tar.gz` (~36 GB extracted) — contains vision (Cars, DTD, EuroSA
 
 ```sh
 mkdir -p downloads
-gdown <URL> -O downloads/data.tar.gz   # download archive into downloads/
+uvx gdown <URL> -O downloads/data.tar.gz   # download archive into downloads/
 tar -xzvf downloads/data.tar.gz        # produces data/vision/ and data/language/
 ```
 
@@ -45,11 +45,12 @@ Then pass `--data-location=data/vision` to the vision scripts. On SLURM, the dri
 
 OLMo datasets are pulled from the HuggingFace Hub at runtime — just make sure `HF_HOME=$SCRATCH/huggingface` is set (see Setup).
 
+
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 
 ```sh
 # 1. Download checkpoints
-gdown <URL> # or finetune using bash scripts/vision/finetune.sh
+uvx gdown 1KPFLGzz4zK5O7-ta8TIq0V4XyO16Jn1c -O checkpoints # or finetune using bash scripts/vision/finetune.sh
 # 2. (Optional) Evaluate experts
 bash scripts/vision/eval_single_task.sh
 # 3. Evaluate merged models
@@ -62,7 +63,7 @@ Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
 
 ```sh
 # 1. Download checkpoints
-gdown <URL>  # or finetune using bash scripts/vision/finetune.sh
+uvx gdown 1KPFLGzz4zK5O7-ta8TIq0V4XyO16Jn1c -O checkpoints # or finetune using bash scripts/language/finetune.sh
 # 2. (Optional) Evaluate experts
 bash scripts/language/eval_single_task.sh
 # 3. Evaluate merged models

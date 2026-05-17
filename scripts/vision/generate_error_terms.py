@@ -1,6 +1,7 @@
 import torch
 import os
 import pandas as pd
+from tqdm import tqdm
 
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -24,14 +25,14 @@ datasets = [
 ]
 
 rows = []
-for d in datasets:
-    for filename in os.listdir(os.path.join(checkpoints_dir, d + "Val")):
-        if not "grad_cross" in filename:
-            continue
+for d in tqdm(datasets, desc="datasets"):
+    task_dir = os.path.join(checkpoints_dir, d + "Val")
+    filenames = [f for f in os.listdir(task_dir) if "grad_cross" in f]
+    for filename in tqdm(filenames, desc=d, leave=False):
         layer_name = filename.replace(".pt", "").replace(
             "grad_cross_matrix_model_visual_transformer_resblocks_", ""
         )
-        gcm = torch.load(os.path.join(checkpoints_dir, d + "Val", filename))
+        gcm = torch.load(os.path.join(task_dir, filename))
         cosim_cross = cosine_similarity(gcm["gbar"].T @ gcm["gbar"], gcm["sbar"])
         cosim_corr = cosine_similarity(gcm["sbar"], gcm["stilde"])
         # TODO: add drift term
