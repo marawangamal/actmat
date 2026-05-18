@@ -5,6 +5,9 @@
 *.pyc
 *.vscode
 *.misc
+*predictions.jsonl
+*inputs.jsonl
+*requests.jsonl
 
 .claude/
 .vscode/
