@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=eval_lang_models
-#SBATCH --partition=main
-#SBATCH --gres=gpu:rtx8000:1
+#SBATCH --partition=long
+#SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --time=08:00:00
 #SBATCH --output=artifacts/logs/%x_%j.out
 #SBATCH --error=artifacts/logs/%x_%j.err

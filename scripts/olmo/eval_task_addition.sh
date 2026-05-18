@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=eval_olmo
-#SBATCH --partition=main
+#SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:4
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --output=artifacts/logs/%x_%j.out
 #SBATCH --error=artifacts/logs/%x_%j.err
 # Merge + evaluate OLMo models via olmes, then collect results.
@@ -23,7 +23,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(sum mean tsv isoc regmean actmat)
+METHODS=(tact actmat)
 
 # ── OLMES ─────────────────────────────────────────────────────────────────────
 OLMES_TASKS=(
@@ -59,9 +59,9 @@ for method in "${METHODS[@]}"; do
       --output-dir "$MERGED_DIR"
   fi
 
-  # 2. Evaluate (skip if already done)
-  if ls "$RESULTS_DIR"/*-metrics-all.json &>/dev/null; then
-    echo ">>> Skipping eval: ${RESULTS_DIR} already has results"
+  # 2. Evaluate (skip if already done; per-task skipping is done by olmes itself)
+  if [[ -f "$RESULTS_DIR/metrics.json" ]]; then
+    echo ">>> Skipping eval: ${RESULTS_DIR}/metrics.json already exists"
   else
     echo ">>> Evaluating: Batch size = $BATCH_SIZE, Number of workers = $NUM_WORKERS, GPUs = $GPUS"
     echo ">>> Model: $MERGED_DIR, tasks: ${OLMES_TASKS[@]}"
