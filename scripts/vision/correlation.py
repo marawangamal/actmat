@@ -139,6 +139,9 @@ if __name__ == "__main__":
     args.num_samples = 100
     args.num_indices = 32
 
+    if args.finetuning_mode == "linear":
+        raise NotImplementedError("Not supported")
+
     all_tasks = [
         "Cars",
         "DTD",
@@ -160,28 +163,8 @@ if __name__ == "__main__":
             continue
 
         print(f"\nCollecting covariance for {task}")
-        if args.finetuning_mode == "linear":
-            # Get param names from the nonlinear pretrained model
-            nonlinear_encoder = torch.load(
-                os.path.join(checkpoint_dir, "pretrained.pt"),
-                map_location="cpu",
-                weights_only=False,
-            )
-            param_names = [n for n, _ in nonlinear_encoder.named_parameters()]
-            del nonlinear_encoder
-
-            tv = LinearizedTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
-            encoder = tv.apply_to_nonlinear(
-                checkpoint_dir, param_names, scaling_coef=1.0
-            )
-        elif args.finetuning_mode == "lora":
-            # NOTE: LoRA mode not yet supported with checkpoint_dir convention
-            raise NotImplementedError(
-                "LoRA mode not yet supported with checkpoint_dir convention"
-            )
-        else:
-            tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
-            encoder = tv.apply_to(checkpoint_dir, scaling_coef=1.0)
+        tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
+        encoder = tv.apply_to(checkpoint_dir, scaling_coef=1.0)
 
         del tv
 
@@ -190,27 +173,27 @@ if __name__ == "__main__":
 
         save_dict = {}
         for layer in g_sq:
-            save_dict[f"g_sq/{layer}"] = torch.from_numpy(g_sq[layer])
-            save_dict[f"aat_samples/{layer}"] = torch.from_numpy(aat_samples[layer])
-            save_dict[f"index_pairs/{layer}"] = torch.from_numpy(
-                np.array(index_pairs[layer])
-            )
+            save_dict[layer] = {
+                "g_sq": torch.from_numpy(g_sq[layer]),
+                "aat_samples": torch.from_numpy(aat_samples[layer]),
+                "index_pairs": torch.from_numpy(np.array(index_pairs[layer])),
+            }
 
         torch.save(save_dict, corr_path)
         print(f"  Saved to {corr_path}")
 
-        # Quick summary
-        all_rhos = []
-        for layer in g_sq.keys():
-            g = g_sq[layer]
-            aat = aat_samples[layer]
-            if g.std() == 0:
-                continue
-            all_rhos.extend(
-                np.corrcoef(g, aat[:, k])[0, 1] if aat[:, k].std() > 0 else 0.0
-                for k in range(aat.shape[1])
-            )
-        all_rhos = np.abs(all_rhos)
-        print(
-            f"  |ρ|  mean={np.mean(all_rhos):.2f}  median={np.median(all_rhos):.2f}  max={np.max(all_rhos):.2f}"
-        )
+        # # Quick summary
+        # all_rhos = []
+        # for layer in g_sq.keys():
+        #     g = g_sq[layer]
+        #     aat = aat_samples[layer]
+        #     if g.std() == 0:
+        #         continue
+        #     all_rhos.extend(
+        #         np.corrcoef(g, aat[:, k])[0, 1] if aat[:, k].std() > 0 else 0.0
+        #         for k in range(aat.shape[1])
+        #     )
+        # all_rhos = np.abs(all_rhos)
+        # print(
+        #     f"  |ρ|  mean={np.mean(all_rhos):.2f}  median={np.median(all_rhos):.2f}  max={np.max(all_rhos):.2f}"
+        # )
