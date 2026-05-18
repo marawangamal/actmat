@@ -12,6 +12,7 @@
 .claude/
 .vscode/
 downloads/
+uploads/
 data/
 artifacts/logs
 artifacts/checkpoints*
