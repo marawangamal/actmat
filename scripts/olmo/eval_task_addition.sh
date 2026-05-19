@@ -23,7 +23,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(tact actmat)
+METHODS=(sum mean tsv isoc regmean actmat)
 
 # ── OLMES ─────────────────────────────────────────────────────────────────────
 OLMES_TASKS=(
