@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.009723",
+    "Cars: 0.015172",
+    "DTD: 0.140957",
+    "EuroSAT: 0.183704",
+    "GTSRB: 0.119161",
+    "MNIST: 0.842400",
+    "RESISC45: 0.057778",
+    "SVHN: 0.573064"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.009722921914357682,
+        "primary_score": 0.009722921914357682
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.015172242258425568,
+        "primary_score": 0.015172242258425568
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.14095744680851063,
+        "primary_score": 0.14095744680851063
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.1837037037037037,
+        "primary_score": 0.1837037037037037
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.11916072842438638,
+        "primary_score": 0.11916072842438638
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.8424,
+        "primary_score": 0.8424
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.057777777777777775,
+        "primary_score": 0.057777777777777775
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.5730639213275968,
+        "primary_score": 0.5730639213275968
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-16",
+    "merge_func": "dare",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

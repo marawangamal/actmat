@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.005542",
+    "Cars: 0.007089",
+    "DTD: 0.094681",
+    "EuroSAT: 0.264815",
+    "GTSRB: 0.231354",
+    "MNIST: 0.913600",
+    "RESISC45: 0.071905",
+    "SVHN: 0.504802"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.0055415617128463475,
+        "primary_score": 0.0055415617128463475
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.007088670563362766,
+        "primary_score": 0.007088670563362766
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.09468085106382979,
+        "primary_score": 0.09468085106382979
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.26481481481481484,
+        "primary_score": 0.26481481481481484
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.23135391923990498,
+        "primary_score": 0.23135391923990498
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9136,
+        "primary_score": 0.9136
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.0719047619047619,
+        "primary_score": 0.0719047619047619
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.5048017824216349,
+        "primary_score": 0.5048017824216349
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-32",
+    "merge_func": "dare",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}
