@@ -12,7 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import torch
 
-from src.merging import _per_layer_topk_mask, merge_ties
+from src.merging import _per_layer_topk_mask, merge_ties, merge_wudi
+
+
+def _wudi_loss(M: torch.Tensor, d: torch.Tensor) -> float:
+    N = d.shape[0]
+    l2_sq = d.reshape(N, -1).pow(2).sum(dim=-1).view(N, 1, 1)
+    inner = torch.matmul(M.unsqueeze(0) - d, d.transpose(1, 2))
+    return (inner.pow(2) / l2_sq).sum().item()
 
 
 class TestMergeTies(unittest.TestCase):
@@ -84,6 +91,40 @@ class TestMergeTies(unittest.TestCase):
         out = merge_ties(d, ties_k=0.5)
         # position 0: both trimmed -> 0; position 1: (5+6)/2 = 5.5
         self.assertTrue(torch.allclose(out, torch.tensor([[0.0, 5.5]])))
+
+
+class TestMergeWudi(unittest.TestCase):
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 8, 6)
+        out = merge_wudi(d, wudi_iters=10, wudi_lr=1e-4)
+        self.assertEqual(out.shape, (8, 6))
+        self.assertFalse(out.requires_grad)
+
+    def test_zero_iters_equals_sum_init(self):
+        """With wudi_iters=0 the output is the initialization M = Σ τ_i."""
+        torch.manual_seed(0)
+        d = torch.randn(4, 5, 7)
+        out = merge_wudi(d, wudi_iters=0)
+        self.assertTrue(torch.allclose(out, d.sum(dim=0), atol=1e-6))
+
+    def test_single_task_is_fixed_point(self):
+        """With one task, M init = τ already minimizes the loss (gradient is 0)
+        since (M − τ) = 0, so the optimizer should not move it."""
+        torch.manual_seed(1)
+        d = torch.randn(1, 4, 6)
+        out = merge_wudi(d, wudi_iters=50, wudi_lr=1e-3)
+        self.assertTrue(torch.allclose(out, d.squeeze(0), atol=1e-6))
+
+    def test_loss_decreases(self):
+        """The WUDI loss at the optimized M should be strictly lower than at
+        the sum-init, given a learning rate that actually moves the weights."""
+        torch.manual_seed(2)
+        d = torch.randn(3, 16, 10)
+        init_loss = _wudi_loss(d.sum(dim=0), d)
+        out = merge_wudi(d, wudi_iters=200, wudi_lr=1e-3)
+        final_loss = _wudi_loss(out, d)
+        self.assertLess(final_loss, init_loss)
 
 
 if __name__ == "__main__":

@@ -379,6 +379,36 @@ def merge_ties(d: torch.Tensor, ties_k: float = 0.2, **kwargs) -> torch.Tensor:
     return kept.sum(dim=0) / n_contrib
 
 
+# ---------------------------------------------------------------------------
+# WUDI (Li et al., ICML 2025 — https://arxiv.org/abs/2503.08099)
+# ---------------------------------------------------------------------------
+def merge_wudi(
+    d: torch.Tensor,
+    wudi_iters: int = 300,
+    wudi_lr: float = 1e-5,
+    **kwargs,
+) -> torch.Tensor:
+    """WUDI: data-free merging by minimizing per-task interference.
+
+    Optimizes M (init: Σ_i τ_i) for `wudi_iters` Adam steps at `wudi_lr` to
+    minimize Σ_i ‖(M − τ_i) τ_iᵀ‖_F² / ‖τ_i‖_F².
+    """
+    N = d.shape[0]
+    d_det = d.detach()
+    l2_sq = d_det.reshape(N, -1).pow(2).sum(dim=-1).view(N, 1, 1)
+    with torch.enable_grad():
+        M = torch.nn.Parameter(d_det.sum(dim=0).clone())
+        optimizer = torch.optim.Adam([M], lr=wudi_lr, weight_decay=0.0)
+        for _ in tqdm(range(wudi_iters), desc="WUDI", leave=False):
+            disturbing = M.unsqueeze(0) - d_det
+            inner = torch.matmul(disturbing, d_det.transpose(1, 2))
+            loss = (inner.pow(2) / l2_sq).sum()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+    return M.detach()
+
+
 def merge_dare(
     d: torch.Tensor,
     drop_rate: float = 0.5,
@@ -400,120 +430,3 @@ def merge_dare(
         d_sparse = d_sparse / (1.0 - drop_rate)
     fn = getattr(sys.modules[__name__], "merge_" + base_merge)
     return fn(d_sparse, **kwargs)
-
-
-def merge_ace(d: torch.Tensor, *args, **kwargs):
-    T, Do, Di = d.shape
-    mu = d.sum(dim=1) * (1 / Do)
-    d_tilde = d - mu.unsqueeze(1)
-    c = d_tilde.transpose(1, 2) @ d_tilde
-    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
-
-
-def merge_actmat_general(
-    d: torch.Tensor,
-    lam=0.0,
-    alpha_weighted=False,
-    cov_weighted=False,
-    solver="lstsq",
-    max_cond=42,
-    **kwargs,
-):
-    # # DEBUG:
-    # print(f"lam: {lam}, alpha_weighted: {alpha_weighted}, cov_weighted: {cov_weighted}")
-
-    T, Do, Di = d.shape
-
-    c = d.transpose(1, 2) @ d  # (T, Di, Di)
-    if cov_weighted:
-        # _c = d.transpose(1, 2) @ d  # (T, Di, Di)
-        c = c / (torch.linalg.norm(c, ord="fro", dim=(-2, -1), keepdim=True) ** 2)
-        # d = d / (torch.linalg.norm(_c, ord="fro", dim=(-2, -1), keepdim=True))
-
-    # Factor each C_t = L_t L_t^T
-    e, v = torch.linalg.eigh(c)  # e: (T, Di), v: (T, Di, Di)
-    e = e.clamp(min=1e-8)
-    L = v * e.sqrt().unsqueeze(-2)  # (T, Di, Di)
-    # L = d
-    Lt = L.transpose(-2, -1)  # (T, Di, Di)
-
-    # Scale by sqrt(alpha_t)
-    Lt_scaled = Lt
-    if alpha_weighted:
-        sqrt_alpha = 1.0 / d.flatten(1).norm(dim=1)  # (T,)
-        Lt_scaled = sqrt_alpha[:, None, None] * Lt  # (T, Di, Di)
-
-    A = Lt_scaled.reshape(T * Di, Di)  # (T*Di, Di)
-    B = (Lt_scaled @ d.transpose(-1, -2)).reshape(T * Di, Do)  # (T*Di, Do)
-
-    # Ridge regularization
-    if lam > 0:
-        A = torch.cat([A, lam**0.5 * torch.eye(Di, Di, device=A.device)], dim=0)
-        B = torch.cat([B, torch.zeros(Di, Do, device=B.device)], dim=0)
-
-    print(f"d.shape: {d.shape}, A.shape: {A.shape}, B.shape: {B.shape}")
-    # Solve A @ X = B where X = W^T
-    try:
-        if solver == "lstsq":
-            result = torch.linalg.lstsq(A, B)
-            W = result.solution.T  # (Do, Di)
-        elif solver == "solve":
-            W = torch.linalg.solve(A.transpose(-2, -1) @ A, A.transpose(-2, -1) @ B).T
-        return W
-    except Exception as e:
-        print(f"[fallback] solve failed ({e}), using mean")
-        return d.mean(dim=0)
-
-
-def merge_actmat_gd(
-    d: torch.Tensor,
-    lam=0.0,
-    alpha_weighted=False,
-    cov_weighted=False,
-    lr=1e-3,
-    max_iters=100,
-    thresh=1e-3,
-    **kwargs,
-) -> torch.Tensor:
-    """Gradient-descent solver for the ACTMat objective.
-
-    Minimizes the same weighted least-squares loss as merge_actmat_general:
-        L(W) = Σ_t tr((W - d_t) C_t (W - d_t)^T) + λ ‖W‖_F²
-    where C_t = d_t^T @ d_t.
-    """
-    C = d.transpose(1, 2) @ d  # (T, Di, Di)
-
-    if cov_weighted:
-        C = C / (torch.linalg.norm(C, ord="fro", dim=(-2, -1), keepdim=True) ** 2)
-
-    if alpha_weighted:
-        alpha = 1.0 / d.flatten(1).norm(dim=1)  # (T,)
-        C = alpha[:, None, None] * C  # (T, Di, Di)
-
-    W = d.mean(dim=0).clone().requires_grad_(True)  # (Do, Di)
-    optimizer = torch.optim.Adam([W], lr=lr)
-
-    # Re-enable gradients inside the torch.no_grad() context of combine_task_vectors
-    with torch.enable_grad():
-        prev_loss = float("inf")
-        pbar = tqdm(range(int(max_iters)), desc="Gradient descent", leave=False)
-        for i in pbar:
-            optimizer.zero_grad()
-            diff = W.unsqueeze(0) - d  # (T, Do, Di)
-            loss = (diff @ C).mul_(diff).sum()
-            if lam > 0:
-                loss = loss + lam * W.square().sum()
-            loss.backward()
-            optimizer.step()
-
-            cur_loss = loss.item()
-            if abs(prev_loss - cur_loss) / (abs(prev_loss) + 1e-12) < thresh:
-                print(f"[converged] loss={cur_loss:.1e} < {thresh:.1e}")
-                break
-            prev_loss = cur_loss
-            pbar.set_postfix(loss=cur_loss)
-
-    if i == int(max_iters) - 1:
-        print(f"[not converged] loss={cur_loss:.1e} after {max_iters} iters")
-
-    return W.detach()
