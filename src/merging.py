@@ -411,7 +411,7 @@ def merge_wudi(
 
 def merge_dare(
     d: torch.Tensor,
-    drop_rate: float = 0.5,
+    drop_rate: float = 0.3,
     rescale: bool = True,
     seed: int = 0,
     base_merge: str = "sum",
