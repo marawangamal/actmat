@@ -38,6 +38,13 @@ GPUS=4
 BATCH_SIZE=64
 NUM_WORKERS=1
 
+# ── Covariance (regmean only; script self-skips if covariance.pt exists) ────
+if [[ " ${METHODS[*]} " =~ " regmean " ]]; then
+  python scripts/olmo/covariance.py \
+    --capability all \
+    --save "artifacts/checkpoints/${MODEL}"
+fi
+
 # ── Merge + Evaluate ────────────────────────────────────────────────────────
 for method in "${METHODS[@]}"; do
   MERGED_DIR="artifacts/checkpoints/${MODEL}/${method}"

@@ -5,13 +5,13 @@
 #   artifacts/checkpoints/Llama-2-13b-wizardlm/
 #     pretrained/          (param folder — shared, meta-llama/Llama-2-13b-hf)
 #     LM/
-#       zeroshot/          (symlink → pretrained)
+#       pretrained/        (symlink → ../pretrained)
 #       finetuned/         (WizardLM-13B-V1.2 param folder)
 #     Math/
-#       zeroshot/          (symlink → pretrained)
+#       pretrained/        (symlink → ../pretrained)
 #       finetuned/         (WizardMath-13B-V1.0 param folder)
 #     Code/
-#       zeroshot/          (symlink → pretrained)
+#       pretrained/        (symlink → ../pretrained)
 #       finetuned/         (llama-2-13b-code-alpaca param folder)
 #
 # Reproduces the DARE paper Fig. 1 (right) merging setup
@@ -45,7 +45,7 @@ else
     --model "$PRETRAINED_ID" --output-dir "$PRETRAINED_DIR" --dtype bfloat16
 fi
 
-# 2. Download finetuned experts and symlink zeroshot -> pretrained
+# 2. Download finetuned experts and symlink per-task pretrained -> shared pretrained
 for entry in "${FINETUNED_TASKS[@]}"; do
   task="${entry%%:*}"     # LM, Math, Code
   hf_id="${entry#*:}"     # HF model id
@@ -59,8 +59,8 @@ for entry in "${FINETUNED_TASKS[@]}"; do
       --model "$hf_id" --output-dir "$ft_dir" --dtype bfloat16
   fi
 
-  zs_link="${BASE}/${task}/zeroshot"
-  rm -f "$zs_link"
-  ln -s "$(realpath "$PRETRAINED_DIR")" "$zs_link"
-  echo ">>> Symlinked ${task}/zeroshot -> $(realpath "$PRETRAINED_DIR")"
+  pre_link="${BASE}/${task}/pretrained"
+  rm -f "$pre_link"
+  ln -s "$(realpath "$PRETRAINED_DIR")" "$pre_link"
+  echo ">>> Symlinked ${task}/pretrained -> $(realpath "$PRETRAINED_DIR")"
 done

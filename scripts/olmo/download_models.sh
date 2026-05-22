@@ -4,13 +4,13 @@
 #   artifacts/checkpoints/Olmo-3-7b/
 #     pretrained/          (param folder — shared)
 #     Math/
-#       zeroshot/          (symlink → pretrained)
+#       pretrained/        (symlink → ../pretrained)
 #       finetuned/         (param folder)
 #     Code/
-#       zeroshot/          (symlink → pretrained)
+#       pretrained/        (symlink → ../pretrained)
 #       finetuned/         (param folder)
 #     IF/
-#       zeroshot/          (symlink → pretrained)
+#       pretrained/        (symlink → ../pretrained)
 #       finetuned/         (param folder)
 #
 # Usage:
@@ -36,7 +36,7 @@ else
   python scripts/olmo/save_model_param_folder.py --model "$PRETRAINED_ID" --output-dir "$PRETRAINED_DIR"
 fi
 
-# 2. Download finetuned models and symlink zeroshot
+# 2. Download finetuned models and symlink per-task pretrained → shared pretrained
 for hf_id in "${FINETUNED_IDS[@]}"; do
   task="${hf_id##*-}"  # extract last segment: Math, Code, IF
 
@@ -49,9 +49,9 @@ for hf_id in "${FINETUNED_IDS[@]}"; do
     python scripts/olmo/save_model_param_folder.py --model "$hf_id" --output-dir "$ft_dir"
   fi
 
-  # Symlink zeroshot → pretrained (always refresh to handle re-downloads)
-  zs_link="${BASE}/${task}/zeroshot"
-  rm -f "$zs_link"
-  ln -s "$(realpath "$PRETRAINED_DIR")" "$zs_link"
-  echo ">>> Symlinked ${task}/zeroshot → $(realpath "$PRETRAINED_DIR")"
+  # Symlink per-task pretrained → shared pretrained (always refresh to handle re-downloads)
+  pre_link="${BASE}/${task}/pretrained"
+  rm -f "$pre_link"
+  ln -s "$(realpath "$PRETRAINED_DIR")" "$pre_link"
+  echo ">>> Symlinked ${task}/pretrained → $(realpath "$PRETRAINED_DIR")"
 done

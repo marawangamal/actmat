@@ -38,13 +38,13 @@ def merge(args):
     output_dir = Path(args.output_dir).expanduser().resolve()
 
     for td in task_dirs:
-        if not (td / "zeroshot").exists() or not (td / "finetuned").exists():
+        if not (td / "pretrained").exists() or not (td / "finetuned").exists():
             raise FileNotFoundError(
-                f"{td} must contain zeroshot/ and finetuned/ subdirectories. "
+                f"{td} must contain pretrained/ and finetuned/ subdirectories. "
                 "Run scripts/olmo/download_models.sh first."
             )
 
-    pretrained_dir = (task_dirs[0] / "zeroshot").resolve()
+    pretrained_dir = (task_dirs[0] / "pretrained").resolve()
     print(f"Tasks          : {OLMO_TASKS}")
     print(f"Merge function : {args.merge_func}")
     print(f"Output dir     : {output_dir}")

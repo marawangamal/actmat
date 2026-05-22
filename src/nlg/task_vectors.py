@@ -5,7 +5,7 @@ O(single_param × num_models) instead of O(full_model × num_models).
 
 Checkpoint directory layout:
     checkpoint_dir/
-        zeroshot/           # pretrained model (param-folder)
+        pretrained/         # pretrained model (param-folder)
             param_manifest.json
             params/
         finetuned/          # finetuned model (param-folder)
@@ -55,14 +55,14 @@ def _build_param_file_path(model_dir: Path, manifest: dict, param_name: str) -> 
 class ParamFolderTaskVector(_TaskVector):
     """Task vector that lazily loads individual params from param-folder checkpoints.
 
-    Each checkpoint_dir contains ``zeroshot/`` and ``finetuned/`` subdirectories,
+    Each checkpoint_dir contains ``pretrained/`` and ``finetuned/`` subdirectories,
     each with a ``param_manifest.json`` and a ``params/`` subdirectory containing
     one file per parameter.  Only the two files needed for a given key are loaded
     at a time, so peak memory is bounded to a single parameter times the number
     of task vectors being merged.
     """
 
-    PRETRAINED_FILENAME = "zeroshot"
+    PRETRAINED_FILENAME = "pretrained"
     FINETUNED_FILENAME = "finetuned"
 
     def __init__(self, checkpoint_dir=None, vector=None, **kwargs):
