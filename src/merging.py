@@ -379,6 +379,29 @@ def merge_ties(d: torch.Tensor, ties_k: float = 0.2, **kwargs) -> torch.Tensor:
     return kept.sum(dim=0) / n_contrib
 
 
+def merge_dare(
+    d: torch.Tensor,
+    drop_rate: float = 0.5,
+    rescale: bool = True,
+    seed: int = 0,
+    base_merge: str = "sum",
+    **kwargs,
+) -> torch.Tensor:
+    """DARE: Drop And REscale (Yu et al. 2024, https://arxiv.org/abs/2311.03099 §3.1).
+
+    For each task vector independently, drop each entry with probability
+    `drop_rate`, rescale survivors by 1/(1 - drop_rate), then delegate to
+    `base_merge` (default "sum" — DARE+TA). Set `base_merge="ties"` for DARE-TIES.
+    """
+    gen = torch.Generator(device=d.device).manual_seed(seed)
+    keep = torch.rand(d.shape, generator=gen, device=d.device) >= drop_rate
+    d_sparse = d * keep
+    if rescale and drop_rate < 1.0:
+        d_sparse = d_sparse / (1.0 - drop_rate)
+    fn = getattr(sys.modules[__name__], "merge_" + base_merge)
+    return fn(d_sparse, **kwargs)
+
+
 def merge_ace(d: torch.Tensor, *args, **kwargs):
     T, Do, Di = d.shape
     mu = d.sum(dim=1) * (1 / Do)

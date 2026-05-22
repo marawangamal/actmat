@@ -1,13 +1,16 @@
-"""Merge OLMo param-folder task vectors into a HuggingFace checkpoint.
+"""Merge WizardLM-13B param-folder task vectors into a HuggingFace checkpoint.
 
-Uses ParamFolderTaskVector for lazy, memory-bounded merging — only one
-parameter is loaded per model at a time.
+Reproduces the DARE paper Fig. 1 (right) merging of WizardLM-13B,
+WizardMath-13B and llama-2-13b-code-alpaca. Uses ParamFolderTaskVector
+for lazy, memory-bounded merging — only one parameter is loaded per model
+at a time.
 
 Usage:
-    python scripts/olmo/merge.py \\
-        --save artifacts/checkpoints/Olmo-3-7b \\
-        --merge-func actmat \\
-        --output-dir artifacts/checkpoints/olmo-merged-actmat
+    python scripts/wizardlm/merge.py \\
+        --save artifacts/checkpoints/Llama-2-13b-wizardlm \\
+        --merge-func dare \\
+        --merge-kwargs '{"drop_rate": 0.5, "base_merge": "sum"}' \\
+        --output-dir artifacts/checkpoints/wizardlm-merged-dare
 """
 
 import os
@@ -26,7 +29,7 @@ from src.nlg.task_vectors import (
     _load_single_tensor,
 )
 
-OLMO_TASKS = ["Math", "Code", "IF"]
+WIZARDLM_TASKS = ["LM", "Math", "Code"]
 
 
 def merge(args):
@@ -34,18 +37,18 @@ def merge(args):
         os.environ["HF_HOME"] = args.cache_dir
 
     save_root = Path(args.save).expanduser().resolve()
-    task_dirs = [save_root / t for t in OLMO_TASKS]
+    task_dirs = [save_root / t for t in WIZARDLM_TASKS]
     output_dir = Path(args.output_dir).expanduser().resolve()
 
     for td in task_dirs:
         if not (td / "pretrained").exists() or not (td / "finetuned").exists():
             raise FileNotFoundError(
                 f"{td} must contain pretrained/ and finetuned/ subdirectories. "
-                "Run scripts/olmo/download_models.sh first."
+                "Run scripts/wizardlm/download_models.sh first."
             )
 
     pretrained_dir = (task_dirs[0] / "pretrained").resolve()
-    print(f"Tasks          : {OLMO_TASKS}")
+    print(f"Tasks          : {WIZARDLM_TASKS}")
     print(f"Merge function : {args.merge_func}")
     print(f"Output dir     : {output_dir}")
     print("=" * 80)
@@ -91,5 +94,5 @@ def merge(args):
 if __name__ == "__main__":
     args = parse_arguments()
     if args.save is None:
-        args.save = "artifacts/checkpoints/Olmo-3-7b"
+        args.save = "artifacts/checkpoints/Llama-2-13b-wizardlm"
     merge(args)

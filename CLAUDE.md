@@ -64,7 +64,7 @@ When a method needs statistics, the driver runs `covariance.py` (regmean, actmat
 - `src/language/task_vectors.py` — HF T5 checkpoints
 - `src/nlg/task_vectors.py` — folder-of-safetensors checkpoints for OLMo (`ParamFolderTaskVector`)
 
-A `_TaskVector` is built from a `checkpoint_dir` containing `zeroshot.pt` + `{prefix}finetuned.pt` (prefix is `""` for FFT, `"lora_"` for LoRA). It auto-discovers `covariance.pt`/`fisher.pt` siblings.
+A `_TaskVector` is built from a `checkpoint_dir` containing `pretrained.pt` + `{prefix}finetuned.pt` (prefix is `""` for FFT, `"lora_"` for LoRA). OLMo/WizardLM use param-folder checkpoints — `pretrained/` + `finetuned/` subdirectories instead of `.pt` files. It auto-discovers `covariance.pt`/`fisher.pt` siblings.
 
 ### Merging
 

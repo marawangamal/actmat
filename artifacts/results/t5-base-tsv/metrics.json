@@ -1,19 +1,19 @@
 {
   "all_primary_scores": [
-    "qasc: 0.966000",
+    "qasc: 0.968000",
     "wiki_qa: 0.953000",
-    "quartz: 0.730000",
+    "quartz: 0.731000",
     "paws: 0.862000",
     "story_cloze: 0.512000",
-    "winogrande: 0.508000",
+    "winogrande: 0.511000",
     "wsc: 0.569000"
   ],
   "tasks": [
     {
       "alias": "qasc",
       "metrics": {
-        "top1": 0.966,
-        "primary_score": 0.966
+        "top1": 0.968,
+        "primary_score": 0.968
       },
       "task_config": {
         "primary_metric": "top1"
@@ -32,8 +32,8 @@
     {
       "alias": "quartz",
       "metrics": {
-        "top1": 0.73,
-        "primary_score": 0.73
+        "top1": 0.731,
+        "primary_score": 0.731
       },
       "task_config": {
         "primary_metric": "top1"
@@ -62,8 +62,8 @@
     {
       "alias": "winogrande",
       "metrics": {
-        "top1": 0.508,
-        "primary_score": 0.508
+        "top1": 0.511,
+        "primary_score": 0.511
       },
       "task_config": {
         "primary_metric": "top1"
