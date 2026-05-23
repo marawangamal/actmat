@@ -1,19 +1,19 @@
 {
   "all_primary_scores": [
-    "qasc: 0.567000",
-    "wiki_qa: 0.889000",
-    "quartz: 0.712000",
-    "paws: 0.840000",
+    "qasc: 0.766000",
+    "wiki_qa: 0.906000",
+    "quartz: 0.728000",
+    "paws: 0.772000",
     "story_cloze: 0.512000",
-    "winogrande: 0.526000",
-    "wsc: 0.583000"
+    "winogrande: 0.631000",
+    "wsc: 0.653000"
   ],
   "tasks": [
     {
       "alias": "qasc",
       "metrics": {
-        "top1": 0.567,
-        "primary_score": 0.567
+        "top1": 0.766,
+        "primary_score": 0.766
       },
       "task_config": {
         "primary_metric": "top1"
@@ -22,8 +22,8 @@
     {
       "alias": "wiki_qa",
       "metrics": {
-        "top1": 0.889,
-        "primary_score": 0.889
+        "top1": 0.906,
+        "primary_score": 0.906
       },
       "task_config": {
         "primary_metric": "top1"
@@ -32,8 +32,8 @@
     {
       "alias": "quartz",
       "metrics": {
-        "top1": 0.712,
-        "primary_score": 0.712
+        "top1": 0.728,
+        "primary_score": 0.728
       },
       "task_config": {
         "primary_metric": "top1"
@@ -42,8 +42,8 @@
     {
       "alias": "paws",
       "metrics": {
-        "top1": 0.84,
-        "primary_score": 0.84
+        "top1": 0.772,
+        "primary_score": 0.772
       },
       "task_config": {
         "primary_metric": "top1"
@@ -62,8 +62,8 @@
     {
       "alias": "winogrande",
       "metrics": {
-        "top1": 0.526,
-        "primary_score": 0.526
+        "top1": 0.631,
+        "primary_score": 0.631
       },
       "task_config": {
         "primary_metric": "top1"
@@ -72,8 +72,8 @@
     {
       "alias": "wsc",
       "metrics": {
-        "top1": 0.583,
-        "primary_score": 0.583
+        "top1": 0.653,
+        "primary_score": 0.653
       },
       "task_config": {
         "primary_metric": "top1"
@@ -81,7 +81,7 @@
     }
   ],
   "model_config": {
-    "model": "t5-base",
+    "model": "t5-large",
     "merge_func": "wudi",
     "finetuning_mode": "lora",
     "seed": null,

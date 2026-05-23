@@ -1,19 +1,19 @@
 {
   "all_primary_scores": [
-    "qasc: 0.567000",
-    "wiki_qa: 0.889000",
-    "quartz: 0.712000",
-    "paws: 0.840000",
+    "qasc: 0.935000",
+    "wiki_qa: 0.925000",
+    "quartz: 0.833000",
+    "paws: 0.893000",
     "story_cloze: 0.512000",
-    "winogrande: 0.526000",
-    "wsc: 0.583000"
+    "winogrande: 0.630000",
+    "wsc: 0.681000"
   ],
   "tasks": [
     {
       "alias": "qasc",
       "metrics": {
-        "top1": 0.567,
-        "primary_score": 0.567
+        "top1": 0.935,
+        "primary_score": 0.935
       },
       "task_config": {
         "primary_metric": "top1"
@@ -22,8 +22,8 @@
     {
       "alias": "wiki_qa",
       "metrics": {
-        "top1": 0.889,
-        "primary_score": 0.889
+        "top1": 0.925,
+        "primary_score": 0.925
       },
       "task_config": {
         "primary_metric": "top1"
@@ -32,8 +32,8 @@
     {
       "alias": "quartz",
       "metrics": {
-        "top1": 0.712,
-        "primary_score": 0.712
+        "top1": 0.833,
+        "primary_score": 0.833
       },
       "task_config": {
         "primary_metric": "top1"
@@ -42,8 +42,8 @@
     {
       "alias": "paws",
       "metrics": {
-        "top1": 0.84,
-        "primary_score": 0.84
+        "top1": 0.893,
+        "primary_score": 0.893
       },
       "task_config": {
         "primary_metric": "top1"
@@ -62,8 +62,8 @@
     {
       "alias": "winogrande",
       "metrics": {
-        "top1": 0.526,
-        "primary_score": 0.526
+        "top1": 0.63,
+        "primary_score": 0.63
       },
       "task_config": {
         "primary_metric": "top1"
@@ -72,8 +72,8 @@
     {
       "alias": "wsc",
       "metrics": {
-        "top1": 0.583,
-        "primary_score": 0.583
+        "top1": 0.681,
+        "primary_score": 0.681
       },
       "task_config": {
         "primary_metric": "top1"
@@ -81,9 +81,9 @@
     }
   ],
   "model_config": {
-    "model": "t5-base",
+    "model": "t5-large",
     "merge_func": "wudi",
-    "finetuning_mode": "lora",
+    "finetuning_mode": "standard",
     "seed": null,
     "optimal_merge_hp": {}
   }

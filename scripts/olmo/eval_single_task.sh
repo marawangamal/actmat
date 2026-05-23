@@ -21,15 +21,20 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
+# Mix is published with a stale model_type ("olmo2-retrofit") from a pre-release
+# transformers dev branch; we snapshot it locally and patch the config to "olmo3"
+# (same architecture, post-rename name used in transformers >= 4.57).
+MIX_LOCAL="artifacts/checkpoints-hf/Olmo-3-7B-RL-Zero-Mix"
+
 declare -A MODEL_TASKS
 # MODEL_TASKS[allenai/Olmo-3-7B-RL-Zero-Math]="aime:zs_cot_r1::pass_at_32_2024_deepseek aime:zs_cot_r1::pass_at_32_2025_deepseek"
 # MODEL_TASKS[allenai/Olmo-3-7B-RL-Zero-Code]="codex_humaneval::tulu codex_humanevalplus::tulu"
 # MODEL_TASKS[allenai/Olmo-3-7B-RL-Zero-IF]="ifeval::tulu"
-MODEL_TASKS[allenai/Olmo-3-7B-RL-Zero-Mix]="aime:zs_cot_r1::pass_at_32_2024_deepseek aime:zs_cot_r1::pass_at_32_2025_deepseek codex_humaneval::tulu codex_humanevalplus::tulu ifeval::tulu"
+MODEL_TASKS[$MIX_LOCAL]="aime:zs_cot_r1::pass_at_32_2024_deepseek aime:zs_cot_r1::pass_at_32_2025_deepseek codex_humaneval::tulu codex_humanevalplus::tulu ifeval::tulu"
 
 for MODEL_ID in "${!MODEL_TASKS[@]}"; do
   TASKS=${MODEL_TASKS[$MODEL_ID]}
-  MODEL_FNAME="$(echo $MODEL_ID | tr '/' '-')"
+  MODEL_FNAME="$(basename "$MODEL_ID")"
   OUTPUT_DIR="results-rl/${MODEL_FNAME}"
 
   echo "============================================================"
