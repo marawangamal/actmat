@@ -12,6 +12,7 @@ dependencies = [
 vision-language = [
     "datasets>=4.5.0",
     "evaluate>=0.4.6",
+    "h5py>=3.10.0",
     "huggingface-hub>=0.36.2",
     "numpy>=2.0.2",
     "open-clip-torch==2.10.1",
