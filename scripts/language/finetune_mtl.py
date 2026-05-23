@@ -11,7 +11,7 @@ Follows the recipe in https://github.com/prateeky2806/ties-merging
 * 75000 optimizer steps, max_seq_len=128, bf16
 
 Saves ``pretrained.pt`` and ``{prefix}finetuned.pt`` into
-``{args.save}/MTL_{mixture}/``.
+``{args.save}/multitask/``.
 """
 
 import os
@@ -39,10 +39,10 @@ def _format_duration(seconds: float) -> str:
     return f"{h:d}:{m:02d}:{sec:02d}" if h > 0 else f"{m:02d}:{sec:02d}"
 
 
-def _evaluate_mixture(model, tokenizer, datasets, args):
-    """Evaluate on each task in ``datasets`` and return (per_task, mean)."""
+def _evaluate_mixture(model, tokenizer, args):
+    """Evaluate on each task in ``T5_MIXTURE`` and return (per_task, mean)."""
     per_task = {}
-    for name in datasets:
+    for name in T5_MIXTURE:
         per_task[name] = eval_single_dataset(
             "validation", model, tokenizer, name, args
         )["top1"]
@@ -50,10 +50,8 @@ def _evaluate_mixture(model, tokenizer, datasets, args):
     return per_task, mean
 
 
-def finetune_mtl(args, mixture_name="t5_mixture", datasets=None):
-    if datasets is None:
-        datasets = T5_MIXTURE
-    ckpdir = os.path.join(args.save, f"MTL_{mixture_name}")
+def finetune_mtl(args):
+    ckpdir = os.path.join(args.save, "multitask")
 
     assert args.finetuning_mode in [
         "linear",

@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.729824",
+    "Cars: 0.794180",
+    "DTD: 0.735106",
+    "EuroSAT: 0.893704",
+    "GTSRB: 0.918448",
+    "MNIST: 0.985800",
+    "RESISC45: 0.887143",
+    "SVHN: 0.920290"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.729823677581864,
+        "primary_score": 0.729823677581864
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.7941798283795548,
+        "primary_score": 0.7941798283795548
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.7351063829787234,
+        "primary_score": 0.7351063829787234
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.8937037037037037,
+        "primary_score": 0.8937037037037037
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.9184481393507522,
+        "primary_score": 0.9184481393507522
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9858,
+        "primary_score": 0.9858
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.8871428571428571,
+        "primary_score": 0.8871428571428571
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.9202904118008605,
+        "primary_score": 0.9202904118008605
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-L-14",
+    "merge_func": "wudi",
+    "finetuning_mode": "lora",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

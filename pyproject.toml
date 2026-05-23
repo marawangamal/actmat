@@ -33,12 +33,19 @@ olmo = [
     "numpy<2.3",
     "setuptools<81",
 ]
+gemma = [
+    "ai2-olmes[gpu]",
+    "lm-eval>=0.4.4",
+    "numpy<2.3",
+    "setuptools<81",
+]
 
 [tool.uv]
 conflicts = [
     [
         { group = "vision-language" },
         { group = "olmo" },
+        { group = "gemma" },
     ],
 ]
 
