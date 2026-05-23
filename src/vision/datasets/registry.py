@@ -10,11 +10,20 @@ from src.vision.datasets.cars import Cars
 from src.vision.datasets.cifar10 import CIFAR10
 from src.vision.datasets.cifar100 import CIFAR100
 from src.vision.datasets.dtd import DTD
+from src.vision.datasets.emnist import EMNIST
 from src.vision.datasets.eurosat import EuroSAT, EuroSATVal
+from src.vision.datasets.fashionmnist import FashionMNIST
+from src.vision.datasets.fer2013 import FER2013
+from src.vision.datasets.flowers102 import Flowers102
+from src.vision.datasets.food101 import Food101
 from src.vision.datasets.gtsrb import GTSRB
 from src.vision.datasets.imagenet import ImageNet
+from src.vision.datasets.kmnist import KMNIST
 from src.vision.datasets.mnist import MNIST
+from src.vision.datasets.oxfordpets import OxfordIIITPet
+from src.vision.datasets.pcam import PCAM
 from src.vision.datasets.resisc45 import RESISC45
+from src.vision.datasets.sst2 import RenderedSST2
 from src.vision.datasets.stl10 import STL10
 from src.vision.datasets.svhn import SVHN
 from src.vision.datasets.sun397 import SUN397
