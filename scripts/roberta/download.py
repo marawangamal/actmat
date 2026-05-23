@@ -42,9 +42,14 @@ from safetensors.torch import load_file, save_file as save_safetensors_file
 from transformers import AutoModel, AutoConfig
 
 GLUE_TASKS = ["cola", "mnli", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb"]
-HF_REPO = "lu-vae/roberta-glue"
-BASE_MODEL = "FacebookAI/roberta-base"
-SUBDIR = "roberta-base_lr1e-05"  # consistent across tasks in this HF repo
+HF_REPO = "lu-vae/roberta-glue"  # used only for --variant base when no --snapshot-dir given
+
+# Per-variant defaults: HF base-model id + the per-task subdirectory name used by the
+# Twin-Merging / WUDI release ("roberta-{base,large}_lr1e-05").
+VARIANT_DEFAULTS = {
+    "base":  ("FacebookAI/roberta-base",  "roberta-base_lr1e-05"),
+    "large": ("FacebookAI/roberta-large", "roberta-large_lr1e-05"),
+}
 
 # Non-weight files we copy verbatim from each task's snapshot dir.
 SIDE_FILES = (
@@ -114,13 +119,13 @@ def write_param_folder(folder: Path, model_id: str, state_dict: dict):
     )
 
 
-def stage_task(task: str, snapshot_root: Path, output_root: Path):
+def stage_task(task: str, snapshot_root: Path, output_root: Path, subdir: str):
     """Convert one task's HF snapshot into a param-folder task dir.
 
     Returns the body's state dict (so the caller can reconcile key sets across
     tasks before saving the shared pretrained body).
     """
-    src = snapshot_root / task / SUBDIR
+    src = snapshot_root / task / subdir
     dst = output_root / task
     dst.mkdir(parents=True, exist_ok=True)
 
@@ -157,8 +162,8 @@ def stage_task(task: str, snapshot_root: Path, output_root: Path):
     return body
 
 
-def save_pretrained_folder(folder: Path, cache_dir: str, key_filter: set):
-    """Save the pretrained roberta-base body as a param-folder, restricted to key_filter.
+def save_pretrained_folder(folder: Path, cache_dir: str, key_filter: set, base_model: str):
+    """Save the pretrained roberta body as a param-folder, restricted to key_filter.
 
     `key_filter` is the set of body keys that appear in the fine-tuned checkpoints
     (which lack the pooler — its slot is taken by the SeqCls classifier head).
@@ -168,15 +173,15 @@ def save_pretrained_folder(folder: Path, cache_dir: str, key_filter: set):
     if (folder / "param_manifest.json").exists():
         print(f">>> Pretrained body already at {folder} — skipping")
         return
-    print(f">>> Downloading pretrained body: {BASE_MODEL}")
-    model = AutoModel.from_pretrained(BASE_MODEL, cache_dir=cache_dir)
+    print(f">>> Downloading pretrained body: {base_model}")
+    model = AutoModel.from_pretrained(base_model, cache_dir=cache_dir)
     # AutoModel returns a RobertaModel; its state_dict keys are bare (no 'roberta.' prefix).
     body = {f"roberta.{k}": v for k, v in model.state_dict().items()}
     dropped = sorted(k for k in body if k not in key_filter)
     body = {k: v for k, v in body.items() if k in key_filter}
     if dropped:
         print(f"    Dropped {len(dropped)} keys not in finetuned body: {dropped}")
-    write_param_folder(folder, model_id=BASE_MODEL, state_dict=body)
+    write_param_folder(folder, model_id=base_model, state_dict=body)
     print(f"    Wrote {len(body)} pretrained tensors to {folder}")
 
 
@@ -191,10 +196,16 @@ def link_pretrained(task_dir: Path, shared_pretrained: Path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--variant",
+        choices=list(VARIANT_DEFAULTS),
+        default="base",
+        help="roberta variant — controls --base-model and --subdir defaults.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=str,
-        default="artifacts/checkpoints/roberta-base",
-        help="Destination root for the converted checkpoints.",
+        default=None,
+        help="Destination root. Default: artifacts/checkpoints/roberta-{variant}.",
     )
     parser.add_argument(
         "--tasks",
@@ -214,7 +225,24 @@ def main():
         default=None,
         help="Skip the HF download and read from this existing snapshot dir.",
     )
+    parser.add_argument(
+        "--base-model",
+        type=str,
+        default=None,
+        help="HF id for the pretrained body. Default: variant-specific.",
+    )
+    parser.add_argument(
+        "--subdir",
+        type=str,
+        default=None,
+        help="Per-task subdirectory name in the snapshot. Default: variant-specific.",
+    )
     args = parser.parse_args()
+
+    base_default, subdir_default = VARIANT_DEFAULTS[args.variant]
+    base_model = args.base_model or base_default
+    subdir = args.subdir or subdir_default
+    output_root = Path(args.output_dir or f"artifacts/checkpoints/roberta-{args.variant}")
 
     tasks = args.tasks or GLUE_TASKS
     bad = [t for t in tasks if t not in GLUE_TASKS]
@@ -222,11 +250,17 @@ def main():
         print(f"ERROR: unknown tasks {bad}; choose from {GLUE_TASKS}", file=sys.stderr)
         sys.exit(2)
 
-    output_root = Path(args.output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
 
-    # 1. Snapshot the HF repo (cached after the first call)
+    # 1. Snapshot the HF repo (cached after the first call) unless overridden
     if args.snapshot_dir is None:
+        if args.variant != "base":
+            print(
+                f"ERROR: --variant={args.variant} has no HF release; "
+                "pass --snapshot-dir pointing at a local Drive download.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
         print(f">>> Downloading {HF_REPO}")
         snapshot_root = Path(
             snapshot_download(
@@ -238,12 +272,15 @@ def main():
     else:
         snapshot_root = Path(args.snapshot_dir)
     print(f"    Snapshot at {snapshot_root}")
+    print(f"    Per-task subdir: {subdir}")
+    print(f"    Pretrained body: {base_model}")
+    print(f"    Output: {output_root}")
 
     # 2. Stage each task — gives us the canonical body key set
     body_key_sets = {}
     for task in tasks:
         print(f">>> Staging {task}")
-        body = stage_task(task, snapshot_root, output_root)
+        body = stage_task(task, snapshot_root, output_root, subdir)
         body_key_sets[task] = set(body.keys())
 
     canonical_keys = next(iter(body_key_sets.values()))
@@ -255,7 +292,7 @@ def main():
 
     # 3. Save shared pretrained body, then symlink it into each task dir
     shared_pretrained = output_root / "pretrained"
-    save_pretrained_folder(shared_pretrained, args.cache_dir, key_filter=canonical_keys)
+    save_pretrained_folder(shared_pretrained, args.cache_dir, key_filter=canonical_keys, base_model=base_model)
     for task in tasks:
         link_pretrained(output_root / task, shared_pretrained)
 
