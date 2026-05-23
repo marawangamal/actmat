@@ -52,6 +52,11 @@ from src.utils import resolve_run_dir
 
 GLUE_TASKS = ["cola", "mnli", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb"]
 
+# Default freeze targets: matches WUDI's `--exclude-param ".*bias.*" ".*LayerNorm.*"
+# ".*embeddings.*"` and keeps the merged delta scoped to encoder linear weights.
+# Override with --freeze-keys (use --freeze-keys '' to merge everything).
+DEFAULT_FREEZE_KEYS = ["bias", "LayerNorm", "embeddings"]
+
 # Twin-Merging's text-field map (arXiv:2406.15479 eval.py)
 GLUE_TEXT_FIELDS = {
     "cola": ("sentence", None),
@@ -99,7 +104,7 @@ def build_merged_body(args, eval_datasets):
     merged_vector = merged_tv.vector
     del merged_tv
 
-    freeze_keys = args.freeze_keys or []
+    freeze_keys = args.freeze_keys if args.freeze_keys is not None else DEFAULT_FREEZE_KEYS
     body_sd = {}
     frozen = 0
     for key in tqdm(list(merged_vector.keys()), desc="Applying deltas"):

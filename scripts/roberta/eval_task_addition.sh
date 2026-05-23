@@ -36,8 +36,6 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --merge-func="$method" \
       --merge-mode="$MERGE_MODE" \
-      --freeze-keys bias LayerNorm embeddings \
-      --results-dir artifacts/results-roberta-frozen \
       ${HPO:+--hpo="$HPO"}
 
   done
