@@ -59,6 +59,7 @@ for MODEL in "${MODELS[@]}"; do
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
         --save="$CKPT_ROOT" \
+        --eval-datasets="$EVAL_DATASETS" \
         --mha=split
     elif [ "$method" = "fisher" ]; then
       echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
@@ -66,6 +67,7 @@ for MODEL in "${MODELS[@]}"; do
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
         --save="$CKPT_ROOT" \
+        --eval-datasets="$EVAL_DATASETS" \
         --mha=split
     fi
 
@@ -79,6 +81,7 @@ for MODEL in "${MODELS[@]}"; do
       --merge-func="$method" \
       --merge-mode="$MERGE_MODE" \
       --results-dir="$RESULTS_DIR" \
+      --eval-datasets="$EVAL_DATASETS" \
       --mha=split \
       ${HPO:+--hpo="$HPO"}
 
