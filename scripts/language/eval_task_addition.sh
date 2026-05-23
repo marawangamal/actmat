@@ -26,7 +26,7 @@ ln -sfn "$SLURM_TMPDIR/data" data
 
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
-METHODS=(wudi ties dare sum mean tsv isoc regmean actmat)
+METHODS=(ace wudi ties dare sum mean tsv isoc regmean actmat)
 FT_MODES=(standard lora)
 MERGE_MODE=d
 HPO=""

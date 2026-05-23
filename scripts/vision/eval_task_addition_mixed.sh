@@ -28,7 +28,7 @@ BATCH_SIZE=32
 
 # 8 tasks come from our checkpoints/, 12 extras from checkpoints-wang/ (mixed dir).
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-METHODS=(mean actmat)
+METHODS=(tsv isoc)
 FT_MODES=(standard)
 MERGE_MODE=d
 HPO=''
