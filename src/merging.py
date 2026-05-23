@@ -90,6 +90,7 @@ def combine_task_vectors(
                 and max(taus[0].shape) < 20_000
                 # and not in ignore_keys
                 and not (ignore_keys and any(ik in key for ik in ignore_keys))
+                and taus.abs().max() > 1e-8
             ):
                 # Only matrices can be merged using the merge function
                 fn = merge_fn
@@ -386,27 +387,39 @@ def merge_wudi(
     d: torch.Tensor,
     wudi_iters: int = 300,
     wudi_lr: float = 1e-5,
+    wudi_weighted: bool = True,
     **kwargs,
 ) -> torch.Tensor:
     """WUDI: data-free merging by minimizing per-task interference.
 
     Optimizes M (init: Σ_i τ_i) for `wudi_iters` Adam steps at `wudi_lr` to
     minimize Σ_i ‖(M − τ_i) τ_iᵀ‖_F² / ‖τ_i‖_F².
+
+    When `wudi_weighted=False`, drops the 1/‖τ_i‖² normalization — tasks with
+    larger task-vector norm then dominate the objective (`merge_wudi_unweighted`).
     """
     N = d.shape[0]
     d_det = d.detach()
-    l2_sq = d_det.reshape(N, -1).pow(2).sum(dim=-1).view(N, 1, 1)
+    if wudi_weighted:
+        l2_sq = d_det.reshape(N, -1).pow(2).sum(dim=-1).view(N, 1, 1)
     with torch.enable_grad():
         M = torch.nn.Parameter(d_det.sum(dim=0).clone())
         optimizer = torch.optim.Adam([M], lr=wudi_lr, weight_decay=0.0)
         for _ in tqdm(range(wudi_iters), desc="WUDI", leave=False):
             disturbing = M.unsqueeze(0) - d_det
             inner = torch.matmul(disturbing, d_det.transpose(1, 2))
-            loss = (inner.pow(2) / l2_sq).sum()
+            sq = inner.pow(2)
+            loss = (sq / l2_sq).sum() if wudi_weighted else sq.sum()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
     return M.detach()
+
+
+def merge_wudi_unweighted(d: torch.Tensor, **kwargs) -> torch.Tensor:
+    """WUDI without the 1/‖τ_i‖² per-task normalization."""
+    kwargs.pop("wudi_weighted", None)
+    return merge_wudi(d, wudi_weighted=False, **kwargs)
 
 
 def merge_dare(

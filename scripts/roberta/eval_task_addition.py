@@ -99,13 +99,22 @@ def build_merged_body(args, eval_datasets):
     merged_vector = merged_tv.vector
     del merged_tv
 
+    freeze_keys = args.freeze_keys or []
     body_sd = {}
+    frozen = 0
     for key in tqdm(list(merged_vector.keys()), desc="Applying deltas"):
         delta = merged_vector.pop(key)
         pre_t = _load_single_tensor(
             _build_param_file_path(pretrained_dir, pre_manifest, key)
         )
-        body_sd[key] = (pre_t.float() + delta).to(pre_t.dtype)
+        if freeze_keys and any(s in key for s in freeze_keys):
+            # Freeze: keep pretrained value, discard delta
+            body_sd[key] = pre_t
+            frozen += 1
+        else:
+            body_sd[key] = (pre_t.float() + delta).to(pre_t.dtype)
+    if freeze_keys:
+        print(f"Froze {frozen}/{len(body_sd)} keys at pretrained (substrings={freeze_keys})")
     return body_sd
 
 

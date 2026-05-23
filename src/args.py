@@ -171,6 +171,12 @@ def parse_arguments():
         help="Substrings of parameter keys to exclude from merging (averaged instead).",
     )
     parser.add_argument(
+        "--freeze-keys",
+        nargs="+",
+        default=None,
+        help="Substrings of parameter keys to freeze at pretrained values (no delta applied).",
+    )
+    parser.add_argument(
         "--merge-kwargs",
         type=json.loads,
         default={},

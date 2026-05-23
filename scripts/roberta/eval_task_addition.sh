@@ -23,7 +23,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 MODELS=(roberta-base)
 # Data-free merges. Skip regmean / fisher — they require per-task statistics
 # collection, which is out of scope for this driver.
-METHODS=(sum mean tsv isoc actmat ties dare wudi)
+METHODS=(sum mean tsv isoc actmat ties dare wudi wudi_unweighted)
 MERGE_MODE=d
 HPO=''
 
@@ -35,6 +35,8 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --merge-func="$method" \
       --merge-mode="$MERGE_MODE" \
+      --freeze-keys bias LayerNorm embeddings \
+      --results-dir artifacts/results-roberta-frozen \
       ${HPO:+--hpo="$HPO"}
 
   done
