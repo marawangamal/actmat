@@ -357,6 +357,88 @@ def merge_tact(d: torch.Tensor, tact_k: float = 0.5, **kwargs):
 
 
 # ---------------------------------------------------------------------------
+# ACE-Merging (https://arxiv.org/abs/2603.02945)
+# Reference: https://github.com/unravel-xu/ACE-Merging/blob/main/src/merge/strategy.py
+# ---------------------------------------------------------------------------
+def merge_ace(
+    d: torch.Tensor,
+    ace_eps: float = 1e-5,
+    ace_k_frac: float = 0.3,
+    **kwargs,
+) -> torch.Tensor:
+    """ACE-Merging: adaptive covariance estimation, data-free.
+
+    Per-layer closed-form merge of task-vector stack ``d`` of shape ``(N, Do, Di)``:
+      1. For each W_t, center column-wise and build Σ_t = W_t^T W_t.
+      2. Detect heterogeneity via γ = Var(log tr Σ_t) / Mean(log tr Σ_t)^2;
+         if γ > 0.3, normalize each Σ_t by its trace (and scale ε accordingly).
+      3. Closed form: W_0 = (Σ_t W_t (Σ_t + εI)) @ inv(Σ_t (Σ_t + εI) + C_agg),
+         where C_agg is a column-mean broadcast term over Σ_t.
+      4. Under heterogeneity, add a low-rank residual-fusion term reconstructed
+         from the top ``ace_k_frac`` singular components.
+    """
+    N, Do, Di = d.shape
+    device, dtype = d.device, d.dtype
+
+    traces = torch.stack([torch.trace(W_t.T @ W_t) for W_t in d])
+    log_traces = torch.log(traces + 1e-12)
+    gamma = torch.var(log_traces) / (torch.mean(log_traces).pow(2) + 1e-12)
+    flag = bool(gamma > 0.3)
+    avg_trace = traces.mean()
+
+    eye_di = torch.eye(Di, device=device, dtype=dtype)
+    sigmas: list[torch.Tensor] = []
+    w_sigma_sum = torch.zeros(Do, Di, device=device, dtype=dtype)
+    sigma_sum = torch.zeros(Di, Di, device=device, dtype=dtype)
+
+    for W_t in d:
+        W_c = W_t - W_t.mean(dim=0, keepdim=True)
+        sigma_raw = W_c.T @ W_c
+        tr = torch.trace(sigma_raw) + 1e-12
+        if flag:
+            sigma_t = sigma_raw / tr
+            eps_t = ace_eps / tr
+        else:
+            sigma_t = sigma_raw
+            eps_t = ace_eps
+        sigmas.append(sigma_t)
+        sigma_reg = sigma_t + eps_t * eye_di
+        w_sigma_sum = w_sigma_sum + W_c @ sigma_reg
+        sigma_sum = sigma_sum + sigma_reg
+
+    # NOTE: reference computes mean(sum(Σ_t), dim=0, keepdim=True) — a row vector
+    # broadcast over A; reproduced verbatim.
+    c_agg = torch.mean(sum(sigmas), dim=0, keepdim=True)
+    if flag:
+        c_agg = c_agg / (avg_trace + 1e-12)
+    A = sigma_sum + c_agg
+    B = w_sigma_sum
+
+    try:
+        A_inv = torch.linalg.inv(A)
+    except RuntimeError:
+        A_inv = pinv(A)
+    merging_vector = B @ A_inv
+
+    if flag:
+        sigma_mean = sigma_sum / N
+        delta_res = torch.zeros(Do, Di, device=device, dtype=dtype)
+        # Reference uses the uncentered originals here (loop variable shadowing
+        # in the first pass left task_vectors untouched); reproduced verbatim.
+        for W_t, S_t in zip(d, sigmas):
+            delta_res = delta_res + W_t @ (S_t - sigma_mean)
+        delta_fused = delta_res + merging_vector
+        U, S, Vh = torch.linalg.svd(delta_fused, full_matrices=False)
+        k = int(S.numel() * ace_k_frac)
+        if k > 0:
+            sigma_iso = S[:k].mean()
+            U_k = U[:, :k]
+            V_k = Vh[:k, :].T
+            merging_vector = merging_vector + sigma_iso * (U_k @ V_k.T)
+    return merging_vector
+
+
+# ---------------------------------------------------------------------------
 # TIES (Yadav et al., 2023 — https://arxiv.org/abs/2306.01708)
 # ---------------------------------------------------------------------------
 def merge_ties(d: torch.Tensor, ties_k: float = 0.2, **kwargs) -> torch.Tensor:

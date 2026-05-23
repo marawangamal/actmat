@@ -83,9 +83,9 @@ for method in "${METHODS[@]}"; do
       --num-workers "$NUM_WORKERS"
   fi
 
-  # 2b. lm-eval — multilingual (skip if results files exist)
-  if compgen -G "${LM_EVAL_RESULTS_DIR}/results_*.json" > /dev/null; then
-    echo ">>> Skipping lm-eval: ${LM_EVAL_RESULTS_DIR}/results_*.json already exists"
+  # 2b. lm-eval — multilingual (skip if results files exist; lm-eval nests under <sanitized-model-path>/)
+  if [[ -n "$(find "$LM_EVAL_RESULTS_DIR" -name 'results_*.json' -print -quit 2>/dev/null)" ]]; then
+    echo ">>> Skipping lm-eval: ${LM_EVAL_RESULTS_DIR} already has results"
   else
     mkdir -p "$LM_EVAL_RESULTS_DIR"
     echo ">>> lm-eval: tasks = ${LM_EVAL_TASKS}"

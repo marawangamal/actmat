@@ -16,13 +16,11 @@ source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-DATA_DIR="data/vision"
 CKPT_ROOT="artifacts/checkpoints-ours-wang-mixed"
 RESULTS_DIR="artifacts/results-ours-wang-mixed"
-
-# Point data/ at persistent scratch (not $SLURM_TMPDIR) so new dataset downloads
-# triggered by torchvision survive across jobs.
-ln -sfn "$PWD/artifacts/data" data
+# Absolute path: avoids the repo-level `data/` symlink that other concurrent
+# eval jobs (eval_task_addition.sh) rewrite to point at their own $SLURM_TMPDIR.
+DATA_DIR="$PWD/artifacts/data/vision"
 
 # Common parameters
 NUM_BATCHES=10
