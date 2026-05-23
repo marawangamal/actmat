@@ -385,7 +385,7 @@ def merge_ties(d: torch.Tensor, ties_k: float = 0.2, **kwargs) -> torch.Tensor:
 def merge_wudi(
     d: torch.Tensor,
     wudi_iters: int = 300,
-    wudi_lr: float = 2e-5,
+    wudi_lr: float = 1e-5,
     wudi_weighted: bool = True,
     **kwargs,
 ) -> torch.Tensor:

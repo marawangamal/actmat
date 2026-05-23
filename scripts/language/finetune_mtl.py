@@ -102,7 +102,7 @@ def finetune_mtl(args):
         "max_datapoints_per_dataset_without_templates": None,
     }
     mixture_reader, _ = get_datasetMixtureReader(
-        datasets, args.max_datapoints_per_dataset, dataset_kwargs
+        T5_MIXTURE, args.max_datapoints_per_dataset, dataset_kwargs
     )
     createPytorchDataset_fn = lambda d: PytorchDataset(d, tokenizer, "cuda")
     batcher = Batcher(
