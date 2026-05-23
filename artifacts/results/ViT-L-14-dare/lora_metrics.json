@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.715214",
+    "Cars: 0.762840",
+    "DTD: 0.710638",
+    "EuroSAT: 0.646667",
+    "GTSRB: 0.819319",
+    "MNIST: 0.964600",
+    "RESISC45: 0.795238",
+    "SVHN: 0.774201"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.7152141057934509,
+        "primary_score": 0.7152141057934509
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.7628404427310036,
+        "primary_score": 0.7628404427310036
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.7106382978723405,
+        "primary_score": 0.7106382978723405
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.6466666666666666,
+        "primary_score": 0.6466666666666666
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.8193190815518606,
+        "primary_score": 0.8193190815518606
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9646,
+        "primary_score": 0.9646
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.7952380952380952,
+        "primary_score": 0.7952380952380952
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.77420098340504,
+        "primary_score": 0.77420098340504
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-L-14",
+    "merge_func": "dare",
+    "finetuning_mode": "lora",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

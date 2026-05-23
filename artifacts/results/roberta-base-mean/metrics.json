@@ -1,0 +1,30 @@
+{
+  "all_primary_scores": [
+    "stsb: 0.877048"
+  ],
+  "average_primary_score": 0.8770482361406391,
+  "tasks": [
+    {
+      "alias": "stsb",
+      "metrics": {
+        "pearson": 0.8754081130027771,
+        "spearmanr": 0.8786883592785011,
+        "averaged_scores": 0.8770482361406391,
+        "primary_score": 0.8770482361406391
+      },
+      "task_config": {
+        "primary_metric": "averaged_scores"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "roberta-base",
+    "merge_func": "mean",
+    "merge_mode": "d",
+    "merge_kwargs": {},
+    "eval_datasets": [
+      "stsb"
+    ],
+    "seed": null
+  }
+}
