@@ -40,7 +40,7 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --world-size=1 \
       --num-workers=1 \
-      --openclip-cachedir="$OPENCLIP_DIR" \
+      --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR"
 

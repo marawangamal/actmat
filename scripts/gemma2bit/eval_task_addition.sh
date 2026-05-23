@@ -23,6 +23,8 @@ mkdir -p artifacts/logs
 source "$SCRATCH/actmat/.venv-gemma/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
+# HF backend has no paged-attention KV cache; reduce fragmentation OOMs.
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="gemma-2-2b-it"
@@ -40,7 +42,7 @@ OLMES_TASKS=(
 )
 OLMES_MODEL_ARGS='{"trust_remote_code": false, "max_length": 8192, "dtype": "bfloat16"}'
 GPUS=1
-BATCH_SIZE=16
+BATCH_SIZE=4
 NUM_WORKERS=1
 
 # ── lm-eval (multilingual) ────────────────────────────────────────────────────

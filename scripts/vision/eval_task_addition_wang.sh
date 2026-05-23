@@ -16,15 +16,11 @@ source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-DATA_DIR="data/vision"
 CKPT_ROOT="artifacts/checkpoints-wang"
 RESULTS_DIR="artifacts/results-wang"
-
-if [ ! -d "$SLURM_TMPDIR/data" ]; then
-  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
-  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
-fi
-ln -sfn "$SLURM_TMPDIR/data" data
+# Absolute path: avoids the repo-level `data/` symlink that other concurrent
+# eval jobs (eval_task_addition.sh) rewrite to point at their own $SLURM_TMPDIR.
+DATA_DIR="$PWD/artifacts/data/vision"
 
 # Common parameters
 NUM_BATCHES=10
@@ -37,6 +33,11 @@ METHODS=(wudi ace)
 FT_MODES=(standard)
 MERGE_MODE=d
 HPO=''
+# Task scenarios (Wang et al. / TALL-masks):
+#   8 : Cars, DTD, EuroSAT, GTSRB, MNIST, RESISC45, SUN397, SVHN
+#   14: 8 + CIFAR100, STL10, Flowers102, OxfordIIITPet, PCAM, FER2013
+#   20: 14 + EMNIST, CIFAR10, Food101, FashionMNIST, RenderedSST2, KMNIST
+EVAL_DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN,CIFAR100,STL10,Flowers102,OxfordIIITPet,PCAM,FER2013,EMNIST,CIFAR10,Food101,FashionMNIST,RenderedSST2,KMNIST"
 
 # ===== Hyperparameter-optimized experiments =====
 # NOTE: Only evaluate TA (sum) since other methods do not require HP tuning.
