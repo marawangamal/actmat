@@ -90,7 +90,6 @@ def combine_task_vectors(
                 and max(taus[0].shape) < 20_000
                 # and not in ignore_keys
                 and not (ignore_keys and any(ik in key for ik in ignore_keys))
-                and taus.abs().max() > 1e-8
             ):
                 # Only matrices can be merged using the merge function
                 fn = merge_fn
@@ -401,7 +400,7 @@ def merge_wudi(
     N = d.shape[0]
     d_det = d.detach()
     if wudi_weighted:
-        l2_sq = d_det.reshape(N, -1).pow(2).sum(dim=-1).view(N, 1, 1)
+        l2_sq = d_det.reshape(N, -1).pow(2).sum(dim=-1).view(N, 1, 1).clamp_min(1e-12)
     with torch.enable_grad():
         M = torch.nn.Parameter(d_det.sum(dim=0).clone())
         optimizer = torch.optim.Adam([M], lr=wudi_lr, weight_decay=0.0)
