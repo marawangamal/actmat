@@ -29,15 +29,18 @@ MODEL="gemma-2-2b-it"
 METHODS=(mean tsv isoc actmat)
 
 # ── OLMES (instruction, math, code) ───────────────────────────────────────────
+# Uses the HF backend (not vllm): vllm's streaming detokenizer stochastically
+# leaks SentencePiece ▁ (U+2581) markers into code indentation, breaking the
+# code tasks. The HF backend decodes correctly.
 OLMES_TASKS=(
   "ifeval::tulu"
   "gsm8k::tulu"
   "codex_humanevalplus::tulu"
   "mbppplus:0-shot-chat"
 )
-OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 8192}'
+OLMES_MODEL_ARGS='{"trust_remote_code": false, "max_length": 8192, "dtype": "bfloat16"}'
 GPUS=1
-BATCH_SIZE=64
+BATCH_SIZE=16
 NUM_WORKERS=1
 
 # ── lm-eval (multilingual) ────────────────────────────────────────────────────
@@ -71,13 +74,13 @@ for method in "${METHODS[@]}"; do
   if [[ -f "$OLMES_RESULTS_DIR/metrics.json" ]]; then
     echo ">>> Skipping olmes: ${OLMES_RESULTS_DIR}/metrics.json already exists"
   else
-    echo ">>> olmes eval: tasks = ${OLMES_TASKS[*]}"
+    echo ">>> olmes eval (hf backend): tasks = ${OLMES_TASKS[*]}"
     olmes \
       --model "$MERGED_DIR" \
       --task "${OLMES_TASKS[@]}" \
       --output-dir "$OLMES_RESULTS_DIR" \
       --gpus "$GPUS" \
-      --model-type vllm \
+      --model-type hf \
       --model-args "$OLMES_MODEL_ARGS" \
       --batch-size "$BATCH_SIZE" \
       --num-workers "$NUM_WORKERS"

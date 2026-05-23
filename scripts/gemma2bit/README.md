@@ -17,16 +17,23 @@ The safety expert is intentionally skipped — its evaluation requires the
 
 ## Evaluation matrix
 
-| Capability | Harness | Task(s) |
-|---|---|---|
-| Instruction | `olmes` | `ifeval::tulu` |
-| Math | `olmes` | `gsm8k::tulu` |
-| Coding | `olmes` | `codex_humanevalplus::tulu`, `mbppplus:0-shot-chat` |
-| Multilingual | `lm-eval` | `m_mmlu_{fr,es,de,ru}`, `arc_{fr,es,de,ru}`, `hellaswag_{fr,es,de,ru}` |
+| Capability | Harness | Backend | Task(s) |
+|---|---|---|---|
+| Instruction | `olmes` | hf | `ifeval::tulu` |
+| Math | `olmes` | hf | `gsm8k::tulu` |
+| Coding | `olmes` | hf | `codex_humanevalplus::tulu`, `mbppplus:0-shot-chat` |
+| Multilingual | `lm-eval` | hf | `m_mmlu_{fr,es,de,ru}`, `arc_{fr,es,de,ru}`, `hellaswag_{fr,es,de,ru}` |
 
 `lm-eval` is used for the multilingual block because `olmes` does not ship
 MMLU/ARC/HellaSwag in fr/es/de/ru; for the other three capabilities `olmes`
 already matches MergeBench's reference benchmark.
+
+**Backend note:** olmes runs on the HuggingFace backend (`--model-type hf`),
+not vllm. vllm's streaming detokenizer stochastically leaves SentencePiece `▁`
+(U+2581) markers in code indentation (e.g. `▁▁▁▁for` instead of `    for`),
+which makes generated code fail to compile and zeroes out the coding scores.
+The token IDs are correct — only vllm's incremental decode is buggy — so the
+HF backend, which decodes correctly, is used instead (slower but correct).
 
 ## Setup
 
