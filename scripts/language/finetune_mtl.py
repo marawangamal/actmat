@@ -124,8 +124,8 @@ def finetune_mtl(args):
 
     print(
         f"\n=== MTL config ===\n"
-        f"  mixture:       {mixture_name} ({len(datasets)} tasks)\n"
-        f"  tasks:         {datasets}\n"
+        f"  mixture:       t5_mixture ({len(T5_MIXTURE)} tasks)\n"
+        f"  tasks:         {T5_MIXTURE}\n"
         f"  optimizer:     AdamW lr={args.lr} wd={args.wd}\n"
         f"  batch:         {args.batch_size} x grad_accum {num_grad_accum} "
         f"(eff {args.batch_size * num_grad_accum})\n"

@@ -508,6 +508,8 @@ def finetune(rank, args):
 
 
 if __name__ == "__main__":
+    # 20-dataset suite from Wang et al. (nik-dim/tall_masks). The first 8 match
+    # the standard task-arithmetic benchmark (Ilharco et al.).
     train_datasets = [
         "Cars",
         "DTD",
@@ -517,6 +519,18 @@ if __name__ == "__main__":
         "RESISC45",
         "SUN397",
         "SVHN",
+        "CIFAR10",
+        "CIFAR100",
+        "STL10",
+        "Food101",
+        "Flowers102",
+        "FER2013",
+        "PCAM",
+        "OxfordIIITPet",
+        "RenderedSST2",
+        "EMNIST",
+        "FashionMNIST",
+        "KMNIST",
     ]
     epochs = {
         "Cars": 35,
@@ -527,6 +541,18 @@ if __name__ == "__main__":
         "RESISC45": 15,
         "SUN397": 14,
         "SVHN": 4,
+        "CIFAR10": 6,
+        "CIFAR100": 6,
+        "STL10": 60,
+        "Food101": 4,
+        "Flowers102": 147,
+        "FER2013": 10,
+        "PCAM": 1,
+        "OxfordIIITPet": 82,
+        "RenderedSST2": 39,
+        "EMNIST": 2,
+        "FashionMNIST": 5,
+        "KMNIST": 5,
     }
 
     args = parse_arguments()

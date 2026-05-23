@@ -33,7 +33,7 @@ BATCH_SIZE=32
 # ===== Default experiments (no hyperparameter tuning) =====
 # Wang released full-FT checkpoints only, so FT_MODES=(standard).
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-METHODS=(ties dare sum mean tsv isoc regmean actmat)
+METHODS=(wudi ace)
 FT_MODES=(standard)
 MERGE_MODE=d
 HPO=''
