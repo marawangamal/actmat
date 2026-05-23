@@ -19,8 +19,9 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
 # ===== Default experiments (no hyperparameter tuning) =====
-# Only roberta-base is published in lu-vae/roberta-glue (Twin-Merging release).
-MODELS=(roberta-base)
+# roberta-base from lu-vae/roberta-glue, roberta-large from WUDI's Drive folder.
+# Override via env: MODELS="roberta-large" sbatch scripts/roberta/eval_task_addition.sh
+MODELS=(${MODELS:-roberta-base})
 # Data-free merges. Skip regmean / fisher — they require per-task statistics
 # collection, which is out of scope for this driver.
 METHODS=(sum mean tsv isoc actmat ties dare wudi wudi_unweighted)
