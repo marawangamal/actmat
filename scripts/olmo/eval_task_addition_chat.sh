@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_olmo_chat
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:4
+#SBATCH --gres=gpu:l40s:2
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
@@ -36,7 +36,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(ace)
+METHODS=(actmat tsv isoc)
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────
 CODE_TASKS=(
@@ -49,7 +49,7 @@ MATH_TASKS=(
   "aime:zs_cot_r1::pass_at_32_2025_deepseek"
 )
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
-GPUS=4
+GPUS=2
 BATCH_SIZE=64
 NUM_WORKERS=1
 
