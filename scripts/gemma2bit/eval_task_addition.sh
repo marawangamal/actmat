@@ -26,7 +26,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="gemma-2-2b-it"
-METHODS=(sum mean tsv isoc actmat)
+METHODS=(mean tsv isoc actmat)
 
 # ── OLMES (instruction, math, code) ───────────────────────────────────────────
 OLMES_TASKS=(

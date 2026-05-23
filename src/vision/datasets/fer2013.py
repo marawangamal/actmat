@@ -1,8 +1,5 @@
-import io
 import os
 
-import torch
-from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
 from datasets import load_dataset
@@ -18,9 +15,9 @@ class _FER2013Dataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.hf_dataset[idx]
-        image = Image.open(io.BytesIO(sample["img_bytes"])).convert("L")
-        label = sample["labels"]
-        if self.transform:
+        image = sample["image"].convert("L")
+        label = sample["label"]
+        if self.transform is not None:
             image = self.transform(image)
         return image, label
 
@@ -33,8 +30,8 @@ class FER2013:
         batch_size=128,
         num_workers=16,
     ):
-        fer_train = load_dataset("Jeneral/fer-2013", split="train")
-        fer_test = load_dataset("Jeneral/fer-2013", split="test")
+        fer_train = load_dataset("AutumnQiu/fer2013", split="train")
+        fer_test = load_dataset("AutumnQiu/fer2013", split="test")
 
         self.train_dataset = _FER2013Dataset(fer_train, transform=preprocess)
         self.train_loader = DataLoader(
