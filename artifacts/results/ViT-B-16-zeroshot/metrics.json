@@ -1,0 +1,189 @@
+{
+  "all_primary_scores": [
+    "Cars: 0.647059",
+    "CarsVal: 0.643735",
+    "DTD: 0.446809",
+    "DTDVal: 0.436170",
+    "EuroSAT: 0.558148",
+    "EuroSATVal: 0.549630",
+    "GTSRB: 0.433413",
+    "GTSRBVal: 0.428679",
+    "MNIST: 0.518000",
+    "MNISTVal: 0.506400",
+    "RESISC45: 0.663492",
+    "RESISC45Val: 0.683069",
+    "SUN397: 0.654811",
+    "SUN397Val: 0.652897",
+    "SVHN: 0.519822",
+    "SVHNVal: 0.445600"
+  ],
+  "tasks": [
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.6470588235294118,
+        "primary_score": 0.6470588235294118
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "CarsVal",
+      "metrics": {
+        "top1": 0.6437346437346437,
+        "primary_score": 0.6437346437346437
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.44680851063829785,
+        "primary_score": 0.44680851063829785
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTDVal",
+      "metrics": {
+        "top1": 0.43617021276595747,
+        "primary_score": 0.43617021276595747
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.5581481481481482,
+        "primary_score": 0.5581481481481482
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSATVal",
+      "metrics": {
+        "top1": 0.5496296296296296,
+        "primary_score": 0.5496296296296296
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.4334125098970705,
+        "primary_score": 0.4334125098970705
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRBVal",
+      "metrics": {
+        "top1": 0.4286786786786787,
+        "primary_score": 0.4286786786786787
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.518,
+        "primary_score": 0.518
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNISTVal",
+      "metrics": {
+        "top1": 0.5064,
+        "primary_score": 0.5064
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.6634920634920635,
+        "primary_score": 0.6634920634920635
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45Val",
+      "metrics": {
+        "top1": 0.683068783068783,
+        "primary_score": 0.683068783068783
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.6548110831234257,
+        "primary_score": 0.6548110831234257
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SUN397Val",
+      "metrics": {
+        "top1": 0.652896725440806,
+        "primary_score": 0.652896725440806
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.5198217578365089,
+        "primary_score": 0.5198217578365089
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHNVal",
+      "metrics": {
+        "top1": 0.4456,
+        "primary_score": 0.4456
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-16",
+    "finetuning_mode": "none",
+    "seed": null,
+    "avg_val": 0.5432723341648122,
+    "avg_test": 0.5551941120831158
+  }
+}

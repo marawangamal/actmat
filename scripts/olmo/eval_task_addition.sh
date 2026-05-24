@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=eval_olmo
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:4
-#SBATCH --cpus-per-task=16
+#SBATCH --gres=gpu:l40s:1
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
 #SBATCH --output=artifacts/logs/%x_%j.out
@@ -34,7 +34,7 @@ OLMES_TASKS=(
   "aime:zs_cot_r1::pass_at_32_2025_deepseek"
 )
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
-GPUS=4
+GPUS=1
 BATCH_SIZE=64
 NUM_WORKERS=1
 
