@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=eval_gemma9bit
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:a100l:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --mem=80G
 #SBATCH --time=8:00:00
 #SBATCH --array=0-4
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
@@ -18,7 +18,8 @@
 # tree at setup time — see scripts/gemma2bit/README.md.
 #
 # Submitted as a SLURM job array: one array task per merge method.
-# L40S (44GB) with bs=16: 9B weights ~18GB + KV cache ~11GB at seq=2000.
+# a100l (80GB) — L40S 44GB OOMs during merge step (per-layer SVD on stacked
+# 9b tensors + 256k vocab needs >30GB intermediate).
 set -euo pipefail
 mkdir -p artifacts/logs
 

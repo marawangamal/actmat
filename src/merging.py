@@ -329,6 +329,60 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_actmat_gd(
+    d: torch.Tensor,
+    lam=0.0,
+    alpha_weighted=False,
+    cov_weighted=False,
+    lr=1e-5,
+    max_iters=300,
+    thresh=-float("inf"),
+    **kwargs,
+) -> torch.Tensor:
+    """Gradient-descent solver for the ACTMat objective.
+
+    Minimizes the same weighted least-squares loss as merge_actmat_general:
+        L(W) = Σ_t tr((W - d_t) C_t (W - d_t)^T) + λ ‖W‖_F²
+    where C_t = d_t^T @ d_t.
+    """
+    C = d.transpose(1, 2) @ d  # (T, Di, Di)
+
+    if cov_weighted:
+        C = C / (torch.linalg.norm(C, ord="fro", dim=(-2, -1), keepdim=True) ** 2)
+
+    if alpha_weighted:
+        alpha = 1.0 / d.flatten(1).norm(dim=1)  # (T,)
+        C = alpha[:, None, None] * C  # (T, Di, Di)
+
+    W = d.mean(dim=0).clone().requires_grad_(True)  # (Do, Di)
+    optimizer = torch.optim.Adam([W], lr=lr, weight_decay=0.0)
+
+    # Re-enable gradients inside the torch.no_grad() context of combine_task_vectors
+    with torch.enable_grad():
+        prev_loss = float("inf")
+        pbar = tqdm(range(int(max_iters)), desc="Gradient descent", leave=False)
+        for i in pbar:
+            optimizer.zero_grad()
+            diff = W.unsqueeze(0) - d  # (T, Do, Di)
+            loss = (diff @ C).mul_(diff).sum()
+            if lam > 0:
+                loss = loss + lam * W.square().sum()
+            loss.backward()
+            optimizer.step()
+
+            cur_loss = loss.item()
+            if abs(prev_loss - cur_loss) / (abs(prev_loss) + 1e-12) < thresh:
+                print(f"[converged] loss={cur_loss:.1e} < {thresh:.1e}")
+                break
+            prev_loss = cur_loss
+            pbar.set_postfix(loss=cur_loss)
+
+    if i == int(max_iters) - 1:
+        print(f"[not converged] loss={cur_loss:.1e} after {max_iters} iters")
+
+    return W.detach()
+
+
 def _per_layer_topk_mask(d: torch.Tensor, keep_frac: float) -> torch.Tensor:
     """Per-layer top-k magnitude mask over (N, Do, Di) stack of task vectors."""
     n, do, di = d.shape
