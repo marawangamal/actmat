@@ -42,7 +42,7 @@ OLMES_TASKS=(
 )
 OLMES_MODEL_ARGS='{"trust_remote_code": false, "max_length": 8192, "dtype": "bfloat16"}'
 GPUS=1
-BATCH_SIZE=8
+BATCH_SIZE=2
 NUM_WORKERS=1
 
 # ── lm-eval (multilingual) ────────────────────────────────────────────────────

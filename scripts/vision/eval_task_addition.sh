@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_vision_models
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=12:00:00
@@ -31,7 +31,7 @@ BATCH_SIZE=32
 
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-METHODS=(ace wudi ties dare sum mean tsv isoc regmean actmat)
+METHODS=(sum04)
 FT_MODES=(standard lora)
 MERGE_MODE=d
 HPO=''
