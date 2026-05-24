@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_olmo_chat
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:2
+#SBATCH --gres=gpu:rtx8000:2
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00

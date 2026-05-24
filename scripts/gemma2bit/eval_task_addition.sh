@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_gemma2bit
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=24:00:00
@@ -42,7 +42,7 @@ OLMES_TASKS=(
 )
 OLMES_MODEL_ARGS='{"trust_remote_code": false, "max_length": 8192, "dtype": "bfloat16"}'
 GPUS=1
-BATCH_SIZE=4
+BATCH_SIZE=2
 NUM_WORKERS=1
 
 # ── lm-eval (multilingual) ────────────────────────────────────────────────────

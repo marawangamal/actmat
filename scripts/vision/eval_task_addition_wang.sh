@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_vision_wang
-#SBATCH --partition=main
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --partition=long
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=12:00:00

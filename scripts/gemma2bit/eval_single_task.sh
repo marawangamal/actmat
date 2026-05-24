@@ -25,7 +25,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 # HF backend (not vllm): vllm leaks SentencePiece ▁ markers into code indentation.
 OLMES_MODEL_ARGS='{"trust_remote_code": false, "max_length": 8192, "dtype": "bfloat16"}'
 GPUS=1
-BATCH_SIZE=4
+BATCH_SIZE=2
 LM_EVAL_BATCH_SIZE=8
 MULTILINGUAL_TASKS="m_mmlu_fr,arc_fr,hellaswag_fr,m_mmlu_es,arc_es,hellaswag_es,m_mmlu_de,arc_de,hellaswag_de,m_mmlu_ru,arc_ru,hellaswag_ru"
 
