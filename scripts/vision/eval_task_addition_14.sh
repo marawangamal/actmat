@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=eval_vision_20
+#SBATCH --job-name=eval_vision_14
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
@@ -17,7 +17,7 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
 CKPT_ROOT="artifacts/checkpoints"
-RESULTS_DIR="artifacts/results20"
+RESULTS_DIR="artifacts/results14"
 DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 
@@ -28,7 +28,7 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
-# Stage KMNIST raw files (torchvision's KMNIST mirror is unreliable from compute nodes).
+# Stage KMNIST raw files (not needed for 14-task subset but kept for parity / future flips).
 KMNIST_RAW_DST="$SLURM_TMPDIR/data/vision/KMNIST/KMNIST/raw"
 if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnist ]; then
   mkdir -p "$KMNIST_RAW_DST"
@@ -45,7 +45,7 @@ BATCH_SIZE=32
 # once their 20-dataset finetunes finish.
 # MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 MODELS=(ViT-B-16)
-METHODS=(wudi isoc regmean)
+METHODS=(mean actmat tsv wudi isoc regmean)
 FT_MODES=(standard)
 MERGE_MODE=d
 HPO=''
@@ -54,7 +54,7 @@ HPO=''
 #   8 : Cars, DTD, EuroSAT, GTSRB, MNIST, RESISC45, SUN397, SVHN
 #   14: 8 + CIFAR100, STL10, Flowers102, OxfordIIITPet, PCAM, FER2013
 #   20: 14 + EMNIST, CIFAR10, Food101, FashionMNIST, RenderedSST2, KMNIST
-EVAL_DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN,CIFAR100,STL10,Flowers102,OxfordIIITPet,PCAM,FER2013,EMNIST,CIFAR10,Food101,FashionMNIST,RenderedSST2,KMNIST"
+EVAL_DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN,CIFAR100,STL10,Flowers102,OxfordIIITPet,PCAM,FER2013"
 
 
 for FT_MODE in "${FT_MODES[@]}"; do

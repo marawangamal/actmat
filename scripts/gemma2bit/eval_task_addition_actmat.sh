@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_gemma2bit_actmat
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:a100l:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=24:00:00
