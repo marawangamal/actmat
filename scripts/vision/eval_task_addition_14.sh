@@ -35,6 +35,16 @@ if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnis
   cp downloads/kmnist/*.gz "$KMNIST_RAW_DST/"
 fi
 
+# Stage PCAM h5 files (torchvision pulls from Google Drive and easily hits rate-limits).
+PCAM_DST="$SLURM_TMPDIR/data/vision/PCAM/pcam"
+PCAM_SRC="$PWD/artifacts/data/vision/PCAM/pcam"
+if [ ! -f "$PCAM_DST/camelyonpatch_level_2_split_test_y.h5" ] && [ -d "$PCAM_SRC" ]; then
+  mkdir -p "$PCAM_DST"
+  for f in "$PCAM_SRC"/*.h5 "$PCAM_SRC"/*.h5.gz; do
+    [ -f "$f" ] && ln -sfn "$f" "$PCAM_DST/$(basename "$f")"
+  done
+fi
+
 # Common parameters
 NUM_BATCHES=10
 BATCH_SIZE=32
