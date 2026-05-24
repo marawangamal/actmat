@@ -3,7 +3,7 @@
 #SBATCH --partition=long
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
-#SBATCH --time=2:00:00
+#SBATCH --time=4:00:00
 #SBATCH --output=artifacts/logs/%x_%j.out
 #SBATCH --error=artifacts/logs/%x_%j.err
 # One-shot download wrapper. The 5 param folders (1 base + 4 experts, each

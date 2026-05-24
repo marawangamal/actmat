@@ -43,11 +43,13 @@ fi
 for hf_id in "${FINETUNED_IDS[@]}"; do
   task="${hf_id##*_}"  # extract suffix after final underscore: instruction, math, coding, multilingual
 
-  # Download finetuned
+  # Download finetuned — verify params/ is non-empty (timed-out downloads can
+  # leave config/tokenizer behind with no params files).
   ft_dir="${BASE}/${task}/finetuned"
-  if [[ -d "$ft_dir" ]]; then
-    echo ">>> Skipping ${task}/finetuned: already exists"
+  if [[ -d "$ft_dir/params" ]] && [[ -n "$(ls -A "$ft_dir/params" 2>/dev/null)" ]]; then
+    echo ">>> Skipping ${task}/finetuned: already exists with params"
   else
+    rm -rf "$ft_dir"
     echo ">>> Downloading ${task}/finetuned: ${hf_id}"
     python scripts/gemma9bit/save_model_param_folder.py --model "$hf_id" --output-dir "$ft_dir"
   fi

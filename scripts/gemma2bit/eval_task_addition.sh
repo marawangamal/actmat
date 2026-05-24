@@ -74,7 +74,7 @@ else
   mkdir -p "$OUT"
   echo ">>> lm-eval multilingual"
   lm_eval --model hf --model_args "$MODEL_ARGS" \
-    --tasks "$MULTILINGUAL_TASKS" --batch_size 64 --output_path "$OUT"
+    --tasks "$MULTILINGUAL_TASKS" --batch_size 8 --output_path "$OUT"
 fi
 
 # 2c. ifeval — instruction
