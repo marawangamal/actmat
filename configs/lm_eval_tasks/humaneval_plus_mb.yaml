@@ -1,5 +1,6 @@
-include: /network/scratch/m/marawan.gamal/actmat/.venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_plus.yaml
+include: /network/scratch/m/marawan.gamal/actmat/.venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_instruct.yaml
 task: humaneval_plus_mb
+dataset_path: evalplus/humanevalplus
 generation_kwargs:
   until:
     - "\nclass"

@@ -6,8 +6,6 @@ import torch
 
 
 class _TaskVector(abc.ABC):
-    PRETRAINED_FILENAME = "pretrained.pt"
-    FINETUNED_FILENAME = "finetuned.pt"
 
     def __init__(
         self,
@@ -16,6 +14,8 @@ class _TaskVector(abc.ABC):
         lazy=False,
         cache_window=50,  # Keeps `cache_window` layers in memory at a time
         _transform_fn=None,
+        ft_filename="finetuned.pt",
+        pt_filename="pretrained.pt",
         prefix="",
         save_pt=False,  # useful for RegMean on weights vs on differences
     ):
@@ -31,6 +31,8 @@ class _TaskVector(abc.ABC):
         """
         self.lazy = lazy
         self.checkpoint_dir = checkpoint_dir
+        self.ft_filename = ft_filename
+        self.pt_filename = pt_filename
         self.cache_window = cache_window
         self.save_pt = save_pt
         self._cache = {}
@@ -42,11 +44,9 @@ class _TaskVector(abc.ABC):
 
         # Resolve checkpoint file paths from directory
         if checkpoint_dir is not None:
-            self._pretrained_checkpoint = os.path.join(
-                checkpoint_dir, self.PRETRAINED_FILENAME
-            )
+            self._pretrained_checkpoint = os.path.join(checkpoint_dir, self.pt_filename)
             self._finetuned_checkpoint = os.path.join(
-                checkpoint_dir, f"{prefix}{self.FINETUNED_FILENAME}"
+                checkpoint_dir, f"{prefix}{self.ft_filename}"
             )
         else:
             self._pretrained_checkpoint = None
@@ -271,7 +271,7 @@ class _TaskVector(abc.ABC):
 
     def apply_to(self, checkpoint_dir, scaling_coef=1.0):
         """Apply a task vector to a pretrained model from checkpoint_dir."""
-        pretrained_path = os.path.join(checkpoint_dir, self.PRETRAINED_FILENAME)
+        pretrained_path = os.path.join(checkpoint_dir, self.pt_filename)
         with torch.no_grad():
             pretrained_model = self._load_checkpoint(pretrained_path)
             new_state_dict = {}

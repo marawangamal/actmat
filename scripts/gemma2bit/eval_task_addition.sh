@@ -27,6 +27,10 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export HF_ALLOW_CODE_EVAL=1
+# Per-array-task metrics cache — `evaluate`'s code_eval module reads/deletes
+# shared arrow files which race when array tasks run in parallel on a shared FS.
+export HF_METRICS_CACHE="${SCRATCH}/huggingface/metrics_arr_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+mkdir -p "$HF_METRICS_CACHE"
 
 MODEL="gemma-2-2b-it"
 METHODS=(tsv actmat wudi mean isoc)

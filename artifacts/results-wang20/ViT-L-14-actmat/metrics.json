@@ -1,0 +1,234 @@
+{
+  "all_primary_scores": [
+    "Cars: 0.829623",
+    "DTD: 0.695745",
+    "EuroSAT: 0.904074",
+    "GTSRB: 0.900554",
+    "MNIST: 0.953600",
+    "RESISC45: 0.879841",
+    "SUN397: 0.724181",
+    "SVHN: 0.895667",
+    "CIFAR100: 0.810500",
+    "STL10: 0.989375",
+    "Flowers102: 0.736380",
+    "OxfordIIITPet: 0.955846",
+    "PCAM: 0.821075",
+    "FER2013: 0.453330",
+    "EMNIST: 0.994650",
+    "CIFAR10: 0.977700",
+    "Food101: 0.912871",
+    "FashionMNIST: 0.884600",
+    "RenderedSST2: 0.832510",
+    "KMNIST: 0.687800"
+  ],
+  "tasks": [
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.8296231811963686,
+        "primary_score": 0.8296231811963686
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.6957446808510638,
+        "primary_score": 0.6957446808510638
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.904074074074074,
+        "primary_score": 0.904074074074074
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.9005542359461599,
+        "primary_score": 0.9005542359461599
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9536,
+        "primary_score": 0.9536
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.8798412698412699,
+        "primary_score": 0.8798412698412699
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.7241813602015114,
+        "primary_score": 0.7241813602015114
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.8956668715427166,
+        "primary_score": 0.8956668715427166
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "CIFAR100",
+      "metrics": {
+        "top1": 0.8105,
+        "primary_score": 0.8105
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "STL10",
+      "metrics": {
+        "top1": 0.989375,
+        "primary_score": 0.989375
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Flowers102",
+      "metrics": {
+        "top1": 0.7363798991705969,
+        "primary_score": 0.7363798991705969
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "OxfordIIITPet",
+      "metrics": {
+        "top1": 0.955846279640229,
+        "primary_score": 0.955846279640229
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "PCAM",
+      "metrics": {
+        "top1": 0.821075439453125,
+        "primary_score": 0.821075439453125
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "FER2013",
+      "metrics": {
+        "top1": 0.4533296182780719,
+        "primary_score": 0.4533296182780719
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EMNIST",
+      "metrics": {
+        "top1": 0.99465,
+        "primary_score": 0.99465
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "CIFAR10",
+      "metrics": {
+        "top1": 0.9777,
+        "primary_score": 0.9777
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Food101",
+      "metrics": {
+        "top1": 0.9128712871287129,
+        "primary_score": 0.9128712871287129
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "FashionMNIST",
+      "metrics": {
+        "top1": 0.8846,
+        "primary_score": 0.8846
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RenderedSST2",
+      "metrics": {
+        "top1": 0.8325096101043383,
+        "primary_score": 0.8325096101043383
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "KMNIST",
+      "metrics": {
+        "top1": 0.6878,
+        "primary_score": 0.6878
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-L-14",
+    "merge_func": "actmat",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

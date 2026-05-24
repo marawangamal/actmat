@@ -182,6 +182,12 @@ def parse_arguments():
         default={},
         help="JSON dict of extra kwargs forwarded to the merge function.",
     )
+    parser.add_argument(
+        "--sigma",
+        type=float,
+        default=0.0,
+        help="Std of per-task scaling coefficient α_t ~ N(1.0, sigma) applied before merging. 0.0 disables.",
+    )
 
     # ─── Statistics (covariance / fisher) ─────────────────────────────────────
     parser.add_argument(

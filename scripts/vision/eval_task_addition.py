@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 
+import torch
+
 # from mha import copy_from_pytorch_state_dict, copy_to_pytorch_state_dict
 from src import mhap, mhas
 from src.args import parse_arguments
@@ -60,6 +62,13 @@ for i, dataset in enumerate(eval_datasets):
             )
         )
     print(f"Task vector {dataset} loaded")
+
+# Optional per-task coefficient perturbation: α_t ~ N(1.0, sigma).
+sigma = float(getattr(args, "sigma", 0.0) or 0.0)
+if sigma > 0.0:
+    alphas = (1.0 + sigma * torch.randn(len(task_vectors))).tolist()
+    print(f"[sigma={sigma}] α_t = {[f'{a:.4f}' for a in alphas]}")
+    task_vectors = [tv * a for a, tv in zip(alphas, task_vectors)]
 
 # For use with RegMean and Projected RegMean.
 #   i)  for projected regmean, mhap will package together orthgonally invariant matrices.

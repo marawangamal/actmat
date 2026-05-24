@@ -1,8 +1,7 @@
-include: /network/scratch/m/marawan.gamal/actmat/.venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/mbpp_plus.yaml
+include: /network/scratch/m/marawan.gamal/actmat/.venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/mbpp_plus_instruct.yaml
 task: mbpp_plus_mb
 generation_kwargs:
-  until:
-    - "[DONE]"
+  until: []
   max_gen_toks: 512
   do_sample: true
   temperature: 0.2
