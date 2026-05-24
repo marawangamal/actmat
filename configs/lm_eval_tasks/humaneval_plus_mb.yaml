@@ -1,0 +1,14 @@
+include: /network/scratch/m/marawan.gamal/actmat/.venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_plus.yaml
+task: humaneval_plus_mb
+generation_kwargs:
+  until:
+    - "\nclass"
+    - "\ndef"
+    - "\n#"
+    - "\nif"
+    - "\nprint"
+  max_gen_toks: 512
+  do_sample: true
+  temperature: 0.2
+  top_p: 0.95
+repeats: 10

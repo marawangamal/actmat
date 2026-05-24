@@ -1,104 +1,102 @@
 #!/bin/bash
 #SBATCH --job-name=eval_gemma2bit
 #SBATCH --partition=long
-#SBATCH --gres=gpu:a100l:1
+#SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
-#SBATCH --time=24:00:00
-#SBATCH --output=artifacts/logs/%x_%j.out
-#SBATCH --error=artifacts/logs/%x_%j.err
-# Merge + evaluate Gemma-2-2B-IT (MergeBench) models via olmes (instruction/math/code)
-# and lm-eval (multilingual).
+#SBATCH --time=6:00:00
+#SBATCH --array=0-4
+#SBATCH --output=artifacts/logs/%x_%A_%a.out
+#SBATCH --error=artifacts/logs/%x_%A_%a.err
+# Merge + evaluate Gemma-2-2B-IT (MergeBench) using EXACTLY MergeBench's
+# evaluation setup (arxiv.org/abs/2505.10833 — scripts/evaluate.sh in
+# github.com/uiuctml/MergeBench).
 #
-# Prerequisites:
-#   UV_PROJECT_ENVIRONMENT=.venv-gemma uv sync --group gemma
-#   bash scripts/gemma2bit/download_models.sh
+# All evals via lm-eval (HF backend). Code tasks use custom yamls under
+# configs/lm_eval_tasks/ (humaneval_plus_mb, mbpp_plus_mb) baking in
+# MergeBench's bigcode-eval kwargs: max_gen_toks=512, temp=0.2, top_p=0.95,
+# do_sample, repeats=10. The yamls are symlinked into the venv lm_eval/tasks/
+# tree at setup time — see README.
 #
-# Usage:
-#   sbatch scripts/gemma2bit/eval_task_addition.sh
+# Submitted as a SLURM job array: one array task per merge method.
 set -euo pipefail
 mkdir -p artifacts/logs
 
-# 0. Setup environment
 source "$SCRATCH/actmat/.venv-gemma/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
-# HF backend has no paged-attention KV cache; reduce fragmentation OOMs.
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export HF_ALLOW_CODE_EVAL=1
 
-# ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="gemma-2-2b-it"
-METHODS=(mean tsv isoc actmat)
+METHODS=(tsv actmat wudi mean isoc)
+method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
-# ── OLMES (instruction, math, code) ───────────────────────────────────────────
-# Uses the HF backend (not vllm): vllm's streaming detokenizer stochastically
-# leaks SentencePiece ▁ (U+2581) markers into code indentation, breaking the
-# code tasks. The HF backend decodes correctly.
-OLMES_TASKS=(
-  "ifeval::tulu"
-  "gsm8k::tulu"
-  "codex_humanevalplus::tulu"
-  "mbppplus:0-shot-chat"
-)
-OLMES_MODEL_ARGS='{"trust_remote_code": false, "max_length": 8192, "dtype": "bfloat16"}'
-GPUS=1
-BATCH_SIZE=2
-NUM_WORKERS=1
+MULTILINGUAL_TASKS="m_mmlu_fr,arc_fr,hellaswag_fr,m_mmlu_es,arc_es,hellaswag_es,m_mmlu_de,arc_de,hellaswag_de,m_mmlu_ru,arc_ru,hellaswag_ru"
 
-# ── lm-eval (multilingual) ────────────────────────────────────────────────────
-LM_EVAL_TASKS="m_mmlu_fr,arc_fr,hellaswag_fr,m_mmlu_es,arc_es,hellaswag_es,m_mmlu_de,arc_de,hellaswag_de,m_mmlu_ru,arc_ru,hellaswag_ru"
-LM_EVAL_BATCH_SIZE=8
+MERGED_DIR="artifacts/checkpoints/${MODEL}/${method}"
+RESULTS_DIR="artifacts/results/${MODEL}-${method}"
 
-# ── Merge + Evaluate ────────────────────────────────────────────────────────
-for method in "${METHODS[@]}"; do
-  MERGED_DIR="artifacts/checkpoints/${MODEL}/${method}"
-  RESULTS_DIR="artifacts/results/${MODEL}-${method}"
-  OLMES_RESULTS_DIR="${RESULTS_DIR}/olmes"
-  LM_EVAL_RESULTS_DIR="${RESULTS_DIR}/lm-eval"
+echo "============================================================"
+echo "Array task: ${SLURM_ARRAY_TASK_ID}  Method: ${method}"
+echo "Merged: ${MERGED_DIR}"
+echo "Results: ${RESULTS_DIR}"
+echo "============================================================"
 
-  echo "============================================================"
-  echo "Method: ${method}"
-  echo "Merged: ${MERGED_DIR}"
-  echo "Results: ${RESULTS_DIR}"
-  echo "============================================================"
+# 1. Merge (skip if already done)
+if [[ -d "$MERGED_DIR" ]]; then
+  echo ">>> Skipping merge: ${MERGED_DIR} already exists"
+else
+  python scripts/gemma2bit/merge.py \
+    --save "artifacts/checkpoints/${MODEL}" \
+    --merge-func "$method" \
+    --output-dir "$MERGED_DIR"
+fi
 
-  # 1. Merge (skip if already done)
-  if [[ -d "$MERGED_DIR" ]]; then
-    echo ">>> Skipping merge: ${MERGED_DIR} already exists"
-  else
-    python scripts/gemma2bit/merge.py \
-      --save "artifacts/checkpoints/${MODEL}" \
-      --merge-func "$method" \
-      --output-dir "$MERGED_DIR"
-  fi
+MODEL_ARGS="pretrained=${MERGED_DIR},dtype=bfloat16"
 
-  # 2a. olmes — instruction, math, code (skip if metrics.json exists)
-  if [[ -f "$OLMES_RESULTS_DIR/metrics.json" ]]; then
-    echo ">>> Skipping olmes: ${OLMES_RESULTS_DIR}/metrics.json already exists"
-  else
-    echo ">>> olmes eval (hf backend): tasks = ${OLMES_TASKS[*]}"
-    olmes \
-      --model "$MERGED_DIR" \
-      --task "${OLMES_TASKS[@]}" \
-      --output-dir "$OLMES_RESULTS_DIR" \
-      --gpus "$GPUS" \
-      --model-type hf \
-      --model-args "$OLMES_MODEL_ARGS" \
-      --batch-size "$BATCH_SIZE" \
-      --num-workers "$NUM_WORKERS"
-  fi
+# 2a. gsm8k_cot — math
+OUT="${RESULTS_DIR}/gsm8k_cot"
+if compgen -G "${OUT}/**/results_*.json" > /dev/null; then
+  echo ">>> Skipping gsm8k_cot: results exist"
+else
+  mkdir -p "$OUT"
+  echo ">>> lm-eval gsm8k_cot"
+  lm_eval --model hf --model_args "$MODEL_ARGS" \
+    --tasks gsm8k_cot --batch_size 64 --output_path "$OUT"
+fi
 
-  # 2b. lm-eval — multilingual (skip if results files exist; lm-eval nests under <sanitized-model-path>/)
-  if [[ -n "$(find "$LM_EVAL_RESULTS_DIR" -name 'results_*.json' -print -quit 2>/dev/null)" ]]; then
-    echo ">>> Skipping lm-eval: ${LM_EVAL_RESULTS_DIR} already has results"
-  else
-    mkdir -p "$LM_EVAL_RESULTS_DIR"
-    echo ">>> lm-eval: tasks = ${LM_EVAL_TASKS}"
-    lm_eval \
-      --model hf \
-      --model_args "pretrained=${MERGED_DIR},dtype=bfloat16" \
-      --tasks "$LM_EVAL_TASKS" \
-      --batch_size "$LM_EVAL_BATCH_SIZE" \
-      --output_path "$LM_EVAL_RESULTS_DIR"
-  fi
-done
+# 2b. multilingual (12 tasks)
+OUT="${RESULTS_DIR}/multilingual"
+if compgen -G "${OUT}/**/results_*.json" > /dev/null; then
+  echo ">>> Skipping multilingual: results exist"
+else
+  mkdir -p "$OUT"
+  echo ">>> lm-eval multilingual"
+  lm_eval --model hf --model_args "$MODEL_ARGS" \
+    --tasks "$MULTILINGUAL_TASKS" --batch_size 64 --output_path "$OUT"
+fi
+
+# 2c. ifeval — instruction
+OUT="${RESULTS_DIR}/ifeval"
+if compgen -G "${OUT}/**/results_*.json" > /dev/null; then
+  echo ">>> Skipping ifeval: results exist"
+else
+  mkdir -p "$OUT"
+  echo ">>> lm-eval ifeval"
+  lm_eval --model hf --model_args "$MODEL_ARGS" \
+    --tasks ifeval --batch_size 64 --output_path "$OUT"
+fi
+
+# 2d. code — humaneval_plus_mb, mbpp_plus_mb (MergeBench gen kwargs baked into yamls)
+OUT="${RESULTS_DIR}/code"
+if compgen -G "${OUT}/**/results_*.json" > /dev/null; then
+  echo ">>> Skipping code: results exist"
+else
+  mkdir -p "$OUT"
+  echo ">>> lm-eval humaneval_plus_mb,mbpp_plus_mb"
+  lm_eval --model hf --model_args "$MODEL_ARGS" \
+    --tasks humaneval_plus_mb,mbpp_plus_mb \
+    --batch_size 64 --output_path "$OUT" \
+    --confirm_run_unsafe_code
+fi

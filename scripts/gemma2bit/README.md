@@ -1,7 +1,8 @@
 # Gemma-2-2B-IT — MergeBench pipeline
 
 Merge and evaluate the [MergeBench](https://arxiv.org/abs/2505.10833) Gemma-2-2B-IT
-expert family with this repo's task-vector merging methods.
+expert family with this repo's task-vector merging methods, following
+MergeBench's `scripts/evaluate.sh` exactly.
 
 ## Models
 
@@ -15,25 +16,44 @@ expert family with this repo's task-vector merging methods.
 The safety expert is intentionally skipped — its evaluation requires the
 `safety-eval` fork plus an OpenAI judge key, which is out of scope here.
 
-## Evaluation matrix
+## Evaluation matrix (matches MergeBench's `scripts/evaluate.sh`)
 
-| Capability | Harness | Backend | Task(s) |
-|---|---|---|---|
-| Instruction | `olmes` | hf | `ifeval::tulu` |
-| Math | `olmes` | hf | `gsm8k::tulu` |
-| Coding | `olmes` | hf | `codex_humanevalplus::tulu`, `mbppplus:0-shot-chat` |
-| Multilingual | `lm-eval` | hf | `m_mmlu_{fr,es,de,ru}`, `arc_{fr,es,de,ru}`, `hellaswag_{fr,es,de,ru}` |
+All evals use **lm-eval (HF backend)**. Code tasks use custom yamls that bake
+in MergeBench's bigcode-eval generation hyperparameters.
 
-`lm-eval` is used for the multilingual block because `olmes` does not ship
-MMLU/ARC/HellaSwag in fr/es/de/ru; for the other three capabilities `olmes`
-already matches MergeBench's reference benchmark.
+| Capability | Task(s) | Notes |
+|---|---|---|
+| Math | `gsm8k_cot` | bs=16 |
+| Multilingual | `m_mmlu_{fr,es,de,ru}, arc_{fr,es,de,ru}, hellaswag_{fr,es,de,ru}` | bs=8 |
+| Instruction | `ifeval` | bs=8 |
+| Coding | `humaneval_plus_mb, mbpp_plus_mb` | bs=10, MergeBench gen kwargs (see below) |
 
-**Backend note:** olmes runs on the HuggingFace backend (`--model-type hf`),
-not vllm. vllm's streaming detokenizer stochastically leaves SentencePiece `▁`
-(U+2581) markers in code indentation (e.g. `▁▁▁▁for` instead of `    for`),
-which makes generated code fail to compile and zeroes out the coding scores.
-The token IDs are correct — only vllm's incremental decode is buggy — so the
-HF backend, which decodes correctly, is used instead (slower but correct).
+## Code-eval task overrides
+
+MergeBench evaluates HumanEval+ and MBPP+ with `bigcode-evaluation-harness`:
+
+```
+--max_length_generation 512  --temperature 0.2  --n_samples 10  --batch_size 10
+```
+
+To match those numbers via lm-eval, this repo ships two custom task configs at
+[`configs/lm_eval_tasks/`](../../configs/lm_eval_tasks/):
+
+- `humaneval_plus_mb.yaml` — inherits `humaneval_plus`, overrides gen kwargs
+  (`max_gen_toks=512, do_sample, temperature=0.2, top_p=0.95`) and `repeats=10`
+- `mbpp_plus_mb.yaml` — same overrides on top of `mbpp_plus`
+
+lm-eval discovers tasks by scanning its own `lm_eval/tasks/` directory tree, so
+the configs must be reachable from there. We symlink them in:
+
+```sh
+ln -sf "$PWD/configs/lm_eval_tasks/humaneval_plus_mb.yaml" \
+  .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_plus_mb.yaml
+ln -sf "$PWD/configs/lm_eval_tasks/mbpp_plus_mb.yaml" \
+  .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/mbpp_plus_mb.yaml
+```
+
+Re-run those two `ln -sf` after every `uv sync` (the sync wipes the venv).
 
 ## Setup
 
@@ -42,6 +62,12 @@ UV_PROJECT_ENVIRONMENT=.venv-gemma uv sync --group gemma
 source .venv-gemma/bin/activate
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export HF_HOME=$SCRATCH/huggingface
+export HF_ALLOW_CODE_EVAL=1   # required for humaneval_plus_mb / mbpp_plus_mb
+# Re-link the custom task yamls into the venv (see "Code-eval task overrides")
+ln -sf "$PWD/configs/lm_eval_tasks/humaneval_plus_mb.yaml" \
+  .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_plus_mb.yaml
+ln -sf "$PWD/configs/lm_eval_tasks/mbpp_plus_mb.yaml" \
+  .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/mbpp_plus_mb.yaml
 ```
 
 ## End-to-end
@@ -63,17 +89,19 @@ sbatch scripts/gemma2bit/eval_single_task.sh
 artifacts/checkpoints/gemma-2-2b-it/
 ├── pretrained/
 ├── {instruction,math,coding,multilingual}/{pretrained→sym, finetuned/}
-└── {sum,mean,tsv,isoc,actmat,…}/      # merged HF checkpoints
+└── {mean,tsv,isoc,actmat,wudi,ace,…}/    # merged HF checkpoints
 
 artifacts/results/gemma-2-2b-it-{method}/
-├── olmes/                              # ifeval, gsm8k, code
-└── lm-eval/                            # multilingual
+├── gsm8k_cot/
+├── multilingual/
+├── ifeval/
+└── code/                                  # humaneval_plus_mb + mbpp_plus_mb
 ```
 
 ## Notes
 
-- `regmean` / `actmat` need a per-capability `covariance.pt` and are not
-  currently wired up here (no `covariance.py`); the default `METHODS` list
-  stays on covariance-free merge functions.
-- The driver requests `gpu:l40s:1`; Gemma-2-2B fits comfortably on a single
-  L40S with `gpu_memory_utilization=0.8`.
+- The driver requests `gpu:l40s:1` — sufficient now that code-task generation
+  is capped at `max_gen_toks=512` (the 999999 default with olmes' `tulu` preset
+  was overflowing the 256k-vocab logits buffer).
+- `regmean` / `actmat` would normally need a per-capability `covariance.pt`, but
+  the `merge_actmat` implementation here is data-free (uses `Δᵀ Δ`).
