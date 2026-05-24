@@ -177,7 +177,7 @@ def finetune_mtl(args):
             and step > 0
             and (i + 1) % (args.checkpoint_every * num_grad_accum) == 0
         ):
-            per_task, mean_acc = _evaluate_mixture(model, tokenizer, datasets, args)
+            per_task, mean_acc = _evaluate_mixture(model, tokenizer, args)
             print(
                 f"\n[Eval @ step {step}] mean={100 * mean_acc:.2f}%  "
                 + "  ".join(f"{k}={100 * v:.1f}" for k, v in per_task.items()),
@@ -211,7 +211,7 @@ def finetune_mtl(args):
         model.transformer = model.transformer.merge_and_unload()
         model.save(ft_path)
     elif not saved_best:
-        per_task, mean_acc = _evaluate_mixture(model, tokenizer, datasets, args)
+        per_task, mean_acc = _evaluate_mixture(model, tokenizer, args)
         print(
             f"\n[Final eval] mean={100 * mean_acc:.2f}%  "
             + "  ".join(f"{k}={100 * v:.1f}" for k, v in per_task.items()),
@@ -247,4 +247,4 @@ if __name__ == "__main__":
     print("=" * 100)
     print(f"MTL fine-tuning {args.model} on t5_mixture ({args.finetuning_mode})")
     print("=" * 100)
-    finetune_mtl(args, mixture_name="t5_mixture", datasets=T5_MIXTURE)
+    finetune_mtl(args)
