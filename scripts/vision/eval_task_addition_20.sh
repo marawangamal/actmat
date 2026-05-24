@@ -45,8 +45,8 @@ BATCH_SIZE=32
 # once their 20-dataset finetunes finish.
 # MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 MODELS=(ViT-B-16)
-METHODS=(sum04)
-FT_MODES=(standard lora)
+METHODS=(mean actmat tsv)
+FT_MODES=(standard)
 MERGE_MODE=d
 HPO=''
 
@@ -59,26 +59,33 @@ EVAL_DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN,CIFAR100,STL10,
 
 for FT_MODE in "${FT_MODES[@]}"; do
 for MODEL in "${MODELS[@]}"; do
+  # Reset per-model stats flags so covariance/fisher run at most once per model.
+  cov_done=false
+  fisher_done=false
   # Evaluate task addition w/ diff merge methods
   for method in "${METHODS[@]}"; do
 
-    # 2a. Run covariance/fisher script if needed
-    if [ "$method" = "regmean" ]; then
-      echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
+    # 2a. Run covariance/fisher script if needed (regmean + actmat both consume covariance.pt)
+    if { [ "$method" = "regmean" ] || [ "$method" = "actmat" ]; } && [ "$cov_done" = false ]; then
+      echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE"
       python scripts/vision/covariance.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
         --save="$CKPT_ROOT" \
+        --data-location="$DATA_DIR" \
         --eval-datasets="$EVAL_DATASETS" \
         --mha=split
-    elif [ "$method" = "fisher" ]; then
-      echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | method: $method"
+      cov_done=true
+    elif [ "$method" = "fisher" ] && [ "$fisher_done" = false ]; then
+      echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE"
       python scripts/vision/fisher.py \
         --model="$MODEL" \
         --finetuning-mode="$FT_MODE" \
         --save="$CKPT_ROOT" \
+        --data-location="$DATA_DIR" \
         --eval-datasets="$EVAL_DATASETS" \
         --mha=split
+      fisher_done=true
     fi
 
     # 2b. Evaluate task addition
