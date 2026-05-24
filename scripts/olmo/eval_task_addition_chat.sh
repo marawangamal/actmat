@@ -36,7 +36,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(wudi_unweighted)
+METHODS=(mean regmean wudi_unweighted)
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────
 CODE_TASKS=(
