@@ -356,7 +356,7 @@ def finetune(rank, args):
         print(f"  rank: {args.lora_rank}")
         print(f"  alpha: {args.lora_alpha}")
         print(f"  dropout: {args.lora_dropout}")
-        print(f"  target_modules: {target_modules}")
+        print(f"  target_modules: all-linear")
         print("=== LoRA Model Architecture ===")
         print(image_encoder)
         print("===============================\n")

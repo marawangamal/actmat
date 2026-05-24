@@ -26,6 +26,13 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
+# Stage KMNIST raw files (torchvision's KMNIST mirror is unreliable from compute nodes).
+KMNIST_RAW_DST="$SLURM_TMPDIR/data/vision/KMNIST/KMNIST/raw"
+if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnist ]; then
+  mkdir -p "$KMNIST_RAW_DST"
+  cp downloads/kmnist/*.gz "$KMNIST_RAW_DST/"
+fi
+
 # 3. Finetune models (using FFT & LoRA)
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 FT_MODES=(standard lora)

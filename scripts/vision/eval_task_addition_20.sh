@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=eval_vision_wang
+#SBATCH --job-name=eval_vision_20
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=128G
+#SBATCH --mem=32G
 #SBATCH --time=12:00:00
 #SBATCH --output=artifacts/logs/%x_%j.out
 #SBATCH --error=artifacts/logs/%x_%j.err
@@ -16,35 +16,45 @@ source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-CKPT_ROOT="artifacts/checkpoints-wang"
-RESULTS_DIR="artifacts/results-wang"
-# Absolute path: avoids the repo-level `data/` symlink that other concurrent
-# eval jobs (eval_task_addition.sh) rewrite to point at their own $SLURM_TMPDIR.
-DATA_DIR="$PWD/artifacts/data/vision"
+CKPT_ROOT="artifacts/checkpoints"
+RESULTS_DIR="artifacts/results20"
+DATA_DIR="data/vision"
+OPENCLIP_DIR="$SCRATCH/openclip"
+
+# 1. Stage datasets to $SLURM_TMPDIR (mirrors finetune.sh / eval_task_addition.sh)
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
+fi
+ln -sfn "$SLURM_TMPDIR/data" data
+
+# Stage KMNIST raw files (torchvision's KMNIST mirror is unreliable from compute nodes).
+KMNIST_RAW_DST="$SLURM_TMPDIR/data/vision/KMNIST/KMNIST/raw"
+if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnist ]; then
+  mkdir -p "$KMNIST_RAW_DST"
+  cp downloads/kmnist/*.gz "$KMNIST_RAW_DST/"
+fi
 
 # Common parameters
 NUM_BATCHES=10
 BATCH_SIZE=32
 
 # ===== Default experiments (no hyperparameter tuning) =====
-# Wang released full-FT checkpoints only, so FT_MODES=(standard).
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-METHODS=(wudi ace)
-FT_MODES=(standard)
+# Only ViT-B-16 has the full 20-dataset finetunes available right now.
+# ViT-B-32 and ViT-L-14 still have only the original 8; flip the line below
+# once their 20-dataset finetunes finish.
+# MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+MODELS=(ViT-B-16)
+METHODS=(sum04)
+FT_MODES=(standard lora)
 MERGE_MODE=d
 HPO=''
+
 # Task scenarios (Wang et al. / TALL-masks):
 #   8 : Cars, DTD, EuroSAT, GTSRB, MNIST, RESISC45, SUN397, SVHN
 #   14: 8 + CIFAR100, STL10, Flowers102, OxfordIIITPet, PCAM, FER2013
 #   20: 14 + EMNIST, CIFAR10, Food101, FashionMNIST, RenderedSST2, KMNIST
 EVAL_DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN,CIFAR100,STL10,Flowers102,OxfordIIITPet,PCAM,FER2013,EMNIST,CIFAR10,Food101,FashionMNIST,RenderedSST2,KMNIST"
-
-# ===== Hyperparameter-optimized experiments =====
-# NOTE: Only evaluate TA (sum) since other methods do not require HP tuning.
-# MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-# METHODS=(sum)
-# FT_MODES=(standard)
-# HPO='{"alpha": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]}'
 
 
 for FT_MODE in "${FT_MODES[@]}"; do

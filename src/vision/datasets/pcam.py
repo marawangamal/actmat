@@ -4,6 +4,24 @@ import torch
 import torchvision.datasets as datasets
 
 
+class _PicklablePCAM(datasets.PCAM):
+    """torchvision.datasets.PCAM stashes the h5py module as self.h5py, which
+    breaks pickling across spawn'd DataLoader workers. Drop it on pickle and
+    re-import on unpickle.
+    """
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("h5py", None)
+        return state
+
+    def __setstate__(self, state):
+        import h5py
+
+        self.__dict__.update(state)
+        self.h5py = h5py
+
+
 class PCAM:
     def __init__(
         self,
@@ -13,7 +31,7 @@ class PCAM:
         num_workers=16,
     ):
         location = os.path.join(location, "PCAM")
-        self.train_dataset = datasets.PCAM(
+        self.train_dataset = _PicklablePCAM(
             root=location, download=True, split="train", transform=preprocess
         )
         self.train_loader = torch.utils.data.DataLoader(
@@ -22,7 +40,7 @@ class PCAM:
             shuffle=True,
             num_workers=num_workers,
         )
-        self.test_dataset = datasets.PCAM(
+        self.test_dataset = _PicklablePCAM(
             root=location, download=True, split="test", transform=preprocess
         )
         self.test_loader = torch.utils.data.DataLoader(
