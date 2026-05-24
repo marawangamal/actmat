@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
-#SBATCH --time=24:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=artifacts/logs/%x_%j.out
 #SBATCH --error=artifacts/logs/%x_%j.err
 # Merge + evaluate OLMo models via olmes, using the *matching* expert's chat
@@ -36,7 +36,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(actmat tsv isoc)
+METHODS=(wudi)
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────
 CODE_TASKS=(
