@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.053703",
+    "Cars: 0.019774",
+    "DTD: 0.024468",
+    "EuroSAT: 0.092963",
+    "GTSRB: 0.029058",
+    "MNIST: 0.166700",
+    "RESISC45: 0.043016",
+    "SVHN: 0.063806"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.053702770780856425,
+        "primary_score": 0.053702770780856425
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.01977365999253824,
+        "primary_score": 0.01977365999253824
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.02446808510638298,
+        "primary_score": 0.02446808510638298
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.09296296296296297,
+        "primary_score": 0.09296296296296297
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.029057798891528108,
+        "primary_score": 0.029057798891528108
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.1667,
+        "primary_score": 0.1667
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.043015873015873014,
+        "primary_score": 0.043015873015873014
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.0638060848186847,
+        "primary_score": 0.0638060848186847
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-16",
+    "merge_func": "wudi",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

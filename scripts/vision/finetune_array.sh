@@ -34,12 +34,14 @@ if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnis
 fi
 
 # Stage PCAM h5 files (torchvision pulls from Google Drive and easily hits rate-limits).
+# COPY rather than symlink — h5py inside DataLoader workers fails to resolve paths
+# through symlink chains on network FS ("can't retrieve real path for file").
 PCAM_DST="$SLURM_TMPDIR/data/vision/PCAM/pcam"
 PCAM_SRC="$PWD/artifacts/data/vision/PCAM/pcam"
 if [ ! -f "$PCAM_DST/camelyonpatch_level_2_split_test_y.h5" ] && [ -d "$PCAM_SRC" ]; then
   mkdir -p "$PCAM_DST"
-  for f in "$PCAM_SRC"/*.h5 "$PCAM_SRC"/*.h5.gz; do
-    [ -f "$f" ] && ln -sfn "$f" "$PCAM_DST/$(basename "$f")"
+  for f in "$PCAM_SRC"/*.h5; do
+    [ -f "$f" ] && cp "$f" "$PCAM_DST/$(basename "$f")"
   done
 fi
 
@@ -53,14 +55,19 @@ MODELS=(ViT-B-32 ViT-L-14)
 FT_MODES=(standard lora)
 SAVE_DIR="artifacts/checkpoints"
 
+# Unique DDP port per array task to avoid EADDRINUSE when two array tasks land
+# on the same compute node ($SLURM_JOB_ID is unique per array task).
+PORT=$((12000 + SLURM_JOB_ID % 50000))
+
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
-    echo "[BASH] Running finetune.py | model: $MODEL | ft mode: $FT_MODE | dataset: $DATASET"
+    echo "[BASH] Running finetune.py | model: $MODEL | ft mode: $FT_MODE | dataset: $DATASET | port: $PORT"
     python scripts/vision/finetune.py \
       --finetuning-mode="$FT_MODE" \
       --model="$MODEL" \
       --world-size=1 \
       --num-workers=1 \
+      --port="$PORT" \
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \

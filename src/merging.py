@@ -329,6 +329,13 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_actmat_5k(d: torch.Tensor, *args, **kwargs):
+    if d.shape[-1] > 5_000:
+        return d.mean(dim=0)
+    c = d.transpose(1, 2) @ d
+    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
 def merge_actmat_gd(
     d: torch.Tensor,
     lam=0.0,
