@@ -53,7 +53,24 @@ ln -sf "$PWD/configs/lm_eval_tasks/mbpp_plus_mb.yaml" \
   .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/mbpp_plus_mb.yaml
 ```
 
-Re-run those two `ln -sf` after every `uv sync` (the sync wipes the venv).
+## lm-eval mbpp `extract_code_blocks` patch
+
+`lm_eval/tasks/mbpp/utils.py:extract_code_blocks` is buggy when the model emits
+`def …` immediately after the `gen_prefix`-supplied ` ```python\n `: it prepends
+` ``` ` (without the `python\n`) and the regex's optional `(\w+)?` language tag
+matches `def`, stripping the `def` keyword from the captured code. All mbpp_plus
+pass@1 scores end up at 0 because the extracted candidate is invalid Python.
+
+A patched version (prepends ` ```python\n ` instead) lives in
+[`configs/lm_eval_patches/mbpp_utils.py`](../../configs/lm_eval_patches/mbpp_utils.py)
+and is symlinked into the venv:
+
+```sh
+ln -sf "$PWD/configs/lm_eval_patches/mbpp_utils.py" \
+  .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/utils.py
+```
+
+Re-run all three `ln -sf` after every `uv sync` (the sync wipes the venv).
 
 ## Setup
 
@@ -63,11 +80,13 @@ source .venv-gemma/bin/activate
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export HF_HOME=$SCRATCH/huggingface
 export HF_ALLOW_CODE_EVAL=1   # required for humaneval_plus_mb / mbpp_plus_mb
-# Re-link the custom task yamls into the venv (see "Code-eval task overrides")
+# Re-link the custom task yamls and the mbpp extract_code patch into the venv
 ln -sf "$PWD/configs/lm_eval_tasks/humaneval_plus_mb.yaml" \
   .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_plus_mb.yaml
 ln -sf "$PWD/configs/lm_eval_tasks/mbpp_plus_mb.yaml" \
   .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/mbpp_plus_mb.yaml
+ln -sf "$PWD/configs/lm_eval_patches/mbpp_utils.py" \
+  .venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/utils.py
 ```
 
 ## End-to-end

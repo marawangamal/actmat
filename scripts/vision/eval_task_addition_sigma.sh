@@ -30,9 +30,9 @@ ln -sfn "$SLURM_TMPDIR/data" data
 # Results land in artifacts/results-sig{sigma}/{model}-{method}/metrics.json so
 # the plotting code can read (sigma, method, model) -> mean perf directly.
 MODELS=(ViT-B-16)
-METHODS=(mean tsv actmat wudi ace)
+METHODS=(mean tsv actmat wudi ace isoc)
 FT_MODES=(standard)
-SIGMAS=(0.1 0.2 0.5 1.0 2.0)
+SIGMAS=(0.1 0.2 0.5 0.75 1.0 2.0)
 MERGE_MODE=d
 HPO=''
 

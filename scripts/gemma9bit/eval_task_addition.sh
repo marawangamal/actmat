@@ -93,15 +93,29 @@ else
     --tasks ifeval --batch_size 16 --output_path "$OUT"
 fi
 
-# 2d. code — humaneval_plus_mb, mbpp_plus_mb (MergeBench gen kwargs baked into yamls)
+# 2d. humaneval_plus — code (chat-format yaml with MergeBench gen kwargs)
 OUT="${RESULTS_DIR}/code"
 if compgen -G "${OUT}/**/results_*.json" > /dev/null; then
-  echo ">>> Skipping code: results exist"
+  echo ">>> Skipping code (humaneval_plus_mb): results exist"
 else
   mkdir -p "$OUT"
-  echo ">>> lm-eval humaneval_plus_mb,mbpp_plus_mb"
+  echo ">>> lm-eval humaneval_plus_mb"
   lm_eval --model hf --model_args "$MODEL_ARGS" \
-    --tasks humaneval_plus_mb,mbpp_plus_mb \
+    --tasks humaneval_plus_mb \
+    --batch_size 16 --output_path "$OUT" \
+    --confirm_run_unsafe_code
+fi
+
+# 2e. mbpp_plus — separate stage so the patched extract_code_blocks fix can be
+# applied independently of the humaneval_plus results.
+OUT="${RESULTS_DIR}/mbpp_plus"
+if compgen -G "${OUT}/**/results_*.json" > /dev/null; then
+  echo ">>> Skipping mbpp_plus: results exist"
+else
+  mkdir -p "$OUT"
+  echo ">>> lm-eval mbpp_plus_mb"
+  lm_eval --model hf --model_args "$MODEL_ARGS" \
+    --tasks mbpp_plus_mb \
     --batch_size 16 --output_path "$OUT" \
     --confirm_run_unsafe_code
 fi
