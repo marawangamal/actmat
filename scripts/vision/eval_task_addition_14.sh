@@ -5,8 +5,9 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=12:00:00
-#SBATCH --output=artifacts/logs/%x_%j.out
-#SBATCH --error=artifacts/logs/%x_%j.err
+#SBATCH --array=0-2
+#SBATCH --output=artifacts/logs/%x_%A_%a.out
+#SBATCH --error=artifacts/logs/%x_%A_%a.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -50,15 +51,14 @@ NUM_BATCHES=10
 BATCH_SIZE=32
 
 # ===== Default experiments (no hyperparameter tuning) =====
-# Only ViT-B-16 has the full 20-dataset finetunes available right now.
-# ViT-B-32 and ViT-L-14 still have only the original 8; flip the line below
-# once their 20-dataset finetunes finish.
-# MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-MODELS=(ViT-B-16)
-METHODS=(mean actmat tsv wudi isoc regmean)
-FT_MODES=(standard)
+FT_MODE="standard"
 MERGE_MODE=d
 HPO=''
+
+# Array dispatch: one array task per model. Keep --array=0-N in sync with len(MODELS)-1.
+MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+MODEL="${MODELS[$SLURM_ARRAY_TASK_ID]}"
+method="actmat_gd"
 
 # Task scenarios (Wang et al. / TALL-masks):
 #   8 : Cars, DTD, EuroSAT, GTSRB, MNIST, RESISC45, SUN397, SVHN
@@ -66,52 +66,37 @@ HPO=''
 #   20: 14 + EMNIST, CIFAR10, Food101, FashionMNIST, RenderedSST2, KMNIST
 EVAL_DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN,CIFAR100,STL10,Flowers102,OxfordIIITPet,PCAM,FER2013"
 
+# 2a. Run covariance/fisher script if needed (regmean + actmat consume covariance.pt; fisher consumes fisher.pt)
+if [ "$method" = "regmean" ] || [ "$method" = "actmat" ]; then
+  echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE"
+  python scripts/vision/covariance.py \
+    --model="$MODEL" \
+    --finetuning-mode="$FT_MODE" \
+    --save="$CKPT_ROOT" \
+    --data-location="$DATA_DIR" \
+    --eval-datasets="$EVAL_DATASETS" \
+    --mha=split
+elif [ "$method" = "fisher" ]; then
+  echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE"
+  python scripts/vision/fisher.py \
+    --model="$MODEL" \
+    --finetuning-mode="$FT_MODE" \
+    --save="$CKPT_ROOT" \
+    --data-location="$DATA_DIR" \
+    --eval-datasets="$EVAL_DATASETS" \
+    --mha=split
+fi
 
-for FT_MODE in "${FT_MODES[@]}"; do
-for MODEL in "${MODELS[@]}"; do
-  # Reset per-model stats flags so covariance/fisher run at most once per model.
-  cov_done=false
-  fisher_done=false
-  # Evaluate task addition w/ diff merge methods
-  for method in "${METHODS[@]}"; do
-
-    # 2a. Run covariance/fisher script if needed (regmean + actmat both consume covariance.pt)
-    if { [ "$method" = "regmean" ] || [ "$method" = "actmat" ]; } && [ "$cov_done" = false ]; then
-      echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE"
-      python scripts/vision/covariance.py \
-        --model="$MODEL" \
-        --finetuning-mode="$FT_MODE" \
-        --save="$CKPT_ROOT" \
-        --data-location="$DATA_DIR" \
-        --eval-datasets="$EVAL_DATASETS" \
-        --mha=split
-      cov_done=true
-    elif [ "$method" = "fisher" ] && [ "$fisher_done" = false ]; then
-      echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE"
-      python scripts/vision/fisher.py \
-        --model="$MODEL" \
-        --finetuning-mode="$FT_MODE" \
-        --save="$CKPT_ROOT" \
-        --data-location="$DATA_DIR" \
-        --eval-datasets="$EVAL_DATASETS" \
-        --mha=split
-      fisher_done=true
-    fi
-
-    # 2b. Evaluate task addition
-    echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | mode: $MERGE_MODE"
-    python scripts/vision/eval_task_addition.py \
-      --model="$MODEL" \
-      --finetuning-mode="$FT_MODE" \
-      --save="$CKPT_ROOT" \
-      --data-location="$DATA_DIR" \
-      --merge-func="$method" \
-      --merge-mode="$MERGE_MODE" \
-      --results-dir="$RESULTS_DIR" \
-      --eval-datasets="$EVAL_DATASETS" \
-      --mha=split \
-      ${HPO:+--hpo="$HPO"}
-
-  done
-done
-done
+# 2b. Evaluate task addition
+echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | mode: $MERGE_MODE"
+python scripts/vision/eval_task_addition.py \
+  --model="$MODEL" \
+  --finetuning-mode="$FT_MODE" \
+  --save="$CKPT_ROOT" \
+  --data-location="$DATA_DIR" \
+  --merge-func="$method" \
+  --merge-mode="$MERGE_MODE" \
+  --results-dir="$RESULTS_DIR" \
+  --eval-datasets="$EVAL_DATASETS" \
+  --mha=split \
+  ${HPO:+--hpo="$HPO"}

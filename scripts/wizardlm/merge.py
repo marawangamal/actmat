@@ -31,6 +31,29 @@ from src.nlg.task_vectors import (
 
 WIZARDLM_TASKS = ["LM", "Math", "Code"]
 
+# Llama-2 official [INST] / [/INST] chat format with optional system prompt.
+# Stamped onto the merged tokenizer because WizardLM / WizardMath / CodeAlpaca
+# tokenizers ship without a chat_template field, which olmes requires for
+# chat-format tasks (gsm8k::tulu, codex_humaneval::tulu, etc.).
+LLAMA2_CHAT_TEMPLATE = (
+    "{% if messages[0]['role'] == 'system' %}"
+    "{% set system_message = messages[0]['content'] %}"
+    "{% set messages = messages[1:] %}"
+    "{% else %}{% set system_message = false %}{% endif %}"
+    "{% for message in messages %}"
+    "{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}"
+    "{{ raise_exception('Conversation must alternate user/assistant/user/assistant/...') }}"
+    "{% endif %}"
+    "{% if loop.index0 == 0 and system_message %}"
+    "{% set content = '<<SYS>>\\n' + system_message + '\\n<</SYS>>\\n\\n' + message['content'] %}"
+    "{% else %}{% set content = message['content'] %}{% endif %}"
+    "{% if message['role'] == 'user' %}"
+    "{{ bos_token + '[INST] ' + content.strip() + ' [/INST]' }}"
+    "{% elif message['role'] == 'assistant' %}"
+    "{{ ' '  + content.strip() + ' ' + eos_token }}"
+    "{% endif %}{% endfor %}"
+)
+
 
 def merge(args):
     if args.cache_dir:
@@ -106,6 +129,11 @@ def merge(args):
     )
     print(f"Copying tokenizer from {tokenizer_dir} ...")
     tokenizer = AutoTokenizer.from_pretrained(str(tokenizer_dir))
+    # Attach the Llama-2 [INST] chat template so olmes (and any chat-format
+    # eval) can format prompts. WizardLM/WizardMath/CodeAlpaca tokenizers
+    # ship without a chat_template field.
+    if tokenizer.chat_template is None:
+        tokenizer.chat_template = LLAMA2_CHAT_TEMPLATE
     tokenizer.save_pretrained(output_dir)
     print("Done.")
 

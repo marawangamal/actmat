@@ -57,7 +57,7 @@ OLMES_TASKS=(
   '{"task_name": "mbpp:3shot::none", "generation_kwargs": {"max_gen_toks": 2048}}'
   # '{"task_name": "alpaca_eval_v2::tulu", "generation_kwargs": {"max_gen_toks": 2048}}'
 )
-OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'
+OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096, "chat_template": "llama2"}'
 GPUS=2
 BATCH_SIZE=32
 NUM_WORKERS=1
