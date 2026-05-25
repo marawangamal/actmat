@@ -30,6 +30,7 @@ IGNORE_VARIANTS=(top10pct top25pct top50pct)
 VARIANT="${IGNORE_VARIANTS[$SLURM_ARRAY_TASK_ID]}"
 
 CODE_TASKS=("codex_humaneval::tulu")
+IFEVAL_TASKS=("ifeval::tulu")
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
 GPUS=1
 BATCH_SIZE=64
@@ -101,5 +102,6 @@ CODE_VIEW="${MERGED_DIR}-chat-code"
 make_view "$MERGED_DIR" "$CODE_VIEW" "$CODE_CHAT_TEMPLATE"
 echo ">>> View: ${CODE_VIEW} (Code chat template)"
 
-# 3. Evaluate
+# 3. Evaluate (HumanEval and IFEval both use the Code chat template)
 run_olmes "$CODE_VIEW" "${RESULTS_DIR}/chat-code" "${CODE_TASKS[@]}"
+run_olmes "$CODE_VIEW" "${RESULTS_DIR}/chat-ifeval" "${IFEVAL_TASKS[@]}"

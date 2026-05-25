@@ -1,9 +1,12 @@
 """Collect per-layer activation covariances for Olmo-3-7B on Dolci RL-Zero datasets.
 
-Runs forward passes (no training) while forward hooks from src/covariance.py
-capture activation statistics. Each capability produces a covariance NPZ file
-saved inside the finetuned model's param-folder directory, where
-ParamFolderTaskVector auto-discovers it for RegMean merging.
+Runs forward passes (no training) through each capability's **finetuned expert**
+while forward hooks from src/covariance.py capture activation statistics.
+Activations are taken from the expert (not the pretrained base) so RegMean /
+ActMat see the same inputs the expert's linear layers receive at deployment.
+
+Each capability produces a covariance file saved inside its checkpoint
+directory, where ParamFolderTaskVector auto-discovers it for merging.
 
 Usage:
     export PYTHONPATH="$PYTHONPATH:$PWD"
@@ -16,18 +19,22 @@ Usage:
 """
 
 import os
+from pathlib import Path
 
 import torch
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from src.args import parse_arguments
 from src.covariance import register_hooks
+from src.nlg.task_vectors import (
+    _build_param_file_path,
+    _load_manifest,
+    _load_single_tensor,
+)
 
-PRETRAINED_MODEL = "allenai/Olmo-3-1025-7B"
-PRETRAINED_TOKENIZER = "allenai/Olmo-3-7B-RL-Zero-Math"
 MAX_SEQ_LEN = 256
 
 CAPABILITY_DATASETS = {
@@ -37,17 +44,48 @@ CAPABILITY_DATASETS = {
 }
 
 
+def _load_expert_model(finetuned_dir: Path, device: torch.device):
+    """Materialize the expert from the param-folder layout in ``finetuned_dir``.
+
+    Init the model normally (not on meta) so non-persistent buffers like
+    ``rotary_emb.inv_freq`` get computed correctly, then copy each param into
+    place from its safetensors file. Peak CPU memory stays at ~one model copy.
+    """
+    manifest = _load_manifest(finetuned_dir)
+    config = AutoConfig.from_pretrained(str(finetuned_dir))
+    model = AutoModelForCausalLM.from_config(config, torch_dtype=torch.bfloat16)
+    state = model.state_dict()
+    for key in tqdm(list(manifest["params"]), desc="Loading expert params"):
+        if key not in state:
+            raise KeyError(f"Param '{key}' in manifest but not in model state_dict")
+        t = _load_single_tensor(
+            _build_param_file_path(finetuned_dir, manifest, key)
+        )
+        state[key].copy_(t.to(state[key].dtype))
+        del t
+    model.to(device)
+    model.eval()
+    return model
+
+
 def collect_covariance(capability, args):
     print(f"\n{'='*60}")
     print(f"Collecting covariance: {capability}")
     print(f"{'='*60}")
 
-    run_dir = os.path.join(args.save, capability)
-    cov_path = os.path.join(run_dir, "covariance.pt")
+    run_dir = Path(args.save) / capability
+    cov_path = run_dir / "covariance.pt"
+    finetuned_dir = run_dir / "finetuned"
 
-    if os.path.exists(cov_path) and not args.overwrite:
+    if cov_path.exists() and not args.overwrite:
         print(f"  Skipping {capability} — {cov_path} already exists")
         return
+
+    if not finetuned_dir.exists():
+        raise FileNotFoundError(
+            f"Expert checkpoint not found: {finetuned_dir}. "
+            "Run scripts/olmo/save_model_param_folder.py first."
+        )
 
     if args.cache_dir:
         os.environ["HF_HOME"] = args.cache_dir
@@ -62,10 +100,8 @@ def collect_covariance(capability, args):
         print(f"  WARNING: No examples found for {capability}, skipping.")
         return
 
-    # Load tokenizer (from RL-Zero Math model which has a chat template)
-    tokenizer = AutoTokenizer.from_pretrained(
-        PRETRAINED_TOKENIZER, cache_dir=args.cache_dir
-    )
+    # Load this expert's own tokenizer — chat templates can differ across capabilities.
+    tokenizer = AutoTokenizer.from_pretrained(str(finetuned_dir))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -92,16 +128,10 @@ def collect_covariance(capability, args):
 
     dataloader = DataLoader(ds, batch_size=args.cov_batch_size, shuffle=False)
 
-    # Load model
-    print("Loading model ...")
+    # Load the *expert* (finetuned) model so hooks see post-finetune activations.
+    print(f"Loading expert from {finetuned_dir} ...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = AutoModelForCausalLM.from_pretrained(
-        PRETRAINED_MODEL,
-        torch_dtype=torch.bfloat16,
-        cache_dir=args.cache_dir,
-    )
-    model.to(device)
-    model.eval()
+    model = _load_expert_model(finetuned_dir, device)
 
     # Register forward hooks
     cobjs, handles = register_hooks(
@@ -139,7 +169,7 @@ def collect_covariance(capability, args):
         saveable[name] = cobj.cov.cpu()
         saveable[f"{name}_n"] = cobj.n
 
-    os.makedirs(run_dir, exist_ok=True)
+    run_dir.mkdir(parents=True, exist_ok=True)
     torch.save(saveable, cov_path)
     print(f"Saved covariances ({len(cobjs)} layers) to {cov_path}")
 

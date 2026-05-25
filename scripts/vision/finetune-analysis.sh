@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=finetune_vision_analysis
 #SBATCH --partition=main
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
@@ -27,7 +27,7 @@ fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
 # 3. Finetune models (using FFT & LoRA)
-MODELS=(ViT-B-16)
+MODELS=(ViT-L-14)
 FT_MODES=(standard)
 SAVE_DIR="checkpoints-analysis"
 
@@ -43,6 +43,7 @@ for MODEL in "${MODELS[@]}"; do
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \
+      --max-steps=100 \
       --grad-cross-matrix
 
   done
