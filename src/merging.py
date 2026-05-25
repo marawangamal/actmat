@@ -85,6 +85,7 @@ def combine_task_vectors(
                 # (typically from pretrained values). Required for the wizardlm
                 # benchmark, where embed_tokens/lm_head have differing vocab
                 # shapes across experts and cannot be stacked.
+                print(f"[ignore_keys] skipping {key}")
                 continue
             # Stack on the merge device
             # NOTE: use get_vector_element to speedup lazy mode with caching

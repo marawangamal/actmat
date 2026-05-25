@@ -59,7 +59,9 @@ IGNORE_KEYS=(embed_tokens lm_head)
 # alpaca_eval_v2 dropped — requires OPENAI_API_KEY for the GPT-4 judge.
 OLMES_TASKS=(
   '{"task_name": "gsm8k::tulu", "generation_kwargs": {"max_gen_toks": 1024}}'
+  '{"task_name": "minerva_math_500::tulu", "generation_kwargs": {"max_gen_toks": 1024}}'
   '{"task_name": "codex_humaneval::starcoder_pass@1", "generation_kwargs": {"max_gen_toks": 2048, "do_sample": false, "temperature": 0.0, "repeats": 1}}'
+  '{"task_name": "codex_humanevalplus::none", "generation_kwargs": {"max_gen_toks": 2048, "do_sample": false, "temperature": 0.0, "repeats": 1}, "metric_kwargs": {"pass_at_ks": [1]}}'
   '{"task_name": "mbpp:3shot::none", "context_kwargs": {"prompt_variant": "bcharness"}, "generation_kwargs": {"max_gen_toks": 2048, "do_sample": false, "temperature": 0.0, "repeats": 1}}'
   # '{"task_name": "alpaca_eval_v2::tulu", "generation_kwargs": {"max_gen_toks": 2048}}'
 )

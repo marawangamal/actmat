@@ -70,6 +70,16 @@ def merge(args):
         )
         final_sd[key] = (pre_t.float() + delta).to(pre_t.dtype)
 
+    # Fill any keys skipped by combine_task_vectors (e.g. --ignore-keys /
+    # --ignore-keys-file) with pretrained values so load_state_dict sees a
+    # complete state dict.
+    for key in pre_manifest["params"]:
+        if key in final_sd:
+            continue
+        final_sd[key] = _load_single_tensor(
+            _build_param_file_path(pretrained_dir, pre_manifest, key)
+        )
+
     config = AutoConfig.from_pretrained(str(pretrained_dir))
     with torch.device("meta"):
         model = AutoModelForCausalLM.from_config(config)
