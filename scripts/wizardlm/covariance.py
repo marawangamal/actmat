@@ -15,11 +15,11 @@ Usage:
 
     # Single capability
     python scripts/wizardlm/covariance.py --capability lm \\
-        --save artifacts/checkpoints/Llama-2-13b-wizardlm
+        --save artifacts/checkpoints/wizardlm
 
     # All capabilities
     python scripts/wizardlm/covariance.py --capability all \\
-        --save artifacts/checkpoints/Llama-2-13b-wizardlm
+        --save artifacts/checkpoints/wizardlm
 """
 
 import os
@@ -178,7 +178,7 @@ def collect_covariance(capability, args):
 def main():
     args = parse_arguments()
     if args.save is None:
-        args.save = "artifacts/checkpoints/Llama-2-13b-wizardlm"
+        args.save = "artifacts/checkpoints/wizardlm"
 
     cap = (args.capability or "all").lower()
     if cap == "all":

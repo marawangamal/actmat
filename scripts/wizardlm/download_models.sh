@@ -2,7 +2,7 @@
 # Download WizardLM-13B + WizardMath-13B + llama-2-13b-code-alpaca and organize
 # into checkpoint structure mirroring the OLMo layout:
 #
-#   artifacts/checkpoints/Llama-2-13b-wizardlm/
+#   artifacts/checkpoints/wizardlm/
 #     pretrained/          (param folder — shared, meta-llama/Llama-2-13b-hf)
 #     LM/
 #       pretrained/        (symlink → ../pretrained)
@@ -29,11 +29,11 @@ PRETRAINED_ID="meta-llama/Llama-2-13b-hf"
 # Map: capability_name -> HF model id
 FINETUNED_TASKS=(
   "LM:WizardLMTeam/WizardLM-13B-V1.2"
-  "Math:WizardLMTeam/WizardMath-13B-V1.0"
+  "Math:vanillaOVO/WizardMath-13B-V1.0"
   "Code:layoric/llama-2-13b-code-alpaca"
 )
 
-BASE="artifacts/checkpoints/Llama-2-13b-wizardlm"
+BASE="artifacts/checkpoints/wizardlm"
 PRETRAINED_DIR="${BASE}/pretrained"
 
 # 1. Download pretrained base

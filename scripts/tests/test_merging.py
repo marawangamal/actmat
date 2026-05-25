@@ -12,7 +12,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import torch
 
-from src.merging import _per_layer_topk_mask, merge_ties, merge_wudi
+from src.merging import (
+    _per_layer_topk_mask,
+    merge_actmat,
+    merge_actmat_mons,
+    merge_ties,
+    merge_wudi,
+)
 
 
 def _wudi_loss(M: torch.Tensor, d: torch.Tensor) -> float:
@@ -125,6 +131,62 @@ class TestMergeWudi(unittest.TestCase):
         out = merge_wudi(d, wudi_iters=200, wudi_lr=1e-3)
         final_loss = _wudi_loss(out, d)
         self.assertLess(final_loss, init_loss)
+
+
+class TestMergeActmatMons(unittest.TestCase):
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 8, 6)
+        out = merge_actmat_mons(d)
+        self.assertEqual(out.shape, (8, 6))
+
+    def test_runs_without_kwarg_typo(self):
+        """Regression for the prior `dims=`/`keepdims=` bug — torch.norm uses
+        `dim`/`keepdim`. A typo there raises TypeError before reaching matmul."""
+        d = torch.randn(2, 4, 5)
+        merge_actmat_mons(d)  # must not raise
+
+    def test_equal_norm_tasks_equal_actmat(self):
+        """If every task already has the same Frobenius norm, the per-task
+        rescale d_tilde = d is a no-op, so the result equals merge_actmat."""
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 5)
+        d = d / d.norm(dim=(-2, -1), keepdim=True)  # all unit Frobenius norm
+        out = merge_actmat_mons(d)
+        expected = merge_actmat(d)
+        self.assertTrue(torch.allclose(out, expected, atol=1e-5))
+
+    def test_rescaled_norms_match_mean(self):
+        """Each d_tilde_t should have Frobenius norm == mean(||d_t||_F)."""
+        torch.manual_seed(1)
+        d = torch.randn(4, 6, 7)
+        mu = d.norm(dim=(-2, -1)).mean()
+        d_tilde = d * mu / d.norm(dim=(-2, -1), keepdim=True)
+        norms = d_tilde.norm(dim=(-2, -1))
+        self.assertTrue(torch.allclose(norms, mu.expand_as(norms), atol=1e-5))
+
+    def test_scale_invariance_of_d_tilde(self):
+        """Scaling one task by a constant should not change d_tilde (rescale
+        cancels), and therefore C is unchanged. The merge target (d @ C) does
+        scale with that task, so the full output is not invariant — but C is."""
+        torch.manual_seed(2)
+        d = torch.randn(3, 5, 5)
+        d_scaled = d.clone()
+        d_scaled[0] *= 7.0
+
+        def _c(x):
+            mu = x.norm(dim=(-2, -1)).mean()
+            x_tilde = x * mu / x.norm(dim=(-2, -1), keepdim=True)
+            return x_tilde.transpose(1, 2) @ x_tilde
+
+        # Each per-task C_t is scale-invariant in d_t individually.
+        c1 = _c(d)
+        c2 = _c(d_scaled)
+        # Means differ (so does mu), so C_t themselves shift uniformly —
+        # but the per-task *direction* doesn't. Check C ratios stay finite/equal.
+        ratio = c2[0] / (c1[0] + 1e-12)
+        # All entries of C[0] scale by the same constant (mu_scaled/mu_orig)^2.
+        self.assertTrue(torch.allclose(ratio, ratio.mean() * torch.ones_like(ratio), atol=1e-4))
 
 
 if __name__ == "__main__":

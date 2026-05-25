@@ -80,6 +80,12 @@ def combine_task_vectors(
             if any(key not in ks for ks in all_key_sets):
                 # Skip keys that are not present in all vectors
                 continue
+            if ignore_keys and any(ik in key for ik in ignore_keys):
+                # Skip entirely — caller is responsible for filling these keys
+                # (typically from pretrained values). Required for the wizardlm
+                # benchmark, where embed_tokens/lm_head have differing vocab
+                # shapes across experts and cannot be stacked.
+                continue
             # Stack on the merge device
             # NOTE: use get_vector_element to speedup lazy mode with caching
             taus = torch.stack([v.get_vector_element(key).to(device) for v in casted])
@@ -88,8 +94,6 @@ def combine_task_vectors(
                 taus[0].ndim == 2
                 and "text_projection" not in key
                 and max(taus[0].shape) < 20_000
-                # and not in ignore_keys
-                and not (ignore_keys and any(ik in key for ik in ignore_keys))
             ):
                 # Only matrices can be merged using the merge function
                 fn = merge_fn
@@ -326,6 +330,13 @@ def merge_fisher(
 # ---------------------------------------------------------------------------
 def merge_actmat(d: torch.Tensor, *args, **kwargs):
     c = d.transpose(1, 2) @ d
+    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
+def merge_actmat_mons(d: torch.Tensor, *args, **kwargs):
+    mu_mag = d.norm(dim=(-2, -1)).mean()
+    d_tilde = d * mu_mag / d.norm(dim=(-2, -1), keepdim=True)
+    c = d_tilde.transpose(1, 2) @ d_tilde
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 

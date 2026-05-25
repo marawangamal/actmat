@@ -1,16 +1,13 @@
-"""Merge WizardLM-13B param-folder task vectors into a HuggingFace checkpoint.
+"""Merge Llama-3.1-8B-Instruct MergeBench param-folder task vectors into a HuggingFace checkpoint.
 
-Reproduces the DARE paper Fig. 1 (right) merging of WizardLM-13B,
-WizardMath-13B and llama-2-13b-code-alpaca. Uses ParamFolderTaskVector
-for lazy, memory-bounded merging — only one parameter is loaded per model
-at a time.
+Uses ParamFolderTaskVector for lazy, memory-bounded merging — only one
+parameter is loaded per model at a time.
 
 Usage:
-    python scripts/wizardlm/merge.py \\
-        --save artifacts/checkpoints/wizardlm \\
-        --merge-func dare \\
-        --merge-kwargs '{"drop_rate": 0.5, "base_merge": "sum"}' \\
-        --output-dir artifacts/checkpoints/wizardlm-merged-dare
+    python scripts/llama8b/merge.py \\
+        --save artifacts/checkpoints/Llama-3.1-8B-Instruct \\
+        --merge-func sum \\
+        --output-dir artifacts/checkpoints/Llama-3.1-8B-Instruct/sum
 """
 
 import os
@@ -29,7 +26,7 @@ from src.nlg.task_vectors import (
     _load_single_tensor,
 )
 
-WIZARDLM_TASKS = ["LM", "Math", "Code"]
+LLAMA_TASKS = ["instruction", "math", "coding", "multilingual"]
 
 
 def merge(args):
@@ -37,18 +34,18 @@ def merge(args):
         os.environ["HF_HOME"] = args.cache_dir
 
     save_root = Path(args.save).expanduser().resolve()
-    task_dirs = [save_root / t for t in WIZARDLM_TASKS]
+    task_dirs = [save_root / t for t in LLAMA_TASKS]
     output_dir = Path(args.output_dir).expanduser().resolve()
 
     for td in task_dirs:
         if not (td / "pretrained").exists() or not (td / "finetuned").exists():
             raise FileNotFoundError(
                 f"{td} must contain pretrained/ and finetuned/ subdirectories. "
-                "Run scripts/wizardlm/download_models.sh first."
+                "Run scripts/llama8b/download_models.sh first."
             )
 
     pretrained_dir = (task_dirs[0] / "pretrained").resolve()
-    print(f"Tasks          : {WIZARDLM_TASKS}")
+    print(f"Tasks          : {LLAMA_TASKS}")
     print(f"Merge function : {args.merge_func}")
     print(f"Output dir     : {output_dir}")
     print("=" * 80)
@@ -73,15 +70,6 @@ def merge(args):
         )
         final_sd[key] = (pre_t.float() + delta).to(pre_t.dtype)
 
-    # Fill any keys skipped by combine_task_vectors (e.g. --ignore-keys
-    # embed_tokens/lm_head when vocab shapes differ) with pretrained values.
-    for key in pre_manifest["params"]:
-        if key in final_sd:
-            continue
-        final_sd[key] = _load_single_tensor(
-            _build_param_file_path(pretrained_dir, pre_manifest, key)
-        )
-
     config = AutoConfig.from_pretrained(str(pretrained_dir))
     with torch.device("meta"):
         model = AutoModelForCausalLM.from_config(config)
@@ -103,5 +91,5 @@ def merge(args):
 if __name__ == "__main__":
     args = parse_arguments()
     if args.save is None:
-        args.save = "artifacts/checkpoints/wizardlm"
+        args.save = "artifacts/checkpoints/Llama-3.1-8B-Instruct"
     merge(args)

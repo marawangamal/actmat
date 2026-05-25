@@ -1,0 +1,168 @@
+{
+  "all_primary_scores": [
+    "Cars: 0.609999",
+    "DTD: 0.632447",
+    "EuroSAT: 0.874444",
+    "GTSRB: 0.813460",
+    "MNIST: 0.974100",
+    "RESISC45: 0.835238",
+    "SUN397: 0.686499",
+    "SVHN: 0.788990",
+    "CIFAR100: 0.741000",
+    "STL10: 0.972375",
+    "Flowers102: 0.753131",
+    "OxfordIIITPet: 0.894794",
+    "PCAM: 0.811432",
+    "FER2013: 0.626637"
+  ],
+  "tasks": [
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.6099987563735854,
+        "primary_score": 0.6099987563735854
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.6324468085106383,
+        "primary_score": 0.6324468085106383
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.8744444444444445,
+        "primary_score": 0.8744444444444445
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.8134600158353128,
+        "primary_score": 0.8134600158353128
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9741,
+        "primary_score": 0.9741
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.8352380952380952,
+        "primary_score": 0.8352380952380952
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.6864987405541562,
+        "primary_score": 0.6864987405541562
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.7889904732636754,
+        "primary_score": 0.7889904732636754
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "CIFAR100",
+      "metrics": {
+        "top1": 0.741,
+        "primary_score": 0.741
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "STL10",
+      "metrics": {
+        "top1": 0.972375,
+        "primary_score": 0.972375
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Flowers102",
+      "metrics": {
+        "top1": 0.7531305903398927,
+        "primary_score": 0.7531305903398927
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "OxfordIIITPet",
+      "metrics": {
+        "top1": 0.8947942218588171,
+        "primary_score": 0.8947942218588171
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "PCAM",
+      "metrics": {
+        "top1": 0.811431884765625,
+        "primary_score": 0.811431884765625
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "FER2013",
+      "metrics": {
+        "top1": 0.6266369462245751,
+        "primary_score": 0.6266369462245751
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-32",
+    "merge_func": "isoc",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

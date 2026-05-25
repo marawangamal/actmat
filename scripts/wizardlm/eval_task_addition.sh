@@ -22,25 +22,36 @@ mkdir -p artifacts/logs
 # 0. Setup environment
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
+export HF_HOME="$SCRATCH/huggingface"
 export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
-MODEL="Llama-2-13b-wizardlm"
-METHODS=(sum mean ties dare tsv isoc regmean actmat)
+MODEL="wizardlm"
+METHODS=(tsv actmat wudi)
 
 # Per-method extra merge kwargs (JSON). Empty string for none.
 declare -A MERGE_KWARGS=(
   ["dare"]='{"drop_rate": 0.5, "seed": 0, "base_merge": "sum"}'
 )
 
-STATS_METHODS=(regmean actmat)
+# Note: `actmat` in src/merging.py is the data-free variant (c = d^T @ d),
+# so it does NOT need pre-collected activation covariances. Only regmean needs them.
+STATS_METHODS=(regmean)
+
+# Embedding/lm_head shapes differ across experts (32000 vs 32001 vocab from
+# pad-token additions). Ignore those keys at merge time — they fall back to
+# pretrained values via the ignore_keys path in src/merging.py.
+IGNORE_KEYS=(embed_tokens lm_head)
 
 # ── OLMES ─────────────────────────────────────────────────────────────────────
+# max_gen_toks per DARE paper (arXiv:2311.03099): 1024 for GSM8K, 2048 for the rest.
+# alpaca_eval_v2 dropped — requires OPENAI_API_KEY for the GPT-4 judge. Re-add
+# the line below once the key is exported.
 OLMES_TASKS=(
-  "gsm8k::tulu"
-  "codex_humaneval::tulu"
-  "mbpp:3shot::none"
-  "alpaca_eval_v2::tulu"
+  '{"task_name": "gsm8k::tulu", "generation_kwargs": {"max_gen_toks": 1024}}'
+  '{"task_name": "codex_humaneval::tulu", "generation_kwargs": {"max_gen_toks": 2048}}'
+  '{"task_name": "mbpp:3shot::none", "generation_kwargs": {"max_gen_toks": 2048}}'
+  # '{"task_name": "alpaca_eval_v2::tulu", "generation_kwargs": {"max_gen_toks": 2048}}'
 )
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'
 GPUS=2
@@ -84,6 +95,7 @@ for method in "${METHODS[@]}"; do
       --save "artifacts/checkpoints/${MODEL}" \
       --merge-func "$method" \
       --output-dir "$MERGED_DIR" \
+      --ignore-keys "${IGNORE_KEYS[@]}" \
       "${extra_args[@]}"
   fi
 
