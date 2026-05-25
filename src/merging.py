@@ -569,6 +569,9 @@ def merge_wudi_unweighted(d: torch.Tensor, **kwargs) -> torch.Tensor:
     return merge_wudi(d, wudi_weighted=False, **kwargs)
 
 
+merge_dare_ties = lambda *args, **kwargs: merge_dare(*args, base_merge="ties", **kwargs)
+
+
 def merge_dare(
     d: torch.Tensor,
     drop_rate: float = 0.3,

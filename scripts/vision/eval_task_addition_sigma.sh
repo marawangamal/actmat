@@ -32,9 +32,10 @@ ln -sfn "$SLURM_TMPDIR/data" data
 MODELS=(ViT-B-16)
 METHODS=(mean tsv actmat wudi ace isoc)
 FT_MODES=(standard)
-SIGMAS=(0.1 0.2 0.5 0.75 1.0 2.0)
+SIGMAS=(0.1 0.2 0.5 0.75 1.0)
 MERGE_MODE=d
 HPO=''
+TRIAL="${TRIAL:-1}"
 
 # Build flat list of (sigma, ft_mode, model, method) combos so each array task
 # runs exactly one configuration. Total combos = |SIGMAS|*|FT_MODES|*|MODELS|*|METHODS|.
@@ -62,7 +63,7 @@ fi
 for IDX in "${INDICES[@]}"; do
   IFS='|' read -r SIGMA FT_MODE MODEL METHOD <<< "${COMBOS[$IDX]}"
 
-  RESULTS_DIR="artifacts/results-sig${SIGMA}"
+  RESULTS_DIR="artifacts/results-trial${TRIAL}-sig${SIGMA}"
 
   # Run covariance/fisher script if needed (sigma-independent — only once per model/ft mode/method).
   if [ "$METHOD" = "regmean" ]; then
@@ -79,7 +80,7 @@ for IDX in "${INDICES[@]}"; do
       --mha=split
   fi
 
-  echo "[BASH] [array=$IDX/$NUM_COMBOS] eval_task_addition.py | model: $MODEL | ft: $FT_MODE | method: $METHOD | mode: $MERGE_MODE | sigma: $SIGMA"
+  echo "[BASH] [trial=$TRIAL array=$IDX/$NUM_COMBOS] eval_task_addition.py | model: $MODEL | ft: $FT_MODE | method: $METHOD | mode: $MERGE_MODE | sigma: $SIGMA"
   python scripts/vision/eval_task_addition.py \
     --model="$MODEL" \
     --finetuning-mode="$FT_MODE" \

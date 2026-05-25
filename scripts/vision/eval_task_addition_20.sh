@@ -19,7 +19,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 CKPT_ROOT="artifacts/checkpoints"
 RESULTS_DIR="artifacts/results20"
-DATA_DIR="data/vision"
+DATA_DIR="$PWD/artifacts/data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 
 # 1. Stage datasets to $SLURM_TMPDIR (mirrors finetune.sh / eval_task_addition.sh)

@@ -18,6 +18,7 @@ import os
 import time
 
 import torch
+import trackio
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from src.args import parse_arguments
@@ -135,6 +136,27 @@ def finetune_mtl(args):
         f"  finetune mode: {args.finetuning_mode}\n"
     )
 
+    trackio.init(
+        project="actmat-mtl-language",
+        name=f"{args.model}-{args.finetuning_mode}-mtl",
+        config={
+            "model": args.model,
+            "finetuning_mode": args.finetuning_mode,
+            "mixture": "t5_mixture",
+            "tasks": T5_MIXTURE,
+            "lr": args.lr,
+            "wd": args.wd,
+            "batch_size": args.batch_size,
+            "num_grad_accumulation": num_grad_accum,
+            "effective_batch": args.batch_size * num_grad_accum,
+            "num_batches": num_batches,
+            "max_seq_len": args.max_seq_len,
+            "max_datapoints_per_dataset": args.max_datapoints_per_dataset,
+            "checkpoint_every": args.checkpoint_every,
+            "patience": getattr(args, "patience", 5),
+        },
+    )
+
     patience = getattr(args, "patience", 5)
     best_mean_acc = -1.0
     bad_ckpts = 0
@@ -171,6 +193,13 @@ def finetune_mtl(args):
                 f"Elapsed {_format_duration(elapsed)}",
                 flush=True,
             )
+            trackio.log(
+                {
+                    "train/loss": loss.item() * num_grad_accum,
+                    "train/elapsed_sec": elapsed,
+                },
+                step=step,
+            )
 
         if (
             args.checkpoint_every > 0
@@ -182,6 +211,13 @@ def finetune_mtl(args):
                 f"\n[Eval @ step {step}] mean={100 * mean_acc:.2f}%  "
                 + "  ".join(f"{k}={100 * v:.1f}" for k, v in per_task.items()),
                 flush=True,
+            )
+            trackio.log(
+                {
+                    "val/mean_acc": mean_acc,
+                    **{f"val/{k}_acc": v for k, v in per_task.items()},
+                },
+                step=step,
             )
             if mean_acc > best_mean_acc:
                 best_mean_acc = mean_acc
@@ -217,8 +253,15 @@ def finetune_mtl(args):
             + "  ".join(f"{k}={100 * v:.1f}" for k, v in per_task.items()),
             flush=True,
         )
+        trackio.log(
+            {
+                "val/mean_acc": mean_acc,
+                **{f"val/{k}_acc": v for k, v in per_task.items()},
+            },
+        )
         model.save(ft_path)
 
+    trackio.finish()
     return zs_path, ft_path
 
 

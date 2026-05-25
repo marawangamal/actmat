@@ -30,4 +30,6 @@ FT_MODE=${FT_MODE:-standard}
 echo "[BASH] Running finetune_mtl.py | model: $MODEL | ft mode: $FT_MODE"
 python scripts/language/finetune_mtl.py \
   --model="$MODEL" \
-  --finetuning-mode="$FT_MODE"
+  --finetuning-mode="$FT_MODE" \
+  --checkpoint-every=1000 \
+  --patience=10
