@@ -48,13 +48,19 @@ STATS_METHODS=(regmean)
 IGNORE_KEYS=(embed_tokens lm_head)
 
 # ── OLMES ─────────────────────────────────────────────────────────────────────
-# max_gen_toks per DARE paper (arXiv:2311.03099): 1024 for GSM8K, 2048 for the rest.
-# alpaca_eval_v2 dropped — requires OPENAI_API_KEY for the GPT-4 judge. Re-add
-# the line below once the key is exported.
+# DARE paper (arXiv:2311.03099) eval setup, following WizardCoder (Luo 2023b):
+#   • T=0 greedy, max_gen_toks=1024 (GSM8K) / 2048 (others), pass@1.
+#   • MBPP prompt = bigcode-evaluation-harness format: NL description + first
+#     test assert wrapped in '"""..."""' so the model picks up the exact
+#     function signature. (The default "inloop_bpb" variant strips the assert,
+#     so the model invents its own function name and all tests fail — that's
+#     what gave us ~3% pass@1 on the first run.)
+#   • HumanEval = bare-prompt bigcode style (no chat), greedy pass@1.
+# alpaca_eval_v2 dropped — requires OPENAI_API_KEY for the GPT-4 judge.
 OLMES_TASKS=(
   '{"task_name": "gsm8k::tulu", "generation_kwargs": {"max_gen_toks": 1024}}'
-  '{"task_name": "codex_humaneval::tulu", "generation_kwargs": {"max_gen_toks": 2048}}'
-  '{"task_name": "mbpp:3shot::none", "generation_kwargs": {"max_gen_toks": 2048}}'
+  '{"task_name": "codex_humaneval::starcoder_pass@1", "generation_kwargs": {"max_gen_toks": 2048, "do_sample": false, "temperature": 0.0, "repeats": 1}}'
+  '{"task_name": "mbpp:3shot::none", "context_kwargs": {"prompt_variant": "bcharness"}, "generation_kwargs": {"max_gen_toks": 2048, "do_sample": false, "temperature": 0.0, "repeats": 1}}'
   # '{"task_name": "alpaca_eval_v2::tulu", "generation_kwargs": {"max_gen_toks": 2048}}'
 )
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096, "chat_template": "llama2"}'
