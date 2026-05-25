@@ -96,11 +96,17 @@ class ParamFolderTaskVector(_TaskVector):
     def lazy_keys(self):
         if self._lazy_keys is not None:
             return self._lazy_keys
-        # Use the pretrained manifest; filter out non-float dtypes.
+        # Use the intersection of pretrained ∩ finetuned manifests so that
+        # combine_task_vectors only iterates keys whose delta is computable.
+        # Newer transformers releases save rotary_emb.inv_freq as a
+        # non-persistent buffer (omitted from the finetuned safetensors); the
+        # pretrained snapshot may still include it. Such keys are skipped here
+        # and the caller (merge.py) must fill them from pretrained values.
+        ft_keys = set(self._ft_manifest["params"])
         self._lazy_keys = [
             k
             for k, v in self._pre_manifest["params"].items()
-            if "int" not in v.get("dtype", "")
+            if "int" not in v.get("dtype", "") and k in ft_keys
         ]
         return self._lazy_keys
 

@@ -83,9 +83,19 @@ def merge(args):
         )
 
     config = AutoConfig.from_pretrained(str(pretrained_dir))
-    with torch.device("meta"):
-        model = AutoModelForCausalLM.from_config(config)
-    model.load_state_dict(final_sd, assign=True)
+    # CPU-init in bf16 (not meta) so non-overridden buffers (e.g.
+    # rotary_emb.inv_freq, which is non-persistent and may not be present in
+    # the persisted state_dict) stay valid for save_pretrained.
+    # strict=False because final_sd may include legacy persistent keys that
+    # the current transformers release no longer registers (e.g. inv_freq
+    # was made non-persistent in newer transformers).
+    model = AutoModelForCausalLM.from_config(config, torch_dtype=torch.bfloat16)
+    missing, unexpected = model.load_state_dict(final_sd, assign=True, strict=False)
+    print(f"load_state_dict: {len(missing)} missing, {len(unexpected)} unexpected keys")
+    if missing:
+        print(f"  first 5 missing: {missing[:5]}")
+    if unexpected:
+        print(f"  first 5 unexpected: {unexpected[:5]}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"Saving merged model to {output_dir} ...")

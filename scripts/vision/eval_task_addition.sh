@@ -30,9 +30,9 @@ NUM_BATCHES=10
 BATCH_SIZE=32
 
 # ===== Default experiments (no hyperparameter tuning) =====
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-METHODS=(actmat_gd)
-FT_MODES=(standard lora)
+MODELS=(ViT-B-16)
+METHODS=(actmat_mons)
+FT_MODES=(standard)
 MERGE_MODE=d
 HPO=''
 

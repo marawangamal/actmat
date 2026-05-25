@@ -5,17 +5,19 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=24:00:00
-#SBATCH --output=artifacts/logs/%x_%j.out
-#SBATCH --error=artifacts/logs/%x_%j.err
+#SBATCH --output=artifacts/logs/%x_%A_%a.out
+#SBATCH --error=artifacts/logs/%x_%A_%a.err
 # Merge + evaluate WizardLM-13B / WizardMath-13B / llama-2-13b-code-alpaca via
 # olmes, then collect results. Reproduces the DARE paper Fig. 1 (right).
+#
+# Each array task runs one merge method, so methods run in parallel.
 #
 # Prerequisites:
 #   - bash scripts/wizardlm/download_models.sh (HF_TOKEN required for Llama-2)
 #   - OPENAI_API_KEY exported for alpaca_eval_v2 (GPT-4 judge)
 #
 # Usage:
-#   sbatch scripts/wizardlm/eval_task_addition.sh
+#   sbatch --array=0-2 scripts/wizardlm/eval_task_addition.sh
 set -euo pipefail
 mkdir -p artifacts/logs
 
@@ -27,7 +29,9 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="wizardlm"
-METHODS=(tsv actmat wudi)
+METHODS=(tsv actmat wudi actmat_mons)
+# Submit with: sbatch --array=0-$((${#METHODS[@]}-1)) scripts/wizardlm/eval_task_addition.sh
+# Each array task runs one method end-to-end (merge + eval).
 
 # Per-method extra merge kwargs (JSON). Empty string for none.
 declare -A MERGE_KWARGS=(
@@ -58,12 +62,22 @@ GPUS=2
 BATCH_SIZE=32
 NUM_WORKERS=1
 
-# ── Statistics collection (regmean / actmat) ─────────────────────────────────
+# ── Select method for this array task ───────────────────────────────────────
+if [[ -z "${SLURM_ARRAY_TASK_ID:-}" ]]; then
+  echo "ERROR: this script must be submitted as a job array. Use:"
+  echo "  sbatch --array=0-$((${#METHODS[@]}-1)) scripts/wizardlm/eval_task_addition.sh"
+  exit 1
+fi
+if (( SLURM_ARRAY_TASK_ID >= ${#METHODS[@]} )); then
+  echo "ERROR: SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID} out of range for METHODS (${#METHODS[@]} entries)"
+  exit 1
+fi
+method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
+
+# ── Statistics collection (regmean only — actmat variants are data-free) ───
 need_stats=0
-for m in "${METHODS[@]}"; do
-  for sm in "${STATS_METHODS[@]}"; do
-    if [[ "$m" == "$sm" ]]; then need_stats=1; fi
-  done
+for sm in "${STATS_METHODS[@]}"; do
+  if [[ "$method" == "$sm" ]]; then need_stats=1; fi
 done
 if [[ $need_stats -eq 1 ]]; then
   echo ">>> Collecting covariances for ${MODEL}"
@@ -73,46 +87,44 @@ if [[ $need_stats -eq 1 ]]; then
 fi
 
 # ── Merge + Evaluate ────────────────────────────────────────────────────────
-for method in "${METHODS[@]}"; do
-  MERGED_DIR="artifacts/checkpoints/${MODEL}/${method}"
-  RESULTS_DIR="artifacts/results/${MODEL}-${method}"
+MERGED_DIR="artifacts/checkpoints/${MODEL}/${method}"
+RESULTS_DIR="artifacts/results/${MODEL}-${method}"
 
-  echo "============================================================"
-  echo "Method: ${method}"
-  echo "Merged: ${MERGED_DIR}"
-  echo "Results: ${RESULTS_DIR}"
-  echo "============================================================"
+echo "============================================================"
+echo "Array task: ${SLURM_ARRAY_TASK_ID} / Method: ${method}"
+echo "Merged:  ${MERGED_DIR}"
+echo "Results: ${RESULTS_DIR}"
+echo "============================================================"
 
-  # 1. Merge (skip if already done)
-  if [[ -d "$MERGED_DIR" ]]; then
-    echo ">>> Skipping merge: ${MERGED_DIR} already exists"
-  else
-    extra_args=()
-    if [[ -n "${MERGE_KWARGS[$method]:-}" ]]; then
-      extra_args+=(--merge-kwargs "${MERGE_KWARGS[$method]}")
-    fi
-    python scripts/wizardlm/merge.py \
-      --save "artifacts/checkpoints/${MODEL}" \
-      --merge-func "$method" \
-      --output-dir "$MERGED_DIR" \
-      --ignore-keys "${IGNORE_KEYS[@]}" \
-      "${extra_args[@]}"
+# 1. Merge (skip if already done)
+if [[ -d "$MERGED_DIR" ]]; then
+  echo ">>> Skipping merge: ${MERGED_DIR} already exists"
+else
+  extra_args=()
+  if [[ -n "${MERGE_KWARGS[$method]:-}" ]]; then
+    extra_args+=(--merge-kwargs "${MERGE_KWARGS[$method]}")
   fi
+  python scripts/wizardlm/merge.py \
+    --save "artifacts/checkpoints/${MODEL}" \
+    --merge-func "$method" \
+    --output-dir "$MERGED_DIR" \
+    --ignore-keys "${IGNORE_KEYS[@]}" \
+    "${extra_args[@]}"
+fi
 
-  # 2. Evaluate (skip if metrics.json already exists)
-  if [[ -f "$RESULTS_DIR/metrics.json" ]]; then
-    echo ">>> Skipping eval: ${RESULTS_DIR}/metrics.json already exists"
-  else
-    echo ">>> Evaluating: Batch size = $BATCH_SIZE, Workers = $NUM_WORKERS, GPUs = $GPUS"
-    echo ">>> Model: $MERGED_DIR, tasks: ${OLMES_TASKS[@]}"
-    olmes \
-      --model "$MERGED_DIR" \
-      --task "${OLMES_TASKS[@]}" \
-      --output-dir "$RESULTS_DIR" \
-      --gpus "$GPUS" \
-      --model-type vllm \
-      --model-args "$OLMES_MODEL_ARGS" \
-      --batch-size "$BATCH_SIZE" \
-      --num-workers "$NUM_WORKERS"
-  fi
-done
+# 2. Evaluate (skip if metrics.json already exists)
+if [[ -f "$RESULTS_DIR/metrics.json" ]]; then
+  echo ">>> Skipping eval: ${RESULTS_DIR}/metrics.json already exists"
+else
+  echo ">>> Evaluating: Batch size = $BATCH_SIZE, Workers = $NUM_WORKERS, GPUs = $GPUS"
+  echo ">>> Model: $MERGED_DIR, tasks: ${OLMES_TASKS[@]}"
+  olmes \
+    --model "$MERGED_DIR" \
+    --task "${OLMES_TASKS[@]}" \
+    --output-dir "$RESULTS_DIR" \
+    --gpus "$GPUS" \
+    --model-type vllm \
+    --model-args "$OLMES_MODEL_ARGS" \
+    --batch-size "$BATCH_SIZE" \
+    --num-workers "$NUM_WORKERS"
+fi
