@@ -171,6 +171,12 @@ def parse_arguments():
         help="Substrings of parameter keys to exclude from merging (averaged instead).",
     )
     parser.add_argument(
+        "--ignore-keys-file",
+        type=str,
+        default=None,
+        help="Path to a text file with one ignore-key substring per line ('#' comments and blank lines skipped). Merged with --ignore-keys.",
+    )
+    parser.add_argument(
         "--freeze-keys",
         nargs="+",
         default=None,
@@ -310,4 +316,14 @@ def parse_arguments():
 
     if parsed_args.load is not None and len(parsed_args.load) == 1:
         parsed_args.load = parsed_args.load[0]
+
+    if parsed_args.ignore_keys_file is not None:
+        with open(parsed_args.ignore_keys_file) as f:
+            file_keys = [
+                line.strip()
+                for line in f
+                if line.strip() and not line.lstrip().startswith("#")
+            ]
+        parsed_args.ignore_keys = (parsed_args.ignore_keys or []) + file_keys
+
     return parsed_args

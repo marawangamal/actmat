@@ -3,9 +3,9 @@
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
+#SBATCH --mem=128G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-2
+#SBATCH --array=0-9
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -51,17 +51,13 @@ NUM_BATCHES=10
 BATCH_SIZE=32
 
 # ===== Default experiments (no hyperparameter tuning) =====
-# Only ViT-B-16 has the full 20-dataset finetunes available right now.
-# ViT-B-32 and ViT-L-14 still have only the original 8; flip the line below
-# once their 20-dataset finetunes finish.
-# MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-MODEL="ViT-B-16"
+MODEL="ViT-L-14"
 FT_MODE="standard"
 MERGE_MODE=d
 HPO=''
 
 # Array dispatch: one array task per method. Keep --array=0-N in sync with len(METHODS)-1.
-METHODS=(isoc wudi ace)
+METHODS=(mean actmat tsv wudi isoc regmean ace sum04 ties actmat_gd)
 method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
 # Task scenarios (Wang et al. / TALL-masks):

@@ -8,6 +8,7 @@ import sys
 sys.path.append("..")
 from src import mhap, mhas
 from src.vision.task_vectors import NonLinearTaskVector
+from src.nlg.task_vectors import ParamFolderTaskVector
 
 
 def _load_stats_dict(path: str) -> dict:
@@ -25,37 +26,50 @@ def _load_stats_dict(path: str) -> dict:
         return torch.load(path, map_location="cpu", weights_only=False)
 
 
-# model = "ViT-B-16"
-# results_dir = f"artifacts/results/{model}"
-# rootdir = "../artifacts/checkpoints"
-datasets = ["Cars", "DTD", "EuroSAT", "GTSRB", "MNIST", "SVHN"]
 configs = [
     {
         "model": "ViT-B-16",
-        "datasets": [d + "Val" for d in ["Cars", "DTD", "EuroSAT", "GTSRB", "MNIST", "SVHN"]],
-    }
+        "datasets": ["Cars", "DTD", "EuroSAT", "GTSRB", "MNIST", "SVHN"],
+        "task_vector_cls": NonLinearTaskVector,
+        "val_suffix": "Val",
+        "tv_transform": lambda tv: tv.map(mhas.copy_from_pytorch_state_dict),
+    },
     {
-        "model": "ViT-B-16",
+        "model": "Olmo-3-7b",
         "datasets": ["Math", "Code", "IF"],
-    }
+        "task_vector_cls": ParamFolderTaskVector,
+        "val_suffix": "",
+        "tv_transform": None,
+    },
 ]
 
 for config in configs:
     rows = []
     model = config["model"]
+    datasets = config["datasets"]
+    task_vector_cls = config["task_vector_cls"]
+    val_suffix = config["val_suffix"]
+    tv_transform = config["tv_transform"]
+
     results_dir = f"artifacts/results/{model}"
     rootdir = "artifacts/checkpoints"
+    os.makedirs(results_dir, exist_ok=True)
 
     for dataset in tqdm(datasets, desc="datasets"):
-        tv_dir = osp.join(rootdir, model, f"{dataset}Val")
-        tv = NonLinearTaskVector(tv_dir)
-        tv = tv.map(mhas.copy_from_pytorch_state_dict)
+        tv_dir = osp.join(rootdir, model, f"{dataset}{val_suffix}")
+        tv = task_vector_cls(tv_dir)
+        if tv_transform is not None:
+            tv = tv_transform(tv)
+
+        cdict = _load_stats_dict(tv.covariance_path)
 
         layer_idx = 0
-        for layer_key, d_t in tqdm(tv.vector.items(), desc=dataset, leave=False):
+        for layer_key in tqdm(tv.lazy_keys(), desc=dataset, leave=False):
             cov_key = tv.param_key_to_cov_key(layer_key)
-            cdict = _load_stats_dict(tv.covariance_path)
-            if len(d_t.shape) != 2 or cov_key not in cdict.keys():
+            if cov_key not in cdict:
+                continue
+            d_t = tv.get_vector_element(layer_key)
+            if len(d_t.shape) != 2:
                 continue
             c_t = cdict[cov_key]
             c_t_hat = d_t.T @ d_t
