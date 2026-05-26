@@ -346,6 +346,18 @@ def merge_actmat_mons(d: torch.Tensor, *args, **kwargs):
     return target @ c_sum_pinv
 
 
+def merge_actmat_smons(d: torch.Tensor, *args, **kwargs):
+    mu_mag = d.norm(dim=(-2, -1)).mean()
+    d_tilde = d * mu_mag / d.norm(dim=(-2, -1), keepdim=True)
+    c = d_tilde.transpose(1, 2) @ d_tilde
+    c_sum = c.sum(dim=0)
+    target = (d @ c).sum(dim=0)
+    # Norm-equalizing rescale can produce an ill-conditioned C where the
+    # cusolver SVD fails to converge in fp32; promote to fp64 for the pinv.
+    c_sum_pinv = pinv(c_sum.double()).to(c_sum.dtype)
+    return target @ c_sum_pinv
+
+
 def merge_actmat_5k(d: torch.Tensor, *args, **kwargs):
     if d.shape[-1] > 5_000:
         return d.mean(dim=0)

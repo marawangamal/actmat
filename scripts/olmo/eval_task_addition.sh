@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=eval_olmo
 #SBATCH --partition=long
-#SBATCH --array=0
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --array=0-4
+#SBATCH --gres=gpu:l40s:2
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
 #SBATCH --time=12:00:00
@@ -19,8 +19,12 @@
 # Per merged model, two chat-template views are materialized:
 #   ${MERGED_DIR}-chat-code   -- Code/IF chat template (HumanEval/+/IFEval)
 #   ${MERGED_DIR}-chat-math   -- Math chat template (GSM8K/MATH-500)
-# Code/IF results: ${RESULTS_DIR}/chat-code
-# GSM8K + MATH-500 results: ${RESULTS_DIR}/chat-gsm8k-math
+# Code/IF results:          ${RESULTS_DIR}/chat-code2
+# GSM8K + MATH-500 results: ${RESULTS_DIR}/chat-math2
+# (chat-code/ and chat-math/ are reserved for results from
+# eval_task_addition_old.sh / eval_task_addition_chat.sh: chat-code there
+# used HE/HE+ pass@10 sampling and chat-math held AIME runs. The -2 suffix
+# distinguishes the new greedy pass@1 + GSM8K/MATH-500 outputs.)
 #
 # Usage:
 #   sbatch scripts/olmo/eval_task_addition.sh
@@ -34,13 +38,21 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(regmean)
+METHODS=(regmean actmat tsv actmat_gd wudi)
 method="${METHODS[${SLURM_ARRAY_TASK_ID:-0}]}"
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────
+# HumanEval/+: default ::tulu uses sampling (T=0.8, top_p=0.95, 20 repeats,
+# pass@10). To match DARE (Yu et al. 2023, arXiv:2311.03099) we override to
+# greedy pass@1 with max_gen_toks=2048 (DARE's HumanEval budget; our largest
+# observed generation was 604 tokens). olmes parses per-task JSON dicts and
+# merges them over the base TASK_CONFIGS[alias], so per-task overrides do
+# NOT spill onto IFEval (which would otherwise have its primary metric
+# clobbered).
+HUMANEVAL_GREEDY_GEN='{"temperature": 0, "do_sample": false, "max_gen_toks": 2048, "repeats": 1}'
 CODE_TASKS=(
-  "codex_humaneval::tulu"
-  "codex_humanevalplus::tulu"
+  "{\"task_name\": \"codex_humaneval::tulu\",     \"generation_kwargs\": ${HUMANEVAL_GREEDY_GEN}, \"primary_metric\": \"pass_at_1\", \"metric_kwargs\": {\"pass_at_ks\": [1]}}"
+  "{\"task_name\": \"codex_humanevalplus::tulu\", \"generation_kwargs\": ${HUMANEVAL_GREEDY_GEN}, \"primary_metric\": \"pass_at_1\", \"metric_kwargs\": {\"pass_at_ks\": [1]}}"
   "ifeval::tulu"
 )
 # GSM8K::tulu: 8-shot CoT, greedy, max_gen_toks=512, ~1319 problems.
@@ -52,12 +64,7 @@ MATH_TASKS=(
   "minerva_math_500::tulu"
 )
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
-# Code tasks override: HumanEval/+ default to max_gen_toks=999999 (capped by
-# max_length). Empirically generations never exceed 604 tokens, so 2048 is
-# ample. IFEval already defaults to 2048, so this is a no-op for it. Applied
-# uniformly to all CODE_TASKS via --task-args.
-CODE_TASK_ARGS='{"generation_kwargs": {"max_gen_toks": 2048}}'
-GPUS=1
+GPUS=2
 BATCH_SIZE=64
 NUM_WORKERS=1
 
@@ -144,5 +151,5 @@ make_view "$MERGED_DIR" "$MATH_VIEW" "$MATH_CHAT_TEMPLATE"
 echo ">>> Views: ${CODE_VIEW} (Code/IF template), ${MATH_VIEW} (Math template)"
 
 # 3. Evaluate each task group against its matching view
-run_olmes "$CODE_VIEW" "${RESULTS_DIR}/chat-code"      "$CODE_TASK_ARGS" "${CODE_TASKS[@]}"
-run_olmes "$MATH_VIEW" "${RESULTS_DIR}/chat-gsm8k-math" ""                "${MATH_TASKS[@]}"
+run_olmes "$CODE_VIEW" "${RESULTS_DIR}/chat-code2" "" "${CODE_TASKS[@]}"
+run_olmes "$MATH_VIEW" "${RESULTS_DIR}/chat-math2" "" "${MATH_TASKS[@]}"
