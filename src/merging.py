@@ -337,14 +337,49 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
 def merge_actmat_p(d: torch.Tensor, *args, p=1.0, **kwargs):
     # γ_t = 1/‖d_t‖^(2p). p=0 → vanilla actmat; p=1/2 → smons; p=1 → mons
     # (up to a scalar μ^(2p) that cancels in the pinv solve).
-    c = (d.transpose(1, 2) @ d) / d.norm(dim=(-2, -1)).pow(2 * p).view(-1, 1, 1)
-    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+    mags = d.norm(dim=(-2, -1))
+    # Zero-delta tasks (e.g. LoRA-frozen params) would give inf*0 → NaN under
+    # the rescale; leave them at zero so they contribute nothing.
+    scale = torch.where(
+        mags > 0, mags.clamp_min(1e-12).pow(-2 * p), mags.new_zeros(())
+    )
+    c = (d.transpose(1, 2) @ d) * scale.view(-1, 1, 1)
+    c_sum = c.sum(dim=0)
+    # fp64 promotion: rescaled C can be ill-conditioned where fp32 cusolver SVD
+    # fails to converge.
+    c_sum_pinv = pinv(c_sum.double()).to(c_sum.dtype)
+    return (d @ c).sum(dim=0) @ c_sum_pinv
 
 
 merge_actmat_p05 = lambda *a, **kw: merge_actmat_p(*a, p=0.5, **kw)
-merge_actmat_p03 = lambda *a, **kw: merge_actmat_p(*a, p=0.3**kw)
-merge_actmat_p02 = lambda *a, **kw: merge_actmat_p(*a, p=0.2**kw)
-merge_actmat_p01 = lambda *a, **kw: merge_actmat_p(*a, p=0.2**kw)
+merge_actmat_p03 = lambda *a, **kw: merge_actmat_p(*a, p=0.3, **kw)
+merge_actmat_p02 = lambda *a, **kw: merge_actmat_p(*a, p=0.2, **kw)
+merge_actmat_p01 = lambda *a, **kw: merge_actmat_p(*a, p=0.1, **kw)
+
+
+def merge_actmat_softmax_bias(d: torch.Tensor, *args, **kwargs):
+    """ACTMat ↔ mean interpolation with softmax-biased per-task strength.
+
+    Per task: C_t = α_t · (d_tᵀ d_t) + (1 − α_t) · I, with
+    α_t = 1 − softmax(‖d_t‖)_t. The dominant-norm task gets α ≈ 0, so its
+    C_t ≈ I (uniform weighting → its contribution becomes plain d_t instead of
+    the covariance-weighted version). Smaller-norm tasks keep α ≈ 1 and behave
+    like vanilla ACTMat.
+
+    Edge cases (all-α=0 → simple mean of d; all-α=1 → vanilla ACTMat) are
+    exercised in scripts/tests/test_merging.py.
+    """
+    mags = d.norm(dim=(-2, -1))
+    alpha = 1 - mags.softmax(dim=0)  # (T,)
+    cov = d.transpose(1, 2) @ d  # (T, Di, Di)
+    eye = torch.eye(d.shape[-1], device=d.device, dtype=d.dtype).expand_as(cov)
+    a = alpha.view(-1, 1, 1)
+    c = a * cov + (1 - a) * eye
+    c_sum = c.sum(dim=0)
+    # fp64 promotion: rescaled C can be ill-conditioned where fp32 cusolver SVD
+    # fails to converge.
+    c_sum_pinv = pinv(c_sum.double()).to(c_sum.dtype)
+    return (d @ c).sum(dim=0) @ c_sum_pinv
 
 # # NOTE: scalar gamma cancels in the pinv solve, so this variant is mathematically
 # # equivalent to vanilla merge_actmat — kept as a sanity-check baseline.

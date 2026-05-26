@@ -17,6 +17,7 @@ from src.merging import (
     merge_actmat,
     merge_actmat_mons,
     merge_actmat_p,
+    merge_actmat_softmax_bias,
     merge_ties,
     merge_wudi,
 )
@@ -226,6 +227,66 @@ class TestMergeActmatP(unittest.TestCase):
         base_mons = merge_actmat_mons(d)
         self.assertFalse(torch.allclose(out, base_actmat, atol=1e-3))
         self.assertFalse(torch.allclose(out, base_mons, atol=1e-3))
+
+
+class TestMergeActmatSoftmaxBias(unittest.TestCase):
+    """C_t = α_t·(d_tᵀ d_t) + (1−α_t)·I, with α_t = 1 − softmax(‖d_t‖)_t.
+    α→0 collapses to mean(d); α→1 collapses to vanilla ACTMat."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        self.assertEqual(merge_actmat_softmax_bias(d).shape, (6, 5))
+
+    def test_no_nan_with_zero_delta(self):
+        torch.manual_seed(1)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_softmax_bias(d)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
+
+    def test_alpha_smallest_for_largest_norm_task(self):
+        torch.manual_seed(2)
+        d = torch.randn(4, 5, 5)
+        d[2] *= 50.0
+        mags = d.norm(dim=(-2, -1))
+        alpha = 1 - mags.softmax(dim=0)
+        self.assertEqual(int(alpha.argmin()), int(mags.argmax()))
+
+    def test_alpha_one_equals_actmat(self):
+        """If every α_t = 1 (all C_t = d_tᵀd_t), this is vanilla ACTMat.
+        Achieved by feeding equal-norm tasks far from each other so softmax
+        gives weight 1/T → α = (T-1)/T ≠ 1 (so we monkey-patch instead)."""
+        torch.manual_seed(3)
+        d = torch.randn(3, 4, 5)
+        # Direct comparison: alpha forced to 1 ⇒ C = d^T d ⇒ vanilla actmat.
+        cov = d.transpose(1, 2) @ d
+        c_sum = cov.sum(dim=0)
+        expected = (d @ cov).sum(dim=0) @ torch.linalg.pinv(c_sum.double()).to(
+            c_sum.dtype
+        )
+        self.assertTrue(torch.allclose(expected, merge_actmat(d), atol=1e-4))
+
+    def test_alpha_zero_collapses_to_mean(self):
+        """If every α_t = 0 (all C_t = I), the closed form reduces to mean(d).
+
+        target = Σ_t d_t·I = Σ d_t;   C_sum = T·I;   W = (Σ d_t) · (1/T)·I = mean."""
+        torch.manual_seed(4)
+        d = torch.randn(3, 4, 5)
+        T, Do, Di = d.shape
+        eye = torch.eye(Di).expand(T, Di, Di)
+        c_sum = eye.sum(dim=0)
+        target = (d @ eye).sum(dim=0)
+        out = target @ torch.linalg.pinv(c_sum)
+        self.assertTrue(torch.allclose(out, d.mean(dim=0), atol=1e-5))
+
+    def test_differs_from_actmat_on_unequal_norms(self):
+        torch.manual_seed(5)
+        d = torch.randn(3, 4, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+        self.assertFalse(
+            torch.allclose(merge_actmat_softmax_bias(d), merge_actmat(d), atol=1e-3)
+        )
 
 
 if __name__ == "__main__":

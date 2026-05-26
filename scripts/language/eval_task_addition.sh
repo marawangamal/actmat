@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=eval_lang_models
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-#SBATCH --array=0-39
+#SBATCH --array=0-3
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -27,18 +27,18 @@ ln -sfn "$SLURM_TMPDIR/data" data
 
 # ===== Default experiments (no hyperparameter tuning) =====
 MODELS=(t5-base t5-large)
-METHODS=(ace wudi ties dare sum mean tsv isoc regmean actmat)
+METHODS=(dare_ties)
 FT_MODES=(standard lora)
 MERGE_MODE=d
 HPO=""
 
 # Array dispatch: one task per (FT_MODE, MODEL, METHOD). Same order as the
 # original nested loop (FT_MODE outer, MODEL middle, METHOD inner).
-#   len(METHODS)=10, len(MODELS)=2, len(FT_MODES)=2  → total 40 tasks
+#   len(METHODS)=1, len(MODELS)=2, len(FT_MODES)=2  → total 4 tasks
 TID=$SLURM_ARRAY_TASK_ID
-ft_idx=$(( TID / 20 ))
-model_idx=$(( (TID % 20) / 10 ))
-method_idx=$(( TID % 10 ))
+ft_idx=$(( TID / 2 ))
+model_idx=$(( (TID % 2) / 1 ))
+method_idx=$(( TID % 1 ))
 
 FT_MODE=${FT_MODES[$ft_idx]}
 MODEL=${MODELS[$model_idx]}
