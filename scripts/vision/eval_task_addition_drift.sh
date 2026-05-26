@@ -37,7 +37,7 @@ MERGE_MODE="d"
 MHA="split"
 CKPT_ROOT="artifacts/checkpoints-analysis-drift"
 RESULTS_ROOT="artifacts/results-analysis-drift"
-METHODS=(mean actmat tsv)
+METHODS=(mean actmat tsv isoc wudi)
 DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 
 # Array dispatch: one task per training step. Keep --array=0-N in sync with len(STEPS)-1.
@@ -47,11 +47,12 @@ DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 STEPS=(0 200 400 600 800 1000 1200 1400 1600 1800 final)
 step="${STEPS[$SLURM_ARRAY_TASK_ID]}"
 
-# actmat needs covariances. Per-step covariances (covariance_checkpoint_S.pt)
-# are already produced by covariance-drifts.sh for S in {0,200,...,1800}. At
-# step "final" we use finetuned.pt and need a matching covariance.pt — compute
-# it on demand if missing.
-if [[ " ${METHODS[*]} " =~ " actmat " ]] && [ "$step" = "final" ]; then
+# regmean is the only method in this repo that reads covariance_path (merge_actmat
+# computes its own c = dᵀd from the deltas). Per-step covariances
+# (covariance_checkpoint_S.pt) are already produced by covariance-drifts.sh for
+# S in {0,200,...,1800}; at step "final" we need a matching covariance.pt —
+# compute it on demand if missing.
+if [[ " ${METHODS[*]} " =~ " regmean " ]] && [ "$step" = "final" ]; then
   for DATASET in "${DATASETS[@]}"; do
     cov_file="$CKPT_ROOT/$MODEL/${DATASET}Val/covariance.pt"
     if [ ! -f "$cov_file" ]; then

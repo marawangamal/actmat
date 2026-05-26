@@ -334,32 +334,45 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
-actmat_sgeo05_nnone = lambda d, *a, **kw: merge_actmat_cscale(
-    d, *a, gamma=d.norm(dim=(-2, -1)).pow(0.5).mean(), **kw
-)
+def merge_actmat_p(d: torch.Tensor, *args, p=1.0, **kwargs):
+    # γ_t = 1/‖d_t‖^(2p). p=0 → vanilla actmat; p=1/2 → smons; p=1 → mons
+    # (up to a scalar μ^(2p) that cancels in the pinv solve).
+    c = (d.transpose(1, 2) @ d) / d.norm(dim=(-2, -1)).pow(2 * p).view(-1, 1, 1)
+    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
-actmat_sgeo05_np1 = lambda d, *a, **kw: merge_actmat_cscale(
-    d,
-    *a,
-    gamma=d.norm(dim=(-2, -1)).pow(0.5).mean() / d.norm(dim=(-2, -1), keepdim=True),
-    **kw,
-)
+
+merge_actmat_p05 = lambda *a, **kw: merge_actmat_p(*a, p=0.5, **kw)
+merge_actmat_p03 = lambda *a, **kw: merge_actmat_p(*a, p=0.3**kw)
+merge_actmat_p02 = lambda *a, **kw: merge_actmat_p(*a, p=0.2**kw)
+merge_actmat_p01 = lambda *a, **kw: merge_actmat_p(*a, p=0.2**kw)
+
+# # NOTE: scalar gamma cancels in the pinv solve, so this variant is mathematically
+# # equivalent to vanilla merge_actmat — kept as a sanity-check baseline.
+# actmat_sgeo05_nnone = lambda d, *a, **kw: merge_actmat_cscale(
+#     d, *a, gamma=d.norm(dim=(-2, -1)).pow(0.5).mean(), **kw
+# )
+
+# actmat_sgeo05_np1 = lambda d, *a, **kw: merge_actmat_cscale(
+#     d,
+#     *a,
+#     gamma=d.norm(dim=(-2, -1)).pow(0.5).mean() / d.norm(dim=(-2, -1), keepdim=True),
+#     **kw,
+# )
 
 # actmat_sgeo05_np2 = lambda d, *a, **kw: merge_actmat_cscale(
 #     d,
 #     *a,
-#     gamma=d.norm(dim=(-2, -1)).pow(0.5).mean() / (d.norm(dim=(-2, -1)**2), keepdim=True),
+#     gamma=d.norm(dim=(-2, -1)).pow(0.5).mean()
+#     / d.norm(dim=(-2, -1), keepdim=True).pow(2),
 #     **kw,
 # )
 
 # actmat_sinv_nnone = lambda d, *a, **kw: merge_actmat_cscale(
-#     d, *a, gamma= (1- d.norm(dim=(-2, -1), keepdim=True).softmax(dim=1))   , **kw
+#     d,
+#     *a,
+#     gamma=(1 - d.norm(dim=(-2, -1)).softmax(dim=0)).view(-1, 1, 1),
+#     **kw,
 # )
-
-
-def merge_actmat_cscale(d: torch.Tensor, gamma=1.0 * args, **kwargs):
-    c = (d.transpose(1, 2) @ d) * gamma
-    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
 def merge_actmat_mons(d: torch.Tensor, *args, **kwargs):

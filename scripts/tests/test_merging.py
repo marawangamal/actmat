@@ -16,6 +16,7 @@ from src.merging import (
     _per_layer_topk_mask,
     merge_actmat,
     merge_actmat_mons,
+    merge_actmat_p,
     merge_ties,
     merge_wudi,
 )
@@ -187,6 +188,44 @@ class TestMergeActmatMons(unittest.TestCase):
         ratio = c2[0] / (c1[0] + 1e-12)
         # All entries of C[0] scale by the same constant (mu_scaled/mu_orig)^2.
         self.assertTrue(torch.allclose(ratio, ratio.mean() * torch.ones_like(ratio), atol=1e-4))
+
+
+class TestMergeActmatP(unittest.TestCase):
+    """merge_actmat_p(p) scales each c_t by 1/‖d_t‖^(2p) — a 1-parameter family
+    interpolating between vanilla actmat (p=0) and mons (p=1)."""
+
+    def _data(self):
+        torch.manual_seed(0)
+        # Heterogeneous norms so any per-task scaling is visible in the output.
+        return torch.randn(3, 6, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+
+    def test_shape(self):
+        d = self._data()
+        self.assertEqual(merge_actmat_p(d, p=0.5).shape, (6, 5))
+
+    def test_p0_equals_actmat(self):
+        """At p=0, gamma_t=1 (scalar) — cancels in the pinv solve."""
+        d = self._data()
+        self.assertTrue(
+            torch.allclose(merge_actmat_p(d, p=0.0), merge_actmat(d), atol=1e-4)
+        )
+
+    def test_p1_equals_mons(self):
+        """At p=1, gamma_t = 1/‖d_t‖². mons uses gamma_t = μ²/‖d_t‖² — same up to
+        the scalar μ², which cancels in the pinv solve. So p=1 ≡ mons."""
+        d = self._data()
+        self.assertTrue(
+            torch.allclose(merge_actmat_p(d, p=1.0), merge_actmat_mons(d), atol=1e-4)
+        )
+
+    def test_intermediate_p_strictly_between(self):
+        """A non-endpoint p should differ from both bracketing baselines."""
+        d = self._data()
+        out = merge_actmat_p(d, p=0.5)
+        base_actmat = merge_actmat(d)
+        base_mons = merge_actmat_mons(d)
+        self.assertFalse(torch.allclose(out, base_actmat, atol=1e-3))
+        self.assertFalse(torch.allclose(out, base_mons, atol=1e-3))
 
 
 if __name__ == "__main__":

@@ -43,6 +43,14 @@ eval_datasets = args.eval_datasets or [
     "SVHN",
 ]
 
+# Trajectory analysis: optionally load `checkpoint_{step}.pt` instead of `finetuned.pt`.
+ckpt_step = getattr(args, "checkpoint_step", None)
+finetuned_filename = (
+    f"checkpoint_{ckpt_step}.pt"
+    if ckpt_step is not None and ckpt_step != "final"
+    else None
+)
+
 for dataset in eval_datasets:
     print("*" * 100)
     print(f"Evaluating on {dataset}")
@@ -51,9 +59,17 @@ for dataset in eval_datasets:
 
     try:
         task_vector = (
-            LinearizedTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
+            LinearizedTaskVector(
+                checkpoint_dir=checkpoint_dir,
+                prefix=prefix,
+                finetuned_filename=finetuned_filename,
+            )
             if args.finetuning_mode == "linear"
-            else NonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
+            else NonLinearTaskVector(
+                checkpoint_dir=checkpoint_dir,
+                prefix=prefix,
+                finetuned_filename=finetuned_filename,
+            )
         )
     except FileNotFoundError as e:
         print(f"{e}\n\nError: Could not find checkpoint in {checkpoint_dir}.")
