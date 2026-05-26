@@ -52,16 +52,23 @@ class _TaskVector(abc.ABC):
             self._pretrained_checkpoint = None
             self._finetuned_checkpoint = None
 
-        # Auto-discover statistics files
+        # Auto-discover statistics files. Prefer prefix-aware names so that
+        # standard vs lora covariances don't collide; fall back to unprefixed
+        # for pipelines (vision, OLMo) whose writers don't yet use the prefix.
         self.covariance_path = None
         self.fisher_path = None
         if checkpoint_dir is not None:
-            cov_file = os.path.join(checkpoint_dir, "covariance.pt")
-            cov_dir = os.path.join(checkpoint_dir, "covariance")
-            if os.path.exists(cov_file):
-                self.covariance_path = cov_file
-            elif os.path.isdir(cov_dir):
-                self.covariance_path = cov_dir
+            for name in (f"{prefix}covariance.pt", "covariance.pt"):
+                cov_file = os.path.join(checkpoint_dir, name)
+                if os.path.exists(cov_file):
+                    self.covariance_path = cov_file
+                    break
+            else:
+                for name in (f"{prefix}covariance", "covariance"):
+                    cov_dir = os.path.join(checkpoint_dir, name)
+                    if os.path.isdir(cov_dir):
+                        self.covariance_path = cov_dir
+                        break
 
             fisher_file = os.path.join(checkpoint_dir, "fisher.pt")
             fisher_dir = os.path.join(checkpoint_dir, "fisher")

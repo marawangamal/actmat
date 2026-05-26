@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     for dataset in T5_DATASETS:
         checkpoint_dir = f"{args.save}/{dataset}"
-        cov_path = os.path.join(checkpoint_dir, "covariance.pt")
+        cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance.pt")
 
         if os.path.exists(cov_path) and not args.overwrite:
             print(f"Skipping {dataset} (cached: {cov_path})")
