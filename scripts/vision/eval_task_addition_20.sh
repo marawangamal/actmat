@@ -3,9 +3,9 @@
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=128G
+#SBATCH --mem=32G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-9
+#SBATCH --array=0-4
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -50,14 +50,16 @@ fi
 NUM_BATCHES=10
 BATCH_SIZE=32
 
-# ===== Default experiments (no hyperparameter tuning) =====
-MODEL="ViT-L-14"
-FT_MODE="standard"
+# ===== LoRA experiments on the 20-dataset benchmark =====
+# Only ViT-B-16 has the full 20-dataset LoRA finetunes; B-32 and L-14 are
+# missing lora_finetuned.pt for some datasets, so we only loop B-16 here.
+MODELS=(ViT-B-16)
+FT_MODE="lora"
 MERGE_MODE=d
 HPO=''
 
 # Array dispatch: one array task per method. Keep --array=0-N in sync with len(METHODS)-1.
-METHODS=(mean actmat tsv wudi isoc regmean ace sum04 ties actmat_gd)
+METHODS=(mean isoc tsv actmat wudi)
 method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
 # Task scenarios (Wang et al. / TALL-masks):
@@ -66,37 +68,39 @@ method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 #   20: 14 + EMNIST, CIFAR10, Food101, FashionMNIST, RenderedSST2, KMNIST
 EVAL_DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN,CIFAR100,STL10,Flowers102,OxfordIIITPet,PCAM,FER2013,EMNIST,CIFAR10,Food101,FashionMNIST,RenderedSST2,KMNIST"
 
-# 2a. Run covariance/fisher script if needed (regmean + actmat consume covariance.pt; fisher consumes fisher.pt)
-if [ "$method" = "regmean" ] || [ "$method" = "actmat" ]; then
-  echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE"
-  python scripts/vision/covariance.py \
-    --model="$MODEL" \
-    --finetuning-mode="$FT_MODE" \
-    --save="$CKPT_ROOT" \
-    --data-location="$DATA_DIR" \
-    --eval-datasets="$EVAL_DATASETS" \
-    --mha=split
-elif [ "$method" = "fisher" ]; then
-  echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE"
-  python scripts/vision/fisher.py \
-    --model="$MODEL" \
-    --finetuning-mode="$FT_MODE" \
-    --save="$CKPT_ROOT" \
-    --data-location="$DATA_DIR" \
-    --eval-datasets="$EVAL_DATASETS" \
-    --mha=split
-fi
+for MODEL in "${MODELS[@]}"; do
+  # 2a. Run covariance/fisher script if needed (regmean + actmat consume covariance.pt; fisher consumes fisher.pt)
+  if [ "$method" = "regmean" ] || [ "$method" = "actmat" ]; then
+    echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE"
+    python scripts/vision/covariance.py \
+      --model="$MODEL" \
+      --finetuning-mode="$FT_MODE" \
+      --save="$CKPT_ROOT" \
+      --data-location="$DATA_DIR" \
+      --eval-datasets="$EVAL_DATASETS" \
+      --mha=split
+  elif [ "$method" = "fisher" ]; then
+    echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE"
+    python scripts/vision/fisher.py \
+      --model="$MODEL" \
+      --finetuning-mode="$FT_MODE" \
+      --save="$CKPT_ROOT" \
+      --data-location="$DATA_DIR" \
+      --eval-datasets="$EVAL_DATASETS" \
+      --mha=split
+  fi
 
-# 2b. Evaluate task addition
-echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | mode: $MERGE_MODE"
-python scripts/vision/eval_task_addition.py \
-  --model="$MODEL" \
-  --finetuning-mode="$FT_MODE" \
-  --save="$CKPT_ROOT" \
-  --data-location="$DATA_DIR" \
-  --merge-func="$method" \
-  --merge-mode="$MERGE_MODE" \
-  --results-dir="$RESULTS_DIR" \
-  --eval-datasets="$EVAL_DATASETS" \
-  --mha=split \
-  ${HPO:+--hpo="$HPO"}
+  # 2b. Evaluate task addition
+  echo "[BASH] Running eval_task_addition.py | model: $MODEL | ft mode: $FT_MODE | method: $method | mode: $MERGE_MODE"
+  python scripts/vision/eval_task_addition.py \
+    --model="$MODEL" \
+    --finetuning-mode="$FT_MODE" \
+    --save="$CKPT_ROOT" \
+    --data-location="$DATA_DIR" \
+    --merge-func="$method" \
+    --merge-mode="$MERGE_MODE" \
+    --results-dir="$RESULTS_DIR" \
+    --eval-datasets="$EVAL_DATASETS" \
+    --mha=split \
+    ${HPO:+--hpo="$HPO"}
+done

@@ -25,16 +25,17 @@ ln -sfn "$SLURM_TMPDIR/data" data
 
 MODELS=(t5-base t5-large)
 FT_MODES=(standard lora)
-COV_NUM_BATCHES=100   # 10x the default of 10
 MERGE_MODE=d
+# Using default --cov-num-batches (10) so this is an apples-to-apples baseline
+# against the pre-prefix-fix runs; we'll re-test with 10x later.
 
 for FT_MODE in "${FT_MODES[@]}"; do
   for MODEL in "${MODELS[@]}"; do
-    echo "[BASH] covariance.py | model=$MODEL ft=$FT_MODE batches=$COV_NUM_BATCHES"
+    echo "[BASH] covariance.py | model=$MODEL ft=$FT_MODE (default batches)"
     python scripts/language/covariance.py \
       --model="$MODEL" \
       --finetuning-mode="$FT_MODE" \
-      --cov-num-batches="$COV_NUM_BATCHES"
+      --overwrite
 
     echo "[BASH] eval_task_addition.py regmean | model=$MODEL ft=$FT_MODE"
     python scripts/language/eval_task_addition.py \
