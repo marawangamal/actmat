@@ -381,6 +381,78 @@ def merge_actmat_softmax_bias(d: torch.Tensor, *args, **kwargs):
     c_sum_pinv = pinv(c_sum.double()).to(c_sum.dtype)
     return (d @ c).sum(dim=0) @ c_sum_pinv
 
+
+def _excess_ridge_merge(d: torch.Tensor, threshold) -> torch.Tensor:
+    """Helper: ridge tasks where ‖d_t‖ > threshold via α_t = min(1, threshold/‖d_t‖)."""
+    mags = d.norm(dim=(-2, -1))
+    alpha = (threshold / mags.clamp_min(1e-12)).clamp(max=1.0)
+    cov = d.transpose(1, 2) @ d
+    eye = torch.eye(d.shape[-1], device=d.device, dtype=d.dtype).expand_as(cov)
+    a = alpha.view(-1, 1, 1)
+    c = a * cov + (1 - a) * eye
+    c_sum = c.sum(dim=0)
+    c_sum_pinv = pinv(c_sum.double()).to(c_sum.dtype)
+    return (d @ c).sum(dim=0) @ c_sum_pinv
+
+
+def merge_actmat_excess_ridge(d: torch.Tensor, *args, **kwargs):
+    """ACTMat with identity-blend ridge applied ONLY to above-mean-norm tasks.
+
+    α_t = min(1, μ / ‖d_t‖); C_t = α_t · (d_tᵀ d_t) + (1−α_t) · I.
+
+    Tasks at or below the mean norm get α=1 (pure ACTMat — no ridge).
+    Tasks above get α = μ/‖d_t‖ < 1 → partial identity ridge proportional to
+    their excess. When all norms are nearly equal (FFT-like regime), α ≈ 1
+    everywhere → reduces to vanilla ACTMat (so it should not regress FFT).
+    When one task has a wildly larger norm (T5 LoRA layers), that task gets a
+    significant ridge → softer than mons (which would rescale it) and softer
+    than softmax_bias (which uniformly ridges every task).
+    """
+    return _excess_ridge_merge(d, d.norm(dim=(-2, -1)).mean())
+
+
+def merge_actmat_excess_ridge_2x(d: torch.Tensor, *args, **kwargs):
+    """As excess_ridge but threshold = 2μ: only tasks >2× mean norm get ridge."""
+    return _excess_ridge_merge(d, 2 * d.norm(dim=(-2, -1)).mean())
+
+
+def merge_actmat_excess_ridge_med(d: torch.Tensor, *args, **kwargs):
+    """As excess_ridge but threshold = median (robust to outliers in μ)."""
+    return _excess_ridge_merge(d, d.norm(dim=(-2, -1)).median())
+
+
+def merge_actmat_uniform_ridge(d: torch.Tensor, *args, ridge=0.01, **kwargs):
+    """Vanilla ACTMat with a tiny uniform identity ridge on c_sum.
+
+    Baseline check: if simply adding λ·I before the pinv beats vanilla ACTMat,
+    then the win is just regularization, not per-task weighting.
+    """
+    c = d.transpose(1, 2) @ d
+    c_sum = c.sum(dim=0)
+    lam = ridge * c_sum.diagonal().abs().mean()
+    eye = torch.eye(c_sum.shape[0], device=c_sum.device, dtype=c_sum.dtype)
+    c_reg = (c_sum + lam * eye).double()
+    return (d @ c).sum(dim=0) @ pinv(c_reg).to(c_sum.dtype)
+
+
+def merge_actmat_softmax_bias_noident(d: torch.Tensor, *args, **kwargs):
+    """ACTMat with softmax-biased per-task weighting (no identity shrinkage).
+
+    C_t = α_t · (d_tᵀ d_t), with α_t = 1 − softmax(‖d_t‖)_t. The dominant-norm
+    task gets α ≈ 0 → it drops out of the merge entirely. Smaller-norm tasks
+    keep α ≈ 1 (vanilla ACTMat). When the softmax saturates (wide-spread norms,
+    as in T5 LoRA) this is effectively a leave-one-out merge that excludes the
+    dominant task; when norms are flat (FFT) the per-task α scalars are nearly
+    uniform and cancel in the pinv solve → close to vanilla ACTMat.
+    """
+    mags = d.norm(dim=(-2, -1))
+    alpha = 1 - mags.softmax(dim=0)  # (T,)
+    c = (d.transpose(1, 2) @ d) * alpha.view(-1, 1, 1)
+    c_sum = c.sum(dim=0)
+    c_sum_pinv = pinv(c_sum.double()).to(c_sum.dtype)
+    return (d @ c).sum(dim=0) @ c_sum_pinv
+
+
 # # NOTE: scalar gamma cancels in the pinv solve, so this variant is mathematically
 # # equivalent to vanilla merge_actmat — kept as a sanity-check baseline.
 # actmat_sgeo05_nnone = lambda d, *a, **kw: merge_actmat_cscale(

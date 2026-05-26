@@ -15,6 +15,7 @@ import torch
 from src.merging import (
     _per_layer_topk_mask,
     merge_actmat,
+    merge_actmat_excess_ridge,
     merge_actmat_mons,
     merge_actmat_p,
     merge_actmat_softmax_bias,
@@ -287,6 +288,46 @@ class TestMergeActmatSoftmaxBias(unittest.TestCase):
         self.assertFalse(
             torch.allclose(merge_actmat_softmax_bias(d), merge_actmat(d), atol=1e-3)
         )
+
+
+class TestMergeActmatExcessRidge(unittest.TestCase):
+    """α_t = min(1, μ/‖d_t‖); above-mean tasks get partial identity ridge,
+    at-or-below-mean tasks get vanilla ACTMat (α=1)."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        self.assertEqual(merge_actmat_excess_ridge(d).shape, (6, 5))
+
+    def test_equal_norms_equals_actmat(self):
+        """When all task norms are equal, α=1 for every task → vanilla ACTMat."""
+        torch.manual_seed(1)
+        d = torch.randn(3, 4, 5)
+        d = d / d.norm(dim=(-2, -1), keepdim=True)  # unit norm everywhere
+        self.assertTrue(
+            torch.allclose(merge_actmat_excess_ridge(d), merge_actmat(d), atol=1e-4)
+        )
+
+    def test_below_mean_tasks_unmodified(self):
+        """All α-values must be in (0, 1]; below-mean tasks must hit α=1."""
+        torch.manual_seed(2)
+        d = torch.randn(4, 5, 5)
+        d[2] *= 50.0  # task 2 dominates → mean is pulled up
+        mags = d.norm(dim=(-2, -1))
+        alpha = (mags.mean() / mags).clamp(max=1.0)
+        # below-mean tasks at α=1
+        below = mags < mags.mean()
+        self.assertTrue(torch.all(alpha[below] == 1.0))
+        # above-mean task strictly below 1
+        self.assertTrue(torch.all(alpha[~below] < 1.0))
+
+    def test_no_nan_with_zero_delta(self):
+        torch.manual_seed(3)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_excess_ridge(d)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
 
 
 if __name__ == "__main__":
