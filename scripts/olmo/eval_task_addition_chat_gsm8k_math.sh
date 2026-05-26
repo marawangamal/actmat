@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_olmo_chat_gm
 #SBATCH --partition=long
-#SBATCH --array=0-2
+#SBATCH --array=0
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
@@ -34,7 +34,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(actmat tsv regmean)
+METHODS=(regmean)
 method="${METHODS[${SLURM_ARRAY_TASK_ID:-0}]}"
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────

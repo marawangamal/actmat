@@ -8,8 +8,8 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return torch.dot(a.flatten(), b.flatten()) / (a.norm() * b.norm())
 
 
-model = "ViT-B-16"
-checkpoints_dir = f"artifacts/checkpoints-analysis/{model}/max_batches_10"
+model = "ViT-L-14"
+checkpoints_dir = f"artifacts/checkpoints-analysis/{model}/max_steps_10"
 results_dir = f"artifacts/results-analysis/{model}"
 os.makedirs(results_dir, exist_ok=True)
 

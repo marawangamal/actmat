@@ -29,7 +29,7 @@ ln -sfn "$SLURM_TMPDIR/data" data
 # 3. Finetune models (using FFT & LoRA)
 MODELS=(ViT-L-14)
 FT_MODES=(standard)
-SAVE_DIR="checkpoints-analysis"
+SAVE_DIR="artifacts/checkpoints-analysis"
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
@@ -44,6 +44,7 @@ for MODEL in "${MODELS[@]}"; do
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \
       --max-steps=10 \
+      --train-dataset=Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN \
       --grad-cross-matrix
 
   done

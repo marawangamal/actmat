@@ -5,7 +5,6 @@ from typing import Dict, Optional
 
 import torch
 
-
 # --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=data/vision   --save=$SCRATCH/actmat/checkpoints/vision
 from src.args import parse_arguments
 from src.vision.datasets.common import get_dataloader, maybe_dictionarize
@@ -277,6 +276,13 @@ def finetune(rank, args):
         "standard",
         "lora",
     ], "Only linear, standard, and lora fine-tuning are supported."
+
+    # GradCrossTermTracker calls model.zero_grad() internally, which would wipe
+    # accumulated grads from prior iterations of the same window.
+    assert not (args.grad_cross_matrix and args.num_grad_accumulation > 1), (
+        "--grad-cross-matrix is incompatible with gradient accumulation > 1 "
+        "(tracker zero_grads internally, breaking accumulation)."
+    )
 
     linearized_finetuning = args.finetuning_mode == "linear"
     lora_finetuning = args.finetuning_mode == "lora"
@@ -571,10 +577,15 @@ if __name__ == "__main__":
 
         # We use gradient accumulation to simulate larger batch sizes if the model does not fit in memory.
         if args.model == "ViT-L-14":
-            # grad_cross_matrix runs B per-sample backward passes per batch and OOMs
-            # at B=64 on 48GB cards; shrink B, bump accumulation to keep effective batch ≈ 128.
-            args.batch_size = 16 if args.grad_cross_matrix else 64
-            args.num_grad_accumulation = 8 if args.grad_cross_matrix else 2
+            # grad_cross_matrix: B per-sample backwards OOM at B=64 on 48GB cards;
+            # tracker is also incompatible with grad accumulation (see assertion in finetune()),
+            # so shrink B and run with grad_accum=1.
+            if args.grad_cross_matrix:
+                args.batch_size = 16
+                args.num_grad_accumulation = 1
+            else:
+                args.batch_size = 64
+                args.num_grad_accumulation = 2
         else:
             args.batch_size = 128
             args.num_grad_accumulation = 1
