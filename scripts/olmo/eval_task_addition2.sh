@@ -1,29 +1,33 @@
 #!/bin/bash
-#SBATCH --job-name=eval_olmo_chat_gm
+#SBATCH --job-name=eval_olmo
 #SBATCH --partition=long
 #SBATCH --array=0
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:l40s:2
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=64G
-#SBATCH --time=12:00:00
+#SBATCH --mem=192G
+#SBATCH --time=24:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-# Faster math sibling of eval_task_addition_chat.sh: swaps AIME (30 problems
-# x 32 samples x <=16384 tokens) for GSM8K + MATH-500 (greedy, single sample,
-# 512/1024 max tokens).
+# Merge + evaluate OLMo task vectors via olmes, with per-task chat templates.
+# Tasks: HumanEval, HumanEval+, IFEval (Code chat template) and GSM8K +
+# MATH-500 (Math chat template). AIME is NOT included here -- see
+# eval_task_addition_old.sh / eval_task_addition_chat.sh for the AIME variant.
 #
 # Job array: one task per method in METHODS (index by $SLURM_ARRAY_TASK_ID).
 # Adjust #SBATCH --array=0-N to match len(METHODS)-1.
 #
-# Per merged model, same chat-template-view trick:
+# Per merged model, two chat-template views are materialized:
 #   ${MERGED_DIR}-chat-code   -- Code/IF chat template (HumanEval/+/IFEval)
 #   ${MERGED_DIR}-chat-math   -- Math chat template (GSM8K/MATH-500)
-# chat-code results land at ${RESULTS_DIR}/chat-code (same path as the AIME
-# script, so previously-finished chat-code runs auto-skip). GSM8K + MATH-500
-# land at ${RESULTS_DIR}/chat-gsm8k-math so they don't collide with AIME.
+# Code/IF results:          ${RESULTS_DIR}/chat-code2
+# GSM8K + MATH-500 results: ${RESULTS_DIR}/chat-math2
+# (chat-code/ and chat-math/ are reserved for results from
+# eval_task_addition_old.sh / eval_task_addition_chat.sh: chat-code there
+# used HE/HE+ pass@10 sampling and chat-math held AIME runs. The -2 suffix
+# distinguishes the new greedy pass@1 + GSM8K/MATH-500 outputs.)
 #
 # Usage:
-#   sbatch scripts/olmo/eval_task_addition_chat_gsm8k_math.sh
+#   sbatch scripts/olmo/eval_task_addition.sh
 set -euo pipefail
 mkdir -p artifacts/logs
 
@@ -38,9 +42,17 @@ METHODS=(regmean)
 method="${METHODS[${SLURM_ARRAY_TASK_ID:-0}]}"
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────
+# HumanEval/+: default ::tulu uses sampling (T=0.8, top_p=0.95, 20 repeats,
+# pass@10). To match DARE (Yu et al. 2023, arXiv:2311.03099) we override to
+# greedy pass@1 with max_gen_toks=2048 (DARE's HumanEval budget; our largest
+# observed generation was 604 tokens). olmes parses per-task JSON dicts and
+# merges them over the base TASK_CONFIGS[alias], so per-task overrides do
+# NOT spill onto IFEval (which would otherwise have its primary metric
+# clobbered).
+HUMANEVAL_GREEDY_GEN='{"temperature": 0, "do_sample": false, "max_gen_toks": 2048, "repeats": 1}'
 CODE_TASKS=(
-  "codex_humaneval::tulu"
-  "codex_humanevalplus::tulu"
+  "{\"task_name\": \"codex_humaneval::tulu\",     \"generation_kwargs\": ${HUMANEVAL_GREEDY_GEN}, \"primary_metric\": \"pass_at_1\", \"metric_kwargs\": {\"pass_at_ks\": [1]}}"
+  "{\"task_name\": \"codex_humanevalplus::tulu\", \"generation_kwargs\": ${HUMANEVAL_GREEDY_GEN}, \"primary_metric\": \"pass_at_1\", \"metric_kwargs\": {\"pass_at_ks\": [1]}}"
   "ifeval::tulu"
 )
 # GSM8K::tulu: 8-shot CoT, greedy, max_gen_toks=512, ~1319 problems.
@@ -52,7 +64,7 @@ MATH_TASKS=(
   "minerva_math_500::tulu"
 )
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
-GPUS=1
+GPUS=2
 BATCH_SIZE=64
 NUM_WORKERS=1
 
@@ -76,7 +88,8 @@ make_view() {
 run_olmes() {
   local model_dir="$1"
   local results_dir="$2"
-  shift 2
+  local task_args="$3"   # JSON dict, "" for no override
+  shift 3
   local tasks=("$@")
 
   if [[ -f "${results_dir}/metrics.json" ]]; then
@@ -85,6 +98,11 @@ run_olmes() {
   fi
   echo ">>> Evaluating: Batch size = $BATCH_SIZE, Number of workers = $NUM_WORKERS, GPUs = $GPUS"
   echo ">>> Model: $model_dir, tasks: ${tasks[*]}"
+  local extra=()
+  if [[ -n "$task_args" ]]; then
+    extra=(--task-args "$task_args")
+    echo ">>> Task args override: $task_args"
+  fi
   olmes \
     --model "$model_dir" \
     --task "${tasks[@]}" \
@@ -93,7 +111,8 @@ run_olmes() {
     --model-type vllm \
     --model-args "$OLMES_MODEL_ARGS" \
     --batch-size "$BATCH_SIZE" \
-    --num-workers "$NUM_WORKERS"
+    --num-workers "$NUM_WORKERS" \
+    "${extra[@]}"
 }
 
 # ── Covariance (regmean only; script self-skips if covariance.pt exists) ────
@@ -132,5 +151,5 @@ make_view "$MERGED_DIR" "$MATH_VIEW" "$MATH_CHAT_TEMPLATE"
 echo ">>> Views: ${CODE_VIEW} (Code/IF template), ${MATH_VIEW} (Math template)"
 
 # 3. Evaluate each task group against its matching view
-run_olmes "$CODE_VIEW" "${RESULTS_DIR}/chat-code" "${CODE_TASKS[@]}"
-run_olmes "$MATH_VIEW" "${RESULTS_DIR}/chat-gsm8k-math" "${MATH_TASKS[@]}"
+run_olmes "$CODE_VIEW" "${RESULTS_DIR}/chat-code2" "" "${CODE_TASKS[@]}"
+run_olmes "$MATH_VIEW" "${RESULTS_DIR}/chat-math2" "" "${MATH_TASKS[@]}"
