@@ -51,10 +51,7 @@ NUM_BATCHES=10
 BATCH_SIZE=32
 
 # ===== LoRA experiments on the 14-dataset benchmark =====
-# Only ViT-B-16 has the full 20-dataset LoRA finetunes; B-32 and L-14 are
-# missing lora_finetuned.pt for some datasets in the n=14 set, so we only
-# loop B-16 here.
-MODELS=(ViT-B-16)
+MODELS=(ViT-B-32 ViT-L-14)
 FT_MODE="lora"
 MERGE_MODE=d
 HPO=''
