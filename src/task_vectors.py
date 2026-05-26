@@ -59,10 +59,19 @@ class _TaskVector(abc.ABC):
         # Auto-discover statistics files. Prefer prefix-aware names so that
         # standard vs lora covariances don't collide; fall back to unprefixed
         # for pipelines (vision, OLMo) whose writers don't yet use the prefix.
+        # When finetuned_filename overrides the default (trajectory analysis),
+        # prefer the matching per-checkpoint cov (e.g. `covariance_checkpoint_200.pt`).
         self.covariance_path = None
         self.fisher_path = None
         if checkpoint_dir is not None:
-            for name in (f"{prefix}covariance.pt", "covariance.pt"):
+            cov_candidates = []
+            if finetuned_filename is not None:
+                stem = os.path.splitext(finetuned_filename)[0]  # e.g. "checkpoint_200"
+                cov_candidates.extend(
+                    [f"{prefix}covariance_{stem}.pt", f"covariance_{stem}.pt"]
+                )
+            cov_candidates.extend([f"{prefix}covariance.pt", "covariance.pt"])
+            for name in cov_candidates:
                 cov_file = os.path.join(checkpoint_dir, name)
                 if os.path.exists(cov_file):
                     self.covariance_path = cov_file

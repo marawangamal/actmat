@@ -334,6 +334,34 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+actmat_sgeo05_nnone = lambda d, *a, **kw: merge_actmat_cscale(
+    d, *a, gamma=d.norm(dim=(-2, -1)).pow(0.5).mean(), **kw
+)
+
+actmat_sgeo05_np1 = lambda d, *a, **kw: merge_actmat_cscale(
+    d,
+    *a,
+    gamma=d.norm(dim=(-2, -1)).pow(0.5).mean() / d.norm(dim=(-2, -1), keepdim=True),
+    **kw,
+)
+
+# actmat_sgeo05_np2 = lambda d, *a, **kw: merge_actmat_cscale(
+#     d,
+#     *a,
+#     gamma=d.norm(dim=(-2, -1)).pow(0.5).mean() / (d.norm(dim=(-2, -1)**2), keepdim=True),
+#     **kw,
+# )
+
+# actmat_sinv_nnone = lambda d, *a, **kw: merge_actmat_cscale(
+#     d, *a, gamma= (1- d.norm(dim=(-2, -1), keepdim=True).softmax(dim=1))   , **kw
+# )
+
+
+def merge_actmat_cscale(d: torch.Tensor, gamma=1.0 * args, **kwargs):
+    c = (d.transpose(1, 2) @ d) * gamma
+    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
 def merge_actmat_mons(d: torch.Tensor, *args, **kwargs):
     mags = d.norm(dim=(-2, -1))
     mu_mag = mags.mean()

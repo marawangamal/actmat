@@ -29,15 +29,16 @@ ln -sfn "$SLURM_TMPDIR/data" data
 
 # ===== Trajectory merge eval over intermediate drift checkpoints =====
 # Sweeps over training steps: at each step S, merge `checkpoint_S.pt` from
-# each task's drift dir via `mean` and evaluate. Yields a curve of merged-
-# model accuracy vs. training step.
+# each task's drift dir via {mean, actmat, tsv} and evaluate. Yields a curve
+# of merged-model accuracy vs. training step per method.
 MODEL="ViT-B-16"
 FT_MODE="standard"
-MERGE_FUNC="mean"
 MERGE_MODE="d"
 MHA="split"
 CKPT_ROOT="artifacts/checkpoints-analysis-drift"
 RESULTS_ROOT="artifacts/results-analysis-drift"
+METHODS=(mean actmat tsv)
+DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 
 # Array dispatch: one task per training step. Keep --array=0-N in sync with len(STEPS)-1.
 # Note: step 2000 dropped — RESISC45 and SUN397 hit early-stopping at 1800 so
@@ -46,15 +47,43 @@ RESULTS_ROOT="artifacts/results-analysis-drift"
 STEPS=(0 200 400 600 800 1000 1200 1400 1600 1800 final)
 step="${STEPS[$SLURM_ARRAY_TASK_ID]}"
 
-echo "[BASH] eval_task_addition.py | model: $MODEL | ft: $FT_MODE | method: $MERGE_FUNC | step: $step"
-python scripts/vision/eval_task_addition.py \
-  --model="$MODEL" \
-  --finetuning-mode="$FT_MODE" \
-  --save="$CKPT_ROOT" \
-  --data-location="$DATA_DIR" \
-  --cache-dir="$OPENCLIP_DIR" \
-  --merge-func="$MERGE_FUNC" \
-  --merge-mode="$MERGE_MODE" \
-  --mha="$MHA" \
-  --checkpoint-step="$step" \
-  --results-dir="$RESULTS_ROOT/step_$step"
+# actmat needs covariances. Per-step covariances (covariance_checkpoint_S.pt)
+# are already produced by covariance-drifts.sh for S in {0,200,...,1800}. At
+# step "final" we use finetuned.pt and need a matching covariance.pt — compute
+# it on demand if missing.
+if [[ " ${METHODS[*]} " =~ " actmat " ]] && [ "$step" = "final" ]; then
+  for DATASET in "${DATASETS[@]}"; do
+    cov_file="$CKPT_ROOT/$MODEL/${DATASET}Val/covariance.pt"
+    if [ ! -f "$cov_file" ]; then
+      echo "[BASH] covariance.py (final) | $MODEL | $DATASET"
+      python scripts/vision/covariance.py \
+        --model="$MODEL" \
+        --finetuning-mode="$FT_MODE" \
+        --save="$CKPT_ROOT" \
+        --eval-datasets="$DATASET" \
+        --data-location="$DATA_DIR" \
+        --cache-dir="$OPENCLIP_DIR" \
+        --mha="$MHA" \
+        --cov-split=train \
+        --cov-num-batches=10 \
+        --cov-batch-size=32 \
+        --cov-type=sm \
+        --cov-estimator=full
+    fi
+  done
+fi
+
+for MERGE_FUNC in "${METHODS[@]}"; do
+  echo "[BASH] eval_task_addition.py | model: $MODEL | ft: $FT_MODE | method: $MERGE_FUNC | step: $step"
+  python scripts/vision/eval_task_addition.py \
+    --model="$MODEL" \
+    --finetuning-mode="$FT_MODE" \
+    --save="$CKPT_ROOT" \
+    --data-location="$DATA_DIR" \
+    --cache-dir="$OPENCLIP_DIR" \
+    --merge-func="$MERGE_FUNC" \
+    --merge-mode="$MERGE_MODE" \
+    --mha="$MHA" \
+    --checkpoint-step="$step" \
+    --results-dir="$RESULTS_ROOT/step_$step"
+done
