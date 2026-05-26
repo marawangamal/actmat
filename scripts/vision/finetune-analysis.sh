@@ -43,7 +43,7 @@ for MODEL in "${MODELS[@]}"; do
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \
-      --max-steps=100 \
+      --max-steps=10 \
       --grad-cross-matrix
 
   done
