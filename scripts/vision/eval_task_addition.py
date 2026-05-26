@@ -43,6 +43,15 @@ eval_datasets = args.eval_datasets or [
 
 task_vectors = []
 
+# Trajectory analysis: optionally load an intermediate `checkpoint_{step}.pt`
+# instead of `finetuned.pt`. "final" (or unset) means use the default.
+ckpt_step = getattr(args, "checkpoint_step", None)
+finetuned_filename = (
+    f"checkpoint_{ckpt_step}.pt"
+    if ckpt_step is not None and ckpt_step != "final"
+    else None
+)
+
 for i, dataset in enumerate(eval_datasets):
     checkpoint_dir = f"{args.save}/{dataset}Val"
     if args.finetuning_mode == "linear":
@@ -51,6 +60,7 @@ for i, dataset in enumerate(eval_datasets):
                 checkpoint_dir=checkpoint_dir,
                 prefix=prefix,
                 save_pt=args.merge_mode == "w" and i == 0,
+                finetuned_filename=finetuned_filename,
             )
         )
     else:
@@ -59,6 +69,7 @@ for i, dataset in enumerate(eval_datasets):
                 checkpoint_dir=checkpoint_dir,
                 prefix=prefix,
                 save_pt=args.merge_mode == "w" and i == 0,
+                finetuned_filename=finetuned_filename,
             )
         )
     print(f"Task vector {dataset} loaded")

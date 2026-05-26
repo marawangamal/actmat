@@ -18,12 +18,15 @@ class _TaskVector(abc.ABC):
         _transform_fn=None,
         prefix="",
         save_pt=False,  # useful for RegMean on weights vs on differences
+        finetuned_filename=None,
     ):
         """Initializes the task vector from a checkpoint directory or a pre-computed vector.
 
         When checkpoint_dir is provided, loads pretrained and finetuned checkpoints
         from that directory. Pretrained is always PRETRAINED_FILENAME; finetuned
-        is {prefix}{FINETUNED_FILENAME} (e.g. "lora_finetuned.pt").
+        is {prefix}{FINETUNED_FILENAME} (e.g. "lora_finetuned.pt"), unless
+        finetuned_filename overrides it (used for trajectory analysis to load
+        intermediate `checkpoint_{step}.pt` snapshots).
         Also auto-discovers covariance.pt and fisher.pt in the directory.
 
         When vector is provided, uses the pre-computed task vector dict directly
@@ -45,8 +48,9 @@ class _TaskVector(abc.ABC):
             self._pretrained_checkpoint = os.path.join(
                 checkpoint_dir, self.PRETRAINED_FILENAME
             )
+            ft_name = finetuned_filename if finetuned_filename is not None else self.FINETUNED_FILENAME
             self._finetuned_checkpoint = os.path.join(
-                checkpoint_dir, f"{prefix}{self.FINETUNED_FILENAME}"
+                checkpoint_dir, f"{prefix}{ft_name}"
             )
         else:
             self._pretrained_checkpoint = None

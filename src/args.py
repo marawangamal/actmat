@@ -120,6 +120,13 @@ def parse_arguments():
         help="Checkpoint / validation evaluation every N steps. -1 disables.",
     )
     parser.add_argument(
+        "--checkpoint-step",
+        type=str,
+        default=None,
+        help="Eval-only: load intermediate `checkpoint_{step}.pt` instead of `finetuned.pt`. "
+             "Pass an integer step (e.g. '200') or 'final' for the default behavior.",
+    )
+    parser.add_argument(
         "--keep-checkpoints",
         type=int,
         default=-1,

@@ -28,9 +28,9 @@ ln -sfn "$SLURM_TMPDIR/data" data
 MODELS=(t5-base t5-large)
 METHOD=actmat_mons
 MERGE_MODE=d
-FT_MODE=lora
+FT_MODE=standard
 
-# 2 tasks: one per MODEL, lora only
+# 2 tasks: one per MODEL, standard only
 TID=$SLURM_ARRAY_TASK_ID
 MODEL=${MODELS[$TID]}
 

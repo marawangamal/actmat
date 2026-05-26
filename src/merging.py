@@ -337,13 +337,10 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
 def merge_actmat_mons(d: torch.Tensor, *args, **kwargs):
     mags = d.norm(dim=(-2, -1))
     mu_mag = mags.mean()
-    print(
-        f"mu_mag: {mu_mag.item():.4g} | per-task mags: "
-        f"[{', '.join(f'{m:.4g}' for m in mags.tolist())}] "
-        f"(min={mags.min().item():.4g}, max={mags.max().item():.4g}, "
-        f"ratio_max/min={(mags.max()/mags.min()).item():.4g})"
-    )
-    d_tilde = d * mu_mag / mags.view(-1, 1, 1)
+    # Zero-delta tasks (e.g. a LoRA-frozen param) would give 0/0 → NaN under the
+    # rescale; leave them at zero so they contribute nothing to C / target.
+    scale = torch.where(mags > 0, mu_mag / mags.clamp_min(1e-12), mags.new_zeros(()))
+    d_tilde = d * scale.view(-1, 1, 1)
     c = d_tilde.transpose(1, 2) @ d_tilde
     c_sum = c.sum(dim=0)
     target = (d @ c).sum(dim=0)
