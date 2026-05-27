@@ -65,25 +65,27 @@ class GradCrossTermTracker:
         return hook
 
     def step(self):
-        """Compute per-sample gradients for one batch and accumulate statistics."""
+        """Compute per-sample gradients for one batch and accumulate statistics.
+
+        (Optional): could also compute gw like this
+            gw = torch.einsum("bto,bti->btio", gy, z)
+        """
 
         for name, module in self.layers.items():
             # (B, T, Di)
-            z = self._activations[name]  # (B, T, Di)
-            B, T, Di = z.shape  # NOTE: verify this is the actual shape
-            zzt = z.unsqueeze(-1) @ z.unsqueeze(-2)  # (B, T, Di, Di)
-            gw_bar = module.weight.grad.detach().float()  # (Do, Di)
-            # (Optional): could also compute gw like this?
-            # gw = torch.einsum("bto,bti->btio", gy, z)
-            gy = self._output_grads[name]  # (B, T, Do)
+            z = self._activations[name].float()  # (B, T, Di)
+            gy = self._output_grads[name].float()  # (B, T, Do)
+            gw_bar = module.weight.grad.detach().float()
+            gynorm2 = gy.pow(2).sum(-1)  # (B,T)
 
-            self.gbar[name] += gw_bar / (B * T)
-            self.sbar[name] += (gy.pow(2).sum(-1).reshape(B, T, 1, 1) * zzt).mean(
-                dim=(0, 1)
-            )
-            self.stilde[name] += gy.pow(2).sum(-1).reshape(B, T).mean() * zzt.mean(
-                dim=(0, 1)
-            )
+            B, T, Di = z.shape  # NOTE: verify this is the actual shape
+            self.gbar[name] += (gw_bar / (B * T)).cpu()
+            self.sbar[name] += (
+                torch.einsum("bti,btj,bt->ij", z, z, gynorm2) / (B * T)
+            ).cpu()
+            self.stilde[name] += (
+                (torch.einsum("bti,btj->ij", z, z) / (B * T)) * gynorm2.mean()
+            ).cpu()
 
     def save(self, ckpdir):
         """Print summary and save per-layer results to disk."""
@@ -119,12 +121,9 @@ def finetune(rank, args):
         "lora",
     ], "Only linear, standard, and lora fine-tuning are supported."
 
-    # GradCrossTermTracker calls model.zero_grad() internally, which would wipe
-    # accumulated grads from prior iterations of the same window.
-    assert not (args.grad_cross_matrix and args.num_grad_accumulation > 1), (
-        "--grad-cross-matrix is incompatible with gradient accumulation > 1 "
-        "(tracker zero_grads internally, breaking accumulation)."
-    )
+    assert not (
+        args.grad_cross_matrix and args.num_grad_accumulation > 1
+    ), "--grad-cross-matrix is incompatible with gradient accumulation > 1"
 
     linearized_finetuning = args.finetuning_mode == "linear"
     lora_finetuning = args.finetuning_mode == "lora"
@@ -286,14 +285,12 @@ def finetune(rank, args):
             loss = loss_fn(logits, labels)
 
             loss.backward()
-
             if (i + 1) % args.num_grad_accumulation == 0:
                 scheduler(step)
-
                 torch.nn.utils.clip_grad_norm_(params, 1.0)
-                optimizer.step()
                 if grad_cross_tracker is not None:
                     grad_cross_tracker.step()
+                optimizer.step()
                 optimizer.zero_grad()
 
             if args.max_steps is not None and step >= args.max_steps:
@@ -429,9 +426,7 @@ if __name__ == "__main__":
 
         # We use gradient accumulation to simulate larger batch sizes if the model does not fit in memory.
         if args.model == "ViT-L-14":
-            # grad_cross_matrix: B per-sample backwards OOM at B=64 on 48GB cards;
             # tracker is also incompatible with grad accumulation (see assertion in finetune()),
-            # so shrink B and run with grad_accum=1.
             if args.grad_cross_matrix:
                 args.batch_size = 16
                 args.num_grad_accumulation = 1

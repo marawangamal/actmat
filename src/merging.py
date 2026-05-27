@@ -339,6 +339,18 @@ def merge_actmat_norm(d: torch.Tensor, *args, **kwargs):
     dn = d / d.norm(dim=(-2, -1), keepdim=True)
     return (dn @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
+
+def merge_actmat_isoc(d: torch.Tensor, *args, **kwargs):
+    """ACTMat on iso-spectrum task vectors: SVD each d_t, replace its singular
+    values with the per-position mean across tasks (isotropy à la IsoC), then
+    run vanilla ACTMat on the reconstructed d_tilde_t = U_t diag(s_iso) V_t^T."""
+    u, s, vt = torch.linalg.svd(d, full_matrices=False)  # (T,Do,r), (T,r), (T,r,Di)
+    s_iso = s.mean(dim=0).unsqueeze(0).expand_as(s)  # (T,r) — same spectrum every task
+    dtilde = torch.einsum("tik,tk,tkj->tij", u, s_iso, vt)  # (T,Do,Di)
+    c = dtilde.transpose(1, 2) @ dtilde
+    return (dtilde @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
 def merge_actmat_norm_softmax_bias(d: torch.Tensor, *args, **kwargs):
     """Per-task Frobenius-normalized ACTMat with softmax-biased C_t blend.
 

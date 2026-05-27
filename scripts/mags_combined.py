@@ -68,6 +68,11 @@ CONFIGS = [
         "datasets": ["instruction", "math", "coding", "multilingual"],
         "task_vector_cls": ParamFolderTaskVector,
     },
+    {
+        "model": "wizardlm",
+        "datasets": ["LM", "Math", "Code"],
+        "task_vector_cls": ParamFolderTaskVector,
+    },
 ]
 
 

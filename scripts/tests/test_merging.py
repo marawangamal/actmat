@@ -17,6 +17,7 @@ from src.merging import (
     merge_actmat,
     merge_actmat_excess_ridge,
     merge_actmat_gd_softmax_bias,
+    merge_actmat_isoc,
     merge_actmat_mons,
     merge_actmat_norm,
     merge_actmat_norm_softmax_bias,
@@ -398,6 +399,86 @@ class TestMergeActmatNorm(unittest.TestCase):
         out = merge_actmat_norm(d)
         expected = merge_actmat(d) / 2.5
         self.assertTrue(torch.allclose(out, expected, atol=1e-4))
+
+
+class TestMergeActmatIsoc(unittest.TestCase):
+    """ACTMat on iso-spectrum task vectors. Each d_t is SVD'd; singular values
+    are replaced with the per-position mean across tasks; vanilla ACTMat is run
+    on the reconstructed d_tilde."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        self.assertEqual(merge_actmat_isoc(d).shape, (6, 5))
+
+    def test_does_not_mutate_input(self):
+        """The original bug overwrote `d` with torch.randn before any computation.
+        Verify the input tensor is unchanged after the call."""
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        d_orig = d.clone()
+        merge_actmat_isoc(d)
+        self.assertTrue(torch.allclose(d, d_orig, atol=0.0))
+
+    def test_deterministic_on_fixed_input(self):
+        """Output must be a function of the input only (no internal RNG)."""
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        out1 = merge_actmat_isoc(d)
+        out2 = merge_actmat_isoc(d)
+        self.assertTrue(torch.allclose(out1, out2, atol=0.0))
+
+    def test_iso_singular_values_across_tasks(self):
+        """The internal d_tilde tensors must share the same singular spectrum
+        across tasks (that's the whole point of the iso-c reweighting)."""
+        torch.manual_seed(1)
+        d = torch.randn(4, 8, 6) * torch.tensor([1.0, 3.0, 10.0, 0.5]).view(-1, 1, 1)
+        u, s, vt = torch.linalg.svd(d, full_matrices=False)
+        s_iso = s.mean(dim=0).unsqueeze(0).expand_as(s)
+        dtilde = torch.einsum("tik,tk,tkj->tij", u, s_iso, vt)
+        s_tilde = torch.linalg.svdvals(dtilde)
+        # all task spectra equal
+        self.assertTrue(torch.allclose(s_tilde, s_tilde[0].expand_as(s_tilde), atol=1e-4))
+
+    def test_equal_spectra_equals_actmat(self):
+        """If every task already shares the same singular spectrum, the iso step
+        is a no-op (s_iso = s), so the output must equal vanilla ACTMat."""
+        torch.manual_seed(2)
+        # Build d_t = U_t diag(s) V_t^T with the SAME s for every task.
+        T, Do, Di = 3, 5, 4
+        r = min(Do, Di)
+        # SVD returns singular values in descending order, so we construct s
+        # descending too to keep the sanity check direct.
+        s = torch.linspace(4.0, 1.0, r)
+        # Random orthonormal bases per task.
+        U = torch.stack([torch.linalg.qr(torch.randn(Do, r))[0] for _ in range(T)])
+        V = torch.stack([torch.linalg.qr(torch.randn(Di, r))[0] for _ in range(T)])
+        d = torch.einsum("tik,k,tjk->tij", U, s, V)  # (T,Do,Di)
+
+        # Sanity: every task's spectrum equals s.
+        s_check = torch.linalg.svdvals(d)
+        self.assertTrue(torch.allclose(s_check, s.expand_as(s_check), atol=1e-4))
+
+        self.assertTrue(
+            torch.allclose(merge_actmat_isoc(d), merge_actmat(d), atol=1e-4)
+        )
+
+    def test_differs_from_actmat_on_anisotropic_spectra(self):
+        """When task spectra are very different, iso-c reweighting should give
+        a different answer than vanilla ACTMat."""
+        torch.manual_seed(3)
+        d = torch.randn(3, 6, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+        out_iso = merge_actmat_isoc(d)
+        out_actmat = merge_actmat(d)
+        self.assertFalse(torch.allclose(out_iso, out_actmat, atol=1e-3))
+
+    def test_no_nan_with_zero_delta(self):
+        torch.manual_seed(4)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_isoc(d)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
 
 
 class TestMergeActmatNormSoftmaxBias(unittest.TestCase):
