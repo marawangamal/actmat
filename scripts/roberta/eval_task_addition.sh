@@ -21,10 +21,10 @@ export SSL_CERT_DIR=/etc/ssl/certs
 # ===== Default experiments (no hyperparameter tuning) =====
 # roberta-base from lu-vae/roberta-glue, roberta-large from WUDI's Drive folder.
 # Override via env: MODELS="roberta-large" sbatch scripts/roberta/eval_task_addition.sh
-MODELS=(${MODELS:-roberta-base})
+MODELS=(${MODELS:-roberta-base roberta-large})
 # Data-free merges. Skip regmean / fisher — they require per-task statistics
 # collection, which is out of scope for this driver.
-METHODS=(ace)
+METHODS=(actmat_norm actmat_norm_softmax_bias)
 MERGE_MODE=d
 HPO=''
 

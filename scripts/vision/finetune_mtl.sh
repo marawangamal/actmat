@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --array=0-2
+#SBATCH --array=0
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -43,4 +43,5 @@ python scripts/vision/finetune_mtl.py \
   --cache-dir="$OPENCLIP_DIR" \
   --data-location="$DATA_DIR" \
   --save="$SAVE_DIR" \
-  --checkpoint-every=0
+  --checkpoint-every=500 \
+  --patience=10

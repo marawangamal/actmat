@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
-#SBATCH --array=0-4
+#SBATCH --array=0-5
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -47,12 +47,14 @@ ln -sfn "$SLURM_TMPDIR/data" data
 # Smallest effective set is DTD (3,384), so MAX_SAMPLES > 3384 is a no-op there.
 #
 # Job array sweeps MAX_SAMPLES; keep #SBATCH --array in sync with MAX_SAMPLES_LIST length.
-MODELS=(ViT-B-16)
+MODELS=("${MODEL:-ViT-B-16}")
 FT_MODES=(standard)
 SAVE_DIR="artifacts/checkpoints-analysis"
-MAX_SAMPLES_LIST=(10 100 200 500 1000)
+MAX_SAMPLES_LIST=(10 100 200 500 1000 10000)
 
 MAX_SAMPLES="${MAX_SAMPLES_LIST[$SLURM_ARRAY_TASK_ID]}"
+# Derive a unique DDP port to avoid EADDRINUSE when multiple array tasks share a node.
+DDP_PORT=$(( 12000 + (SLURM_ARRAY_JOB_ID % 1000) * 10 + SLURM_ARRAY_TASK_ID ))
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
@@ -63,6 +65,7 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --world-size=1 \
       --num-workers=1 \
+      --port="$DDP_PORT" \
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \

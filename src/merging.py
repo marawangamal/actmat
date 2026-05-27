@@ -334,15 +334,55 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_actmat_norm(d: torch.Tensor, *args, **kwargs):
+    c = d.transpose(1, 2) @ d
+    dn = d / d.norm(dim=(-2, -1), keepdim=True)
+    return (dn @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+def merge_actmat_norm_softmax_bias(d: torch.Tensor, *args, **kwargs):
+    """Per-task Frobenius-normalized ACTMat with softmax-biased C_t blend.
+
+    dn_t = d_t / ‖d_t‖_F; C_t = α_t·(d_tᵀd_t) + (1−α_t)·I with
+    α_t = 1 − softmax(‖d_t‖)_t. Merge basis stays in the original d-space
+    (kernel uses unnormalized d), but each task's RHS contribution is unit-norm.
+    """
+    mags = d.norm(dim=(-2, -1))
+    alpha = 1 - mags.softmax(dim=0)  # (T,)
+    cov = d.transpose(1, 2) @ d  # (T, Di, Di)
+    eye = torch.eye(d.shape[-1], device=d.device, dtype=d.dtype).expand_as(cov)
+    a = alpha.view(-1, 1, 1)
+    c = a * cov + (1 - a) * eye
+    dn = d / mags.view(-1, 1, 1).clamp_min(1e-12)
+    return (dn @ c).sum(dim=0) @ pinv(c.sum(dim=0).double()).to(c.dtype)
+
+
+def _get_actmat_cov(d: torch.Tensor, mode="standard"):
+    if mode == "standard":
+        return d.transpose(1, 2) @ d
+    elif mode == "softmax_bias":
+        mags = d.norm(dim=(-2, -1))
+        alpha = 1 - mags.softmax(dim=0)  # (T,)
+        cov = d.transpose(1, 2) @ d  # (T, Di, Di)
+        eye = torch.eye(d.shape[-1], device=d.device, dtype=d.dtype).expand_as(cov)
+        a = alpha.view(-1, 1, 1)
+        return a * cov + (1 - a) * eye
+    elif mode == "softmax_bias_noident":
+        mags = d.norm(dim=(-2, -1))
+        alpha = 1 - mags.softmax(dim=0)  # (T,)
+        cov = d.transpose(1, 2) @ d  # (T, Di, Di)
+        a = alpha.view(-1, 1, 1)
+        return a * cov
+    else:
+        raise ValueError(f"Unsupported actmat cov mode {mode}")
+
+
 def merge_actmat_p(d: torch.Tensor, *args, p=1.0, **kwargs):
     # γ_t = 1/‖d_t‖^(2p). p=0 → vanilla actmat; p=1/2 → smons; p=1 → mons
     # (up to a scalar μ^(2p) that cancels in the pinv solve).
     mags = d.norm(dim=(-2, -1))
     # Zero-delta tasks (e.g. LoRA-frozen params) would give inf*0 → NaN under
     # the rescale; leave them at zero so they contribute nothing.
-    scale = torch.where(
-        mags > 0, mags.clamp_min(1e-12).pow(-2 * p), mags.new_zeros(())
-    )
+    scale = torch.where(mags > 0, mags.clamp_min(1e-12).pow(-2 * p), mags.new_zeros(()))
     c = (d.transpose(1, 2) @ d) * scale.view(-1, 1, 1)
     c_sum = c.sum(dim=0)
     # fp64 promotion: rescaled C can be ill-conditioned where fp32 cusolver SVD
@@ -436,6 +476,32 @@ def merge_actmat_uniform_ridge(d: torch.Tensor, *args, ridge=0.01, **kwargs):
     eye = torch.eye(c_sum.shape[0], device=c_sum.device, dtype=c_sum.dtype)
     c_reg = (c_sum + lam * eye).double()
     return (d @ c).sum(dim=0) @ pinv(c_reg).to(c_sum.dtype)
+
+
+def merge_actmat_softmax_bias_solve(
+    d: torch.Tensor, *args, jitter: float = 1e-6, **kwargs
+):
+    """Same as [[merge_actmat_softmax_bias]] but solves with LU on fp32 + jitter.
+
+    The closed-form `(d @ c).sum(0) @ pinv(c_sum)` is replaced with
+    `solve(c_sum, RHS.T).T`, which avoids SVD. With α_t = 1 − softmax(‖d_t‖),
+    c_sum = Σ α_t · d_tᵀd_t + I is symmetric PD, so a small ridge `jitter·avg(diag)`
+    plus LU solve is numerically safe and ~50–100× faster than the fp64 pinv on
+    5120×5120 matrices. Result is the same closed-form merge.
+    """
+    mags = d.norm(dim=(-2, -1))
+    alpha = 1 - mags.softmax(dim=0)
+    cov = d.transpose(1, 2) @ d
+    eye = torch.eye(d.shape[-1], device=d.device, dtype=d.dtype).expand_as(cov)
+    a = alpha.view(-1, 1, 1)
+    c = a * cov + (1 - a) * eye
+    c_sum = c.sum(dim=0)
+    rhs = (d @ c).sum(dim=0)  # (Do, Di)
+    lam = jitter * c_sum.diagonal().abs().mean()
+    c_sum = c_sum + lam * torch.eye(
+        c_sum.shape[0], device=c_sum.device, dtype=c_sum.dtype
+    )
+    return torch.linalg.solve(c_sum, rhs.transpose(-1, -2)).transpose(-1, -2)
 
 
 def merge_actmat_softmax_bias_noident(d: torch.Tensor, *args, **kwargs):
@@ -562,6 +628,60 @@ def merge_actmat_5k(d: torch.Tensor, *args, **kwargs):
 merge_actmat_gd_5k = lambda d, **kwargs: (
     merge_actmat_gd(d, **kwargs) if d.shape[-1] <= 5_000 else d.mean(0)
 )
+
+
+def merge_actmat_gd_softmax_bias(
+    d: torch.Tensor,
+    lam=0.0,
+    lr=1e-5,
+    max_iters=300,
+    thresh=-float("inf"),
+    **kwargs,
+) -> torch.Tensor:
+    """GD solver for the ACTMat objective with softmax-biased per-task C_t.
+
+    Per task: C_t = α_t · (d_tᵀ d_t) + (1 − α_t) · I, with α_t = 1 − softmax(‖d_t‖)_t
+    (same per-task ridge schedule as [[merge_actmat_softmax_bias]]). The dominant-
+    norm task gets α ≈ 0 → its C_t ≈ I (uniform), so its loss contribution behaves
+    like plain mean-fitting. Smaller-norm tasks keep α ≈ 1 (vanilla ACTMat).
+
+    Solves Adam on the same loss as merge_actmat_gd, but with the rescaled C_t:
+        L(W) = Σ_t tr((W - d_t) C_t (W - d_t)^T) + λ ‖W‖_F²
+    """
+    mags = d.norm(dim=(-2, -1))
+    alpha = 1 - mags.softmax(dim=0)  # (T,)
+    cov = d.transpose(1, 2) @ d  # (T, Di, Di)
+    eye = torch.eye(d.shape[-1], device=d.device, dtype=d.dtype).expand_as(cov)
+    a = alpha.view(-1, 1, 1)
+    C = a * cov + (1 - a) * eye
+
+    W = d.mean(dim=0).clone().requires_grad_(True)  # (Do, Di)
+    optimizer = torch.optim.Adam([W], lr=lr, weight_decay=0.0)
+
+    cur_loss = float("inf")
+    with torch.enable_grad():
+        prev_loss = float("inf")
+        pbar = tqdm(range(int(max_iters)), desc="Gradient descent", leave=False)
+        for i in pbar:
+            optimizer.zero_grad()
+            diff = W.unsqueeze(0) - d  # (T, Do, Di)
+            loss = (diff @ C).mul_(diff).sum()
+            if lam > 0:
+                loss = loss + lam * W.square().sum()
+            loss.backward()
+            optimizer.step()
+
+            cur_loss = loss.item()
+            if abs(prev_loss - cur_loss) / (abs(prev_loss) + 1e-12) < thresh:
+                print(f"[converged] loss={cur_loss:.1e} < {thresh:.1e}")
+                break
+            prev_loss = cur_loss
+            pbar.set_postfix(loss=cur_loss)
+
+    if i == int(max_iters) - 1:
+        print(f"[not converged] loss={cur_loss:.1e} after {max_iters} iters")
+
+    return W.detach()
 
 
 def merge_actmat_gd(
@@ -793,7 +913,9 @@ def merge_wudi_unweighted(d: torch.Tensor, **kwargs) -> torch.Tensor:
 
 
 merge_dare_ties = lambda *args, **kwargs: merge_dare(*args, base_merge="ties", **kwargs)
-merge_dare_actmat_gd = lambda *args, **kwargs: merge_dare(*args, base_merge="actmat_gd", **kwargs)
+merge_dare_actmat_gd = lambda *args, **kwargs: merge_dare(
+    *args, base_merge="actmat_gd", **kwargs
+)
 
 
 def merge_dare(

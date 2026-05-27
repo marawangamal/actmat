@@ -16,7 +16,10 @@ from src.merging import (
     _per_layer_topk_mask,
     merge_actmat,
     merge_actmat_excess_ridge,
+    merge_actmat_gd_softmax_bias,
     merge_actmat_mons,
+    merge_actmat_norm,
+    merge_actmat_norm_softmax_bias,
     merge_actmat_p,
     merge_actmat_softmax_bias,
     merge_ties,
@@ -328,6 +331,101 @@ class TestMergeActmatExcessRidge(unittest.TestCase):
         out = merge_actmat_excess_ridge(d)
         self.assertFalse(torch.isnan(out).any())
         self.assertFalse(torch.isinf(out).any())
+
+
+class TestMergeActmatGdSoftmaxBias(unittest.TestCase):
+    """GD-based ACTMat with softmax-biased per-task C_t blend."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        out = merge_actmat_gd_softmax_bias(d, max_iters=5, lr=1e-3)
+        self.assertEqual(out.shape, (6, 5))
+        self.assertFalse(out.requires_grad)
+
+    def test_zero_iters_equals_mean_init(self):
+        """With max_iters=0 the optimizer never steps, so W stays at d.mean(0)."""
+        torch.manual_seed(0)
+        d = torch.randn(4, 5, 7)
+        # Use a single iter at lr=0 to exercise the loop without moving W.
+        out = merge_actmat_gd_softmax_bias(d, max_iters=1, lr=0.0)
+        self.assertTrue(torch.allclose(out, d.mean(dim=0), atol=1e-6))
+
+    def test_loss_decreases(self):
+        """Adam on the softmax-biased ACTMat loss should monotonically improve
+        over its initialization (W = mean(d)) given a non-zero lr and enough iters."""
+        torch.manual_seed(2)
+        d = torch.randn(3, 8, 6)
+
+        mags = d.norm(dim=(-2, -1))
+        alpha = 1 - mags.softmax(dim=0)
+        cov = d.transpose(1, 2) @ d
+        eye = torch.eye(d.shape[-1]).expand_as(cov)
+        C = alpha.view(-1, 1, 1) * cov + (1 - alpha.view(-1, 1, 1)) * eye
+
+        def _loss(W):
+            diff = W.unsqueeze(0) - d
+            return float((diff @ C).mul(diff).sum())
+
+        init_loss = _loss(d.mean(dim=0))
+        out = merge_actmat_gd_softmax_bias(d, max_iters=200, lr=1e-2)
+        self.assertLess(_loss(out), init_loss)
+
+    def test_no_nan_with_zero_delta(self):
+        torch.manual_seed(1)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_gd_softmax_bias(d, max_iters=20, lr=1e-3)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
+
+
+class TestMergeActmatNorm(unittest.TestCase):
+    """Vanilla ACTMat kernel `c = dᵀd` with the RHS projection using the
+    per-task Frobenius-normalized `dn_t = d_t / ‖d_t‖_F`."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        self.assertEqual(merge_actmat_norm(d).shape, (6, 5))
+
+    def test_equal_norm_tasks_equal_actmat_up_to_scale(self):
+        """If every task has the same Frobenius norm μ, dn = d/μ, so the
+        result equals (1/μ) · merge_actmat(d)."""
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 5)
+        d = d / d.norm(dim=(-2, -1), keepdim=True) * 2.5  # all norm = 2.5
+        out = merge_actmat_norm(d)
+        expected = merge_actmat(d) / 2.5
+        self.assertTrue(torch.allclose(out, expected, atol=1e-4))
+
+
+class TestMergeActmatNormSoftmaxBias(unittest.TestCase):
+    """Per-task normalized projection + softmax-bias C_t blend
+    (C_t = α_t·dᵀd + (1−α_t)·I, α_t = 1 − softmax(‖d_t‖)_t)."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        self.assertEqual(merge_actmat_norm_softmax_bias(d).shape, (6, 5))
+
+    def test_no_nan_with_zero_delta(self):
+        """Zero-norm task should not produce NaN/Inf (we clamp the divisor)."""
+        torch.manual_seed(1)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_norm_softmax_bias(d)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
+
+    def test_differs_from_actmat_norm_on_unequal_norms(self):
+        """When ‖d_t‖ varies, the softmax-bias blend should give a different
+        answer than the un-biased actmat_norm."""
+        torch.manual_seed(2)
+        d = torch.randn(3, 6, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+        out_bias = merge_actmat_norm_softmax_bias(d)
+        out_no_bias = merge_actmat_norm(d)
+        self.assertFalse(torch.allclose(out_bias, out_no_bias, atol=1e-3))
 
 
 if __name__ == "__main__":

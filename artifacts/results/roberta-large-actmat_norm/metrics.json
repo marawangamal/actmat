@@ -1,0 +1,123 @@
+{
+  "all_primary_scores": [
+    "cola: 0.020703",
+    "mnli: 0.327356",
+    "mrpc: 0.158088",
+    "qnli: 0.505400",
+    "qqp: 0.316872",
+    "rte: 0.527076",
+    "sst2: 0.509174",
+    "stsb: -0.038322"
+  ],
+  "average_primary_score": 0.29079342349254306,
+  "tasks": [
+    {
+      "alias": "cola",
+      "metrics": {
+        "matthews_correlation": 0.020702674026557004,
+        "averaged_scores": 0.020702674026557004,
+        "primary_score": 0.020702674026557004
+      },
+      "task_config": {
+        "primary_metric": "matthews_correlation"
+      }
+    },
+    {
+      "alias": "mnli",
+      "metrics": {
+        "accuracy": 0.3273560876209883,
+        "averaged_scores": 0.3273560876209883,
+        "primary_score": 0.3273560876209883
+      },
+      "task_config": {
+        "primary_metric": "accuracy"
+      }
+    },
+    {
+      "alias": "mrpc",
+      "metrics": {
+        "accuracy": 0.3161764705882353,
+        "f1": 0.0,
+        "averaged_scores": 0.15808823529411764,
+        "primary_score": 0.15808823529411764
+      },
+      "task_config": {
+        "primary_metric": "averaged_scores"
+      }
+    },
+    {
+      "alias": "qnli",
+      "metrics": {
+        "accuracy": 0.5053999633900788,
+        "averaged_scores": 0.5053999633900788,
+        "primary_score": 0.5053999633900788
+      },
+      "task_config": {
+        "primary_metric": "accuracy"
+      }
+    },
+    {
+      "alias": "qqp",
+      "metrics": {
+        "accuracy": 0.6317338609943112,
+        "f1": 0.0020108586366378444,
+        "averaged_scores": 0.3168723598154745,
+        "primary_score": 0.3168723598154745
+      },
+      "task_config": {
+        "primary_metric": "averaged_scores"
+      }
+    },
+    {
+      "alias": "rte",
+      "metrics": {
+        "accuracy": 0.5270758122743683,
+        "averaged_scores": 0.5270758122743683,
+        "primary_score": 0.5270758122743683
+      },
+      "task_config": {
+        "primary_metric": "accuracy"
+      }
+    },
+    {
+      "alias": "sst2",
+      "metrics": {
+        "accuracy": 0.5091743119266054,
+        "averaged_scores": 0.5091743119266054,
+        "primary_score": 0.5091743119266054
+      },
+      "task_config": {
+        "primary_metric": "accuracy"
+      }
+    },
+    {
+      "alias": "stsb",
+      "metrics": {
+        "pearson": -0.0367610864341259,
+        "spearmanr": -0.03988302638156496,
+        "averaged_scores": -0.03832205640784543,
+        "primary_score": -0.03832205640784543
+      },
+      "task_config": {
+        "primary_metric": "averaged_scores"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "roberta-large",
+    "merge_func": "actmat_norm",
+    "merge_mode": "d",
+    "merge_kwargs": {},
+    "eval_datasets": [
+      "cola",
+      "mnli",
+      "mrpc",
+      "qnli",
+      "qqp",
+      "rte",
+      "sst2",
+      "stsb"
+    ],
+    "seed": null
+  }
+}

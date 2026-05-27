@@ -43,8 +43,28 @@ CONFIGS = [
         "task_vector_cls": NonLinearTaskVector,
     },
     {
+        "model": "roberta-base",
+        "datasets": ["cola", "mnli", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb"],
+        "task_vector_cls": ParamFolderTaskVector,
+    },
+    {
+        "model": "roberta-large",
+        "datasets": ["cola", "mnli", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb"],
+        "task_vector_cls": ParamFolderTaskVector,
+    },
+    {
         "model": "Olmo-3-7b",
         "datasets": ["Math", "Code", "IF"],
+        "task_vector_cls": ParamFolderTaskVector,
+    },
+    {
+        "model": "gemma-2-2b-it",
+        "datasets": ["instruction", "math", "coding", "multilingual"],
+        "task_vector_cls": ParamFolderTaskVector,
+    },
+    {
+        "model": "gemma-2-9b-it",
+        "datasets": ["instruction", "math", "coding", "multilingual"],
         "task_vector_cls": ParamFolderTaskVector,
     },
 ]
@@ -75,12 +95,19 @@ def collect_rows(model, dataset, tv):
 
 def main():
     os.makedirs(osp.dirname(OUT), exist_ok=True)
+    done = set()
+    if osp.exists(OUT):
+        existing = pd.read_csv(OUT, usecols=["model", "dataset"])
+        done = set(map(tuple, existing.drop_duplicates().to_records(index=False)))
     all_rows = []
     write_header = not osp.exists(OUT)
     for config in CONFIGS:
         model = config["model"]
         cls = config["task_vector_cls"]
         for dataset in tqdm(config["datasets"], desc=model):
+            if (model, dataset) in done:
+                print(f"[skip] {model}/{dataset} already in CSV")
+                continue
             tv_dir = osp.join(ROOT, model, dataset)
             if not osp.isdir(tv_dir):
                 print(f"[skip] missing checkpoint dir: {tv_dir}")
