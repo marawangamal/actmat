@@ -352,9 +352,12 @@ def merge_actmat_p(d: torch.Tensor, *args, p=1.0, **kwargs):
 
 
 merge_actmat_p05 = lambda *a, **kw: merge_actmat_p(*a, p=0.5, **kw)
+merge_actmat_p025 = lambda *a, **kw: merge_actmat_p(*a, p=0.25, **kw)
+merge_actmat_p09 = lambda *a, **kw: merge_actmat_p(*a, p=0.9, **kw)
 merge_actmat_p03 = lambda *a, **kw: merge_actmat_p(*a, p=0.3, **kw)
 merge_actmat_p02 = lambda *a, **kw: merge_actmat_p(*a, p=0.2, **kw)
 merge_actmat_p01 = lambda *a, **kw: merge_actmat_p(*a, p=0.1, **kw)
+merge_actmat_p001 = lambda *a, **kw: merge_actmat_p(*a, p=0.01, **kw)
 
 
 def merge_actmat_softmax_bias(d: torch.Tensor, *args, **kwargs):

@@ -23,6 +23,8 @@ def resolve_run_dir(args):
         run = os.path.join(run, f"seed_{args.seed}")
     if getattr(args, "max_steps", None) is not None:
         run = os.path.join(run, f"max_steps_{args.max_steps}")
+    if getattr(args, "max_samples", None) is not None:
+        run = os.path.join(run, f"max_samples_{args.max_samples}")
     return run
 
 

@@ -377,6 +377,16 @@ def finetune(rank, args):
         batch_size=args.batch_size,
         num_workers=args.num_workers,
     )
+    if args.max_samples is not None and args.max_samples < len(dataset.train_dataset):
+        g = torch.Generator().manual_seed(args.seed if args.seed is not None else 0)
+        idx = torch.randperm(len(dataset.train_dataset), generator=g)[: args.max_samples].tolist()
+        dataset.train_dataset = torch.utils.data.Subset(dataset.train_dataset, idx)
+        dataset.train_loader = torch.utils.data.DataLoader(
+            dataset.train_dataset,
+            shuffle=True,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+        )
     data_loader = get_dataloader(dataset, is_train=True, args=args, image_encoder=None)
     num_batches = len(dataset.train_loader)
 
@@ -571,7 +581,7 @@ if __name__ == "__main__":
     for dataset in train_datasets:
         # HACK: Some command line arguments are overwritten by defaults here.
         args.lr = 1e-5
-        if not args.grad_cross_matrix:
+        if not args.grad_cross_matrix and args.max_samples is None:
             args.epochs = epochs[dataset]
         args.train_dataset = dataset + "Val"
 

@@ -8,8 +8,15 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return torch.dot(a.flatten(), b.flatten()) / (a.norm() * b.norm())
 
 
-model = "ViT-L-14"
-checkpoints_dir = f"artifacts/checkpoints-analysis/{model}/max_steps_10"
+def get_rand_psd(
+    m: int, n: int, dtype: torch.dtype = torch.float32, device=None
+) -> torch.Tensor:
+    X = torch.randn(m, n, dtype=dtype, device=device)
+    return X @ X.T
+
+
+model = "ViT-B-16"
+checkpoints_dir = f"artifacts/checkpoints-analysis/{model}/max_batches_10"
 results_dir = f"artifacts/results-analysis/{model}"
 os.makedirs(results_dir, exist_ok=True)
 
@@ -33,8 +40,13 @@ for d in tqdm(datasets, desc="datasets"):
             "grad_cross_matrix_model_visual_transformer_resblocks_", ""
         )
         gcm = torch.load(os.path.join(task_dir, filename))
+        m, n = gcm["gbar"].shape
         cosim_cross = cosine_similarity(gcm["gbar"].T @ gcm["gbar"], gcm["sbar"])
+        cosim_cross_ctrl = cosine_similarity(
+            gcm["gbar"].T @ gcm["gbar"], get_rand_psd(n, n)
+        )
         cosim_corr = cosine_similarity(gcm["sbar"], gcm["stilde"])
+        cosim_corr_ctrl = cosine_similarity(gcm["sbar"], get_rand_psd(n, n))
         # TODO: add drift term
         # cov_terminal = torch.randn_like(gcm["sbar"])
         # cosim_drift = cosine_similarity(gcm["sbar"], cov_terminal)
@@ -45,12 +57,28 @@ for d in tqdm(datasets, desc="datasets"):
                     "layer_name": layer_name,
                     "cosine_similarity": cosim_cross.item(),
                     "type": "cross",
+                    "mode": "true",
+                },
+                {
+                    "dataset": d,
+                    "layer_name": layer_name,
+                    "cosine_similarity": cosim_cross_ctrl.item(),
+                    "type": "cross",
+                    "mode": "ctrl",
                 },
                 {
                     "dataset": d,
                     "layer_name": layer_name,
                     "cosine_similarity": cosim_corr.item(),
                     "type": "corr",
+                    "mode": "true",
+                },
+                {
+                    "dataset": d,
+                    "layer_name": layer_name,
+                    "cosine_similarity": cosim_corr_ctrl.item(),
+                    "type": "corr",
+                    "mode": "ctrl",
                 },
                 # {
                 #     "dataset": d,
