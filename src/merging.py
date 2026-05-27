@@ -513,6 +513,45 @@ def merge_actmat_smons(d: torch.Tensor, *args, **kwargs):
     return target @ c_sum_pinv
 
 
+def merge_actmat_selective(
+    d: torch.Tensor,
+    *args,
+    top_frac: float = 1.0 / 3.0,
+    top_k: int | None = None,
+    **kwargs,
+) -> torch.Tensor:
+    """ACTMat with C_t = I for the top-K highest-norm experts.
+
+    Vanilla ACTMat weights each task by C_t = d_tᵀd_t, so per-task weight
+    scales as ‖d_t‖². When one expert's delta dominates (e.g. WizardLM's
+    LM > Math >> Code: 32× spread), Σ C_t ≈ C_dominant and the closed-form
+    solve collapses to ≈ d_dominant. Replacing the top-K experts' C with
+    identity removes their structural dominance over Σ C_t and lets the
+    smaller-norm experts contribute their data-aware shaping.
+
+    Args:
+        top_frac: fraction of experts (by ‖d_t‖) to give C=I. Default 1/3.
+        top_k: absolute count; overrides top_frac if set.
+    """
+    T = d.shape[0]
+    Di = d.shape[-1]
+    mags = d.norm(dim=(-2, -1))
+    if top_k is None:
+        top_k = max(1, int(round(top_frac * T)))
+    top_k = min(top_k, T)
+    _, top_idx = torch.topk(mags, top_k)
+
+    c = d.transpose(1, 2) @ d  # (T, Di, Di)
+    eye = torch.eye(Di, device=d.device, dtype=d.dtype)
+    for t in top_idx.tolist():
+        c[t] = eye
+    c_sum = c.sum(dim=0)
+    # Identity contribution can mix scales drastically with d_tᵀd_t terms;
+    # promote to fp64 to keep the pinv stable.
+    c_sum_pinv = pinv(c_sum.double()).to(c_sum.dtype)
+    return (d @ c).sum(dim=0) @ c_sum_pinv
+
+
 def merge_actmat_5k(d: torch.Tensor, *args, **kwargs):
     if d.shape[-1] > 5_000:
         return d.mean(dim=0)
@@ -754,6 +793,7 @@ def merge_wudi_unweighted(d: torch.Tensor, **kwargs) -> torch.Tensor:
 
 
 merge_dare_ties = lambda *args, **kwargs: merge_dare(*args, base_merge="ties", **kwargs)
+merge_dare_actmat_gd = lambda *args, **kwargs: merge_dare(*args, base_merge="actmat_gd", **kwargs)
 
 
 def merge_dare(

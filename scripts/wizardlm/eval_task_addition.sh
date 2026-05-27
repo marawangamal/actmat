@@ -29,7 +29,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="wizardlm"
-METHODS=(tsv actmat wudi actmat_mons)
+METHODS=(tsv actmat wudi actmat_mons actmat_gd)
 # Submit with: sbatch --array=0-$((${#METHODS[@]}-1)) scripts/wizardlm/eval_task_addition.sh
 # Each array task runs one method end-to-end (merge + eval).
 

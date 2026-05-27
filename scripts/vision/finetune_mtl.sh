@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=ft_mtl_vision
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --output=artifacts/logs/%x_%j.out
-#SBATCH --error=artifacts/logs/%x_%j.err
+#SBATCH --array=0-2
+#SBATCH --output=artifacts/logs/%x_%A_%a.out
+#SBATCH --error=artifacts/logs/%x_%A_%a.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -29,16 +30,17 @@ DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 SAVE_DIR="artifacts/checkpoints"
 
-MODEL=${MODEL:-ViT-B-32}
+MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
+MODEL=${MODELS[$SLURM_ARRAY_TASK_ID]}
 FT_MODE=${FT_MODE:-standard}
 
-echo "[BASH] Running finetune_mtl.py | model: $MODEL | ft mode: $FT_MODE"
+echo "[BASH] Running finetune_mtl.py | model: $MODEL | ft mode: $FT_MODE | save dir: $SAVE_DIR"
 python scripts/vision/finetune_mtl.py \
-  --model="$MODEL" \
   --finetuning-mode="$FT_MODE" \
-  --data-location="$DATA_DIR" \
+  --model="$MODEL" \
+  --world-size=1 \
+  --num-workers=1 \
   --cache-dir="$OPENCLIP_DIR" \
+  --data-location="$DATA_DIR" \
   --save="$SAVE_DIR" \
-  --num-workers=2 \
-  --checkpoint-every=200 \
-  --patience=10
+  --checkpoint-every=0

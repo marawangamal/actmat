@@ -1,0 +1,8 @@
+include: /network/scratch/m/marawan.gamal/actmat/.venv-gemma/lib/python3.11/site-packages/lm_eval/tasks/mbpp/mbpp_plus_instruct.yaml
+task: mbpp_plus_greedy
+generation_kwargs:
+  until: []
+  max_gen_toks: 1024
+  do_sample: false
+  temperature: 0.0
+repeats: 1
