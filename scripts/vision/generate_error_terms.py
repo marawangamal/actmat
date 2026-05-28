@@ -64,6 +64,17 @@ for d in tqdm(datasets, desc="datasets"):
         cosim_corr = cosine_similarity(gcm["sbar"], gcm["stilde"])
         cosim_drift = cosine_similarity(gcm["stilde"], cov)
         cosim_tot = cosine_similarity(gcm["gbar"].T @ gcm["gbar"], cov)
+        # # deltas
+        # delta_gsc = (
+        #     cosim_tot
+        #     - cosine_similarity(gcm["gbar"].T @ gcm["gbar"], gcm["sbar"])
+        #     - cosine_similarity(gcm["sbar"], cov)
+        # )
+        # delta_ssc = (
+        #     cosine_similarity(gcm["sbar"], cov)
+        #     - cosine_similarity(gcm["sbar"], gcm["stilde"])
+        #     - cosine_similarity(gcm["stilde"], cov)
+        # )
 
         # Controls:
         cosim_cross_ctrl = cosine_similarity(

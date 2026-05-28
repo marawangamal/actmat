@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=finetune_vision_analysisv2
+#SBATCH --job-name=finetune_vision_analysisv3
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
@@ -26,16 +26,16 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
-# 3. Finetune models (using FFT & LoRA) — uses finetunev2 tracker
+# 3. Finetune models (using FFT & LoRA) — uses finetunev3 tracker (pre-clip stats)
 MODELS=("${MODEL:-ViT-B-16}")
 FT_MODES=(standard)
-SAVE_DIR="artifacts/checkpoints-analysisv2-epochs1"
+SAVE_DIR="artifacts/checkpoints-analysisv3-epochs1"
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
 
-    echo "[BASH] Running finetunev2.py | model: $MODEL | ft mode: $FT_MODE | save dir: $SAVE_DIR"
-    python scripts/vision/finetunev2.py \
+    echo "[BASH] Running finetunev3.py | model: $MODEL | ft mode: $FT_MODE | save dir: $SAVE_DIR"
+    python scripts/vision/finetunev3.py \
       --finetuning-mode="$FT_MODE" \
       --model="$MODEL" \
       --world-size=1 \

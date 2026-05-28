@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=80G
 #SBATCH --time=8:00:00
-#SBATCH --array=0-13
+#SBATCH --array=0-14
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 # Merge + evaluate Gemma-2-9B-IT (MergeBench) using EXACTLY MergeBench's
@@ -34,7 +34,7 @@ export HF_METRICS_CACHE="${SCRATCH}/huggingface/metrics_arr_${SLURM_ARRAY_JOB_ID
 mkdir -p "$HF_METRICS_CACHE"
 
 MODEL="gemma-2-9b-it"
-METHODS=(tsv actmat wudi mean isoc actmat_gd isoc2 ace actmat_5k actmat_gd_5k actmat_softmax_bias actmat_gd_softmax_bias pretrained actmat_isoc)
+METHODS=(tsv actmat wudi mean isoc actmat_gd isoc2 ace actmat_5k actmat_gd_5k actmat_softmax_bias actmat_gd_softmax_bias pretrained actmat_isoc actmat_l1)
 method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
 MULTILINGUAL_TASKS="m_mmlu_fr,arc_fr,hellaswag_fr,m_mmlu_es,arc_es,hellaswag_es,m_mmlu_de,arc_de,hellaswag_de,m_mmlu_ru,arc_ru,hellaswag_ru"

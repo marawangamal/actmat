@@ -289,9 +289,9 @@ def finetune(rank, args):
             loss.backward()
             if (i + 1) % args.num_grad_accumulation == 0:
                 scheduler(step)
-                torch.nn.utils.clip_grad_norm_(params, 1.0)
                 if grad_cross_tracker is not None:
                     grad_cross_tracker.step()
+                torch.nn.utils.clip_grad_norm_(params, 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
 
