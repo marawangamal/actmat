@@ -1,453 +1,101 @@
 {
-  "all_primary_scores": [
-    "Cars: 0.924014",
-    "CarsVal: 0.923833",
-    "DTD: 0.846277",
-    "DTDVal: 0.851064",
-    "EuroSAT: 0.991481",
-    "EuroSATVal: 0.990000",
-    "GTSRB: 0.991766",
-    "GTSRBVal: 0.999249",
-    "MNIST: 0.998100",
-    "MNISTVal: 0.995600",
-    "RESISC45: 0.973810",
-    "RESISC45Val: 0.974074",
-    "SUN397: 0.819547",
-    "SUN397Val: 0.821159",
-    "SVHN: 0.980486",
-    "SVHNVal: 0.972400",
-    "CIFAR100: 0.930900",
-    "CIFAR100Val: 0.933800",
-    "STL10: 0.993375",
-    "STL10Val: 0.994000",
-    "Flowers102: 0.979184",
-    "Flowers102Val: 0.990196",
-    "OxfordIIITPet: 0.956391",
-    "OxfordIIITPetVal: 0.961957",
-    "PCAM: 0.897614",
-    "PCAMVal: 0.982000",
-    "FER2013: 0.768459",
-    "FER2013Val: 0.765157",
-    "EMNIST: 0.998050",
-    "EMNISTVal: 0.997600",
-    "CIFAR10: 0.992100",
-    "CIFAR10Val: 0.992000",
-    "Food101: 0.954535",
-    "Food101Val: 0.930000",
-    "FashionMNIST: 0.958200",
-    "FashionMNISTVal: 0.960200",
-    "RenderedSST2: 0.856672",
-    "RenderedSST2Val: 0.828035",
-    "KMNIST: 0.988400",
-    "KMNISTVal: 0.996600"
-  ],
-  "tasks": [
-    {
-      "alias": "Cars",
-      "metrics": {
-        "top1": 0.9240144260664096,
-        "primary_score": 0.9240144260664096
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "CarsVal",
-      "metrics": {
-        "top1": 0.9238329238329238,
-        "primary_score": 0.9238329238329238
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "DTD",
-      "metrics": {
-        "top1": 0.8462765957446808,
-        "primary_score": 0.8462765957446808
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "DTDVal",
-      "metrics": {
-        "top1": 0.851063829787234,
-        "primary_score": 0.851063829787234
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "EuroSAT",
-      "metrics": {
-        "top1": 0.9914814814814815,
-        "primary_score": 0.9914814814814815
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "EuroSATVal",
-      "metrics": {
-        "top1": 0.99,
-        "primary_score": 0.99
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "GTSRB",
-      "metrics": {
-        "top1": 0.991765637371338,
-        "primary_score": 0.991765637371338
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "GTSRBVal",
-      "metrics": {
-        "top1": 0.9992492492492493,
-        "primary_score": 0.9992492492492493
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "MNIST",
-      "metrics": {
-        "top1": 0.9981,
-        "primary_score": 0.9981
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "MNISTVal",
-      "metrics": {
-        "top1": 0.9956,
-        "primary_score": 0.9956
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "RESISC45",
-      "metrics": {
-        "top1": 0.9738095238095238,
-        "primary_score": 0.9738095238095238
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "RESISC45Val",
-      "metrics": {
-        "top1": 0.9740740740740741,
-        "primary_score": 0.9740740740740741
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "SUN397",
-      "metrics": {
-        "top1": 0.8195465994962217,
-        "primary_score": 0.8195465994962217
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "SUN397Val",
-      "metrics": {
-        "top1": 0.8211586901763224,
-        "primary_score": 0.8211586901763224
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "SVHN",
-      "metrics": {
-        "top1": 0.9804855562384758,
-        "primary_score": 0.9804855562384758
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "SVHNVal",
-      "metrics": {
-        "top1": 0.9724,
-        "primary_score": 0.9724
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "CIFAR100",
-      "metrics": {
-        "top1": 0.9309,
-        "primary_score": 0.9309
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "CIFAR100Val",
-      "metrics": {
-        "top1": 0.9338,
-        "primary_score": 0.9338
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "STL10",
-      "metrics": {
-        "top1": 0.993375,
-        "primary_score": 0.993375
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "STL10Val",
-      "metrics": {
-        "top1": 0.994,
-        "primary_score": 0.994
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "Flowers102",
-      "metrics": {
-        "top1": 0.9791836070905838,
-        "primary_score": 0.9791836070905838
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "Flowers102Val",
-      "metrics": {
-        "top1": 0.9901960784313726,
-        "primary_score": 0.9901960784313726
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "OxfordIIITPet",
-      "metrics": {
-        "top1": 0.9563913872989915,
-        "primary_score": 0.9563913872989915
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "OxfordIIITPetVal",
-      "metrics": {
-        "top1": 0.9619565217391305,
-        "primary_score": 0.9619565217391305
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "PCAM",
-      "metrics": {
-        "top1": 0.897613525390625,
-        "primary_score": 0.897613525390625
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "PCAMVal",
-      "metrics": {
-        "top1": 0.982,
-        "primary_score": 0.982
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "FER2013",
-      "metrics": {
-        "top1": 0.7684591808303148,
-        "primary_score": 0.7684591808303148
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "FER2013Val",
-      "metrics": {
-        "top1": 0.7651567944250871,
-        "primary_score": 0.7651567944250871
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "EMNIST",
-      "metrics": {
-        "top1": 0.99805,
-        "primary_score": 0.99805
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "EMNISTVal",
-      "metrics": {
-        "top1": 0.9976,
-        "primary_score": 0.9976
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "CIFAR10",
-      "metrics": {
-        "top1": 0.9921,
-        "primary_score": 0.9921
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "CIFAR10Val",
-      "metrics": {
-        "top1": 0.992,
-        "primary_score": 0.992
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "Food101",
-      "metrics": {
-        "top1": 0.9545346534653465,
-        "primary_score": 0.9545346534653465
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "Food101Val",
-      "metrics": {
-        "top1": 0.93,
-        "primary_score": 0.93
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "FashionMNIST",
-      "metrics": {
-        "top1": 0.9582,
-        "primary_score": 0.9582
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "FashionMNISTVal",
-      "metrics": {
-        "top1": 0.9602,
-        "primary_score": 0.9602
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "RenderedSST2",
-      "metrics": {
-        "top1": 0.85667215815486,
-        "primary_score": 0.85667215815486
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "RenderedSST2Val",
-      "metrics": {
-        "top1": 0.8280346820809249,
-        "primary_score": 0.8280346820809249
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "KMNIST",
-      "metrics": {
-        "top1": 0.9884,
-        "primary_score": 0.9884
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "KMNISTVal",
-      "metrics": {
-        "top1": 0.9966,
-        "primary_score": 0.9966
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
+    "all_primary_scores": [
+        "Cars: 0.924014",
+        "DTD: 0.846277",
+        "EuroSAT: 0.991481",
+        "GTSRB: 0.991766",
+        "MNIST: 0.998100",
+        "RESISC45: 0.973810",
+        "SUN397: 0.819547",
+        "SVHN: 0.980486"
+    ],
+    "tasks": [
+        {
+            "alias": "Cars",
+            "metrics": {
+                "top1": 0.9240144260664096,
+                "primary_score": 0.9240144260664096
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "DTD",
+            "metrics": {
+                "top1": 0.8462765957446808,
+                "primary_score": 0.8462765957446808
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "EuroSAT",
+            "metrics": {
+                "top1": 0.9914814814814815,
+                "primary_score": 0.9914814814814815
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "GTSRB",
+            "metrics": {
+                "top1": 0.991765637371338,
+                "primary_score": 0.991765637371338
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "MNIST",
+            "metrics": {
+                "top1": 0.9981,
+                "primary_score": 0.9981
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "RESISC45",
+            "metrics": {
+                "top1": 0.9738095238095238,
+                "primary_score": 0.9738095238095238
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "SUN397",
+            "metrics": {
+                "top1": 0.8195465994962217,
+                "primary_score": 0.8195465994962217
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "SVHN",
+            "metrics": {
+                "top1": 0.9804855562384758,
+                "primary_score": 0.9804855562384758
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        }
+    ],
+    "model_config": {
+        "model": "ViT-L-14",
+        "finetuning_mode": "standard",
+        "seed": null,
+        "avg_val": 0.9429461421898161,
+        "avg_test": 0.9399679666219425
     }
-  ],
-  "model_config": {
-    "model": "ViT-L-14",
-    "finetuning_mode": "standard",
-    "seed": null,
-    "avg_val": 0.9429461421898161,
-    "avg_test": 0.9399679666219425
-  }
 }
