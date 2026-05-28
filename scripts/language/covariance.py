@@ -61,9 +61,10 @@ def compute_covs(model, dataset_name, args, on_end=None):
 
     split = args.cov_split
     max_num_batches = args.cov_num_batches
-    data_iter = batcher.get_splitOfBatches(
-        split, template_idx=0, is_evaluation=(split != "train")
-    )
+    # is_evaluation=False forces train-style batches (target_ids/target_mask)
+    # regardless of split. T5Wrapper.forward requires target_ids; eval-mode
+    # batches emit all_choices_ids instead. Hooks only need a clean forward.
+    data_iter = batcher.get_splitOfBatches(split, template_idx=0, is_evaluation=False)
 
     mask_ref = [None, None]
     cobjs, handles = register_hooks(

@@ -7,7 +7,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-#SBATCH --array=0-3
+#SBATCH --array=0
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -25,19 +25,18 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
-# ===== Default experiments (no hyperparameter tuning) =====
-MODELS=(t5-base t5-large)
-METHODS=(dare_ties)
-FT_MODES=(standard lora)
+# ===== One-off: regmean on t5-base (FFT) with test-set covariance =====
+MODELS=(t5-base)
+METHODS=(regmean)
+FT_MODES=(standard)
 MERGE_MODE=d
 HPO=""
 
-# Array dispatch: one task per (FT_MODE, MODEL, METHOD). Same order as the
-# original nested loop (FT_MODE outer, MODEL middle, METHOD inner).
-#   len(METHODS)=1, len(MODELS)=2, len(FT_MODES)=2  → total 4 tasks
+# Array dispatch: one task per (FT_MODE, MODEL, METHOD).
+#   len(METHODS)=1, len(MODELS)=1, len(FT_MODES)=1  → total 1 task
 TID=$SLURM_ARRAY_TASK_ID
-ft_idx=$(( TID / 2 ))
-model_idx=$(( (TID % 2) / 1 ))
+ft_idx=$(( TID / 1 ))
+model_idx=$(( (TID % 1) / 1 ))
 method_idx=$(( TID % 1 ))
 
 FT_MODE=${FT_MODES[$ft_idx]}

@@ -23,7 +23,7 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
-MODELS=(${MODELS:-t5-base t5-large})
+MODELS=(${MODELS:-t5-large})
 FT_MODES=(${FT_MODES:-standard})
 
 for FT_MODE in "${FT_MODES[@]}"; do
