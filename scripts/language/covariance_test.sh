@@ -24,13 +24,22 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
-NB=10
+NB=100
 BS=32
 DATASETS=(qasc wiki_qa quartz paws story_cloze winogrande wsc)
 TEST_NAME="covariance-test-nb${NB}-bs${BS}.pt"
 
-# covariance.py self-skips if covariance.pt exists; train-set files have
-# already been renamed to covariance-train-nb10-bs32.pt, so the slot is open.
+# Unlink any existing covariance.pt SYMLINK so covariance.py's self-skip
+# doesn't fire. Target files (covariance-{train,test}-nb*-bs*.pt) are
+# preserved — only the symlink is removed.
+for d in "${DATASETS[@]}"; do
+  link="artifacts/checkpoints/t5-base/$d/covariance.pt"
+  if [[ -L "$link" ]]; then
+    echo "  unlinking existing symlink: $link -> $(readlink "$link")"
+    rm "$link"
+  fi
+done
+
 python scripts/language/covariance.py \
   --model=t5-base \
   --finetuning-mode=standard \
