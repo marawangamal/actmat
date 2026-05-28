@@ -24,7 +24,7 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
-NB=100
+NB=1000
 BS=32
 DATASETS=(qasc wiki_qa quartz paws story_cloze winogrande wsc)
 TEST_NAME="covariance-test-nb${NB}-bs${BS}.pt"
