@@ -79,12 +79,14 @@ class GradCrossTermTracker:
             gynorm2 = gy.pow(2).sum(-1)  # (B,T)
 
             B, T, Di = z.shape  # NOTE: verify this is the actual shape
+            z_flat = z.reshape(-1, Di)  # (B*T, Di)
+            gnorm_flat = gynorm2.reshape(-1)  # (B*T,)
             self.gbar[name] += (gw_bar / (B * T)).cpu()
             self.sbar[name] += (
-                torch.einsum("bti,btj,bt->ij", z, z, gynorm2) / (B * T)
+                (z_flat * gnorm_flat.unsqueeze(-1)).T @ z_flat / (B * T)
             ).cpu()
             self.stilde[name] += (
-                (torch.einsum("bti,btj->ij", z, z) / (B * T)) * gynorm2.mean()
+                (z_flat.T @ z_flat) / (B * T) * gnorm_flat.mean()
             ).cpu()
 
     def save(self, ckpdir):

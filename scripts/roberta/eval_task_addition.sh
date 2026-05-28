@@ -24,7 +24,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 MODELS=(${MODELS:-roberta-base roberta-large})
 # Data-free merges. Skip regmean / fisher — they require per-task statistics
 # collection, which is out of scope for this driver.
-METHODS=(actmat_norm actmat_norm_softmax_bias)
+METHODS=(actmat_l1)
 MERGE_MODE=d
 HPO=''
 

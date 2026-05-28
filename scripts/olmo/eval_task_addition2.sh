@@ -4,8 +4,8 @@
 #SBATCH --array=0
 #SBATCH --gres=gpu:l40s:2
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=192G
-#SBATCH --time=24:00:00
+#SBATCH --mem=64G
+#SBATCH --time=4:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 # Merge + evaluate OLMo task vectors via olmes, with per-task chat templates.
@@ -38,7 +38,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(regmean)
+METHODS=(isoc)
 method="${METHODS[${SLURM_ARRAY_TASK_ID:-0}]}"
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────

@@ -18,6 +18,7 @@ from src.merging import (
     merge_actmat_excess_ridge,
     merge_actmat_gd_softmax_bias,
     merge_actmat_isoc,
+    merge_actmat_l1,
     merge_actmat_mons,
     merge_actmat_norm,
     merge_actmat_norm_softmax_bias,
@@ -399,6 +400,79 @@ class TestMergeActmatNorm(unittest.TestCase):
         out = merge_actmat_norm(d)
         expected = merge_actmat(d) / 2.5
         self.assertTrue(torch.allclose(out, expected, atol=1e-4))
+
+
+def _actmat_l1_loss(delta: torch.Tensor, d: torch.Tensor, eps: float = 1e-8) -> float:
+    """Smoothed L1 column-norm loss: Σ_t Σ_i sqrt(‖d_t (Δ - d_t)_iᵀ‖² + ε)."""
+    resid = delta.unsqueeze(0) - d
+    mapped = d @ resid.transpose(-1, -2)
+    col_norms = mapped.pow(2).sum(dim=-2).add(eps).sqrt()
+    return float(col_norms.sum())
+
+
+class TestMergeActmatL1(unittest.TestCase):
+    """L1-residual ACTMat: Adam-minimizes Σ_t sqrt-smoothed ‖d_t (Δ-d_t)ᵀ‖_{2,1}
+    starting from Δ = mean(d)."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        out = merge_actmat_l1(d, max_iters=5, lr=1e-3)
+        self.assertEqual(out.shape, (6, 5))
+        self.assertFalse(out.requires_grad)
+
+    def test_returns_detached(self):
+        """Output must not carry gradient — caller writes it to checkpoints."""
+        torch.manual_seed(0)
+        d = torch.randn(2, 4, 5)
+        out = merge_actmat_l1(d, max_iters=3, lr=1e-3)
+        self.assertIsNone(out.grad_fn)
+
+    def test_lr_zero_equals_mean_init(self):
+        """With lr=0 Adam can't move Δ from its init (mean(d))."""
+        torch.manual_seed(1)
+        d = torch.randn(4, 5, 7)
+        out = merge_actmat_l1(d, max_iters=3, lr=0.0, patience=100)
+        self.assertTrue(torch.allclose(out, d.mean(dim=0), atol=1e-6))
+
+    def test_single_task_is_fixed_point(self):
+        """One task → init = d itself → residual = 0 → mapped = 0 → gradient = 0
+        (because ∂/∂Δ of sqrt(0+ε) is 0). Δ should not move."""
+        torch.manual_seed(2)
+        d = torch.randn(1, 4, 6)
+        out = merge_actmat_l1(d, max_iters=50, lr=1e-3, patience=5, thresh=1e-9)
+        self.assertTrue(torch.allclose(out, d.squeeze(0), atol=1e-5))
+
+    def test_loss_decreases(self):
+        """Adam on the smoothed L1 objective should reduce the loss below its
+        value at the mean-init."""
+        torch.manual_seed(3)
+        d = torch.randn(3, 8, 6)
+        init_loss = _actmat_l1_loss(d.mean(dim=0), d)
+        out = merge_actmat_l1(d, max_iters=400, lr=1e-2, patience=100)
+        final_loss = _actmat_l1_loss(out, d)
+        self.assertLess(final_loss, init_loss)
+
+    def test_no_nan_with_zero_delta(self):
+        """Zero task vector + ε-smoothed sqrt should not produce NaN/Inf even
+        at the init where the residual is exactly the negative mean."""
+        torch.manual_seed(4)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_l1(d, max_iters=20, lr=1e-3, patience=100)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
+
+    def test_early_stop_via_patience(self):
+        """With a permissive `thresh` and small `patience`, the optimizer must
+        early-exit well before max_iters (huge ceiling). We just need the call
+        to return in reasonable wall-time — a 100k-iter ceiling that didn't
+        early-stop would dwarf the rest of the suite."""
+        torch.manual_seed(5)
+        d = torch.randn(2, 4, 5)
+        # lr=0 ⇒ rel = 0 every step ⇒ patience triggers after exactly `patience` iters.
+        out = merge_actmat_l1(d, max_iters=100_000, lr=0.0, patience=3, thresh=1.0)
+        self.assertEqual(out.shape, (4, 5))
 
 
 class TestMergeActmatIsoc(unittest.TestCase):

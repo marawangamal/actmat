@@ -340,6 +340,53 @@ def merge_actmat_norm(d: torch.Tensor, *args, **kwargs):
     return (dn @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_actmat_l1(
+    d: torch.Tensor,
+    lr: float = 1e-5,
+    max_iters: int = 3000,
+    eps: float = 1e-8,
+    thresh: float = 1e-6,
+    patience: int = 10,
+    **kwargs,
+) -> torch.Tensor:
+    """L1-residual ACTMat: minimize Σ_t E_z ||Δz - Δ_t z||_1 with C_t = Δ_tᵀΔ_t.
+
+    Under Gaussian z, the per-task expectation equals (up to √(2/π)):
+        Σ_i ||Δ_t (Δ - Δ_t)_iᵀ||_2  =  ||Δ_t (Δ - Δ_t)ᵀ||_{2,1}
+
+    Smoothed with ε under the sqrt to keep gradients finite at zero residual.
+    Exits early when relative loss change < `thresh` for `patience` consecutive steps.
+    """
+    with torch.enable_grad():
+        delta = d.mean(dim=0).clone().requires_grad_(True)  # (Do, Di)
+        opt = torch.optim.Adam([delta], lr=lr)
+
+        prev_loss = float("inf")
+        n_stable = 0
+        pbar = tqdm(range(max_iters), desc="ACTMat-L1", leave=False)
+        for i in pbar:
+            opt.zero_grad()
+            resid = delta.unsqueeze(0) - d  # (T, Do, Di)
+            mapped = d @ resid.transpose(-1, -2)  # (T, Do, Do)
+            col_norms = mapped.pow(2).sum(dim=-2).add(eps).sqrt()  # (T, Do)
+            loss = col_norms.sum()
+            loss.backward()
+            opt.step()
+
+            cur_loss = loss.item()
+            rel = abs(prev_loss - cur_loss) / (abs(prev_loss) + 1e-12)
+            n_stable = n_stable + 1 if rel < thresh else 0
+            pbar.set_postfix(loss=cur_loss, rel=rel)
+            if n_stable >= patience:
+                print(f"[converged] iter={i} loss={cur_loss:.4e} rel={rel:.1e}")
+                break
+            prev_loss = cur_loss
+        else:
+            print(f"[not converged] loss={cur_loss:.4e} after {max_iters} iters")
+
+    return delta.detach()
+
+
 def merge_actmat_isoc(d: torch.Tensor, *args, **kwargs):
     """ACTMat on iso-spectrum task vectors: SVD each d_t, replace its singular
     values with the per-position mean across tasks (isotropy à la IsoC), then

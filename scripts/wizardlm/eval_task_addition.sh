@@ -29,7 +29,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="wizardlm"
-METHODS=(tsv actmat wudi actmat_mons actmat_gd actmat_softmax_bias actmat_softmax_bias_noident actmat_softmax_bias_solve mean isoc)
+METHODS=(tsv actmat wudi actmat_mons actmat_gd actmat_softmax_bias actmat_softmax_bias_noident actmat_softmax_bias_solve mean isoc actmat_isoc actmat_l1)
 # Submit with: sbatch --array=0-$((${#METHODS[@]}-1)) scripts/wizardlm/eval_task_addition.sh
 # Each array task runs one method end-to-end (merge + eval).
 
@@ -39,7 +39,8 @@ declare -A MERGE_KWARGS=(
   # Defaults (lr=1e-5, max_iters=300) leave 13B MLP layers far from converged
   # (loss ~0.5-0.7 on 13824×5120 mats). Bump lr, give more iters, and enable
   # an early-stop threshold so converged layers don't burn the budget.
-  ["actmat_gd"]='{"lr": 1e-3, "max_iters": 2000, "thresh": 1e-5}'
+  # lr=1e-3 diverged on 13B (produced garbage outputs). Backing off 10× to 1e-4.
+  ["actmat_gd"]='{"lr": 1e-4, "max_iters": 2000, "thresh": 1e-5}'
 )
 
 # Note: `actmat` in src/merging.py is the data-free variant (c = d^T @ d),

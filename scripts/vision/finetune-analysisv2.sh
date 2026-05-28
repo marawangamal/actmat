@@ -29,7 +29,7 @@ ln -sfn "$SLURM_TMPDIR/data" data
 # 3. Finetune models (using FFT & LoRA) — uses finetunev2 tracker
 MODELS=("${MODEL:-ViT-B-16}")
 FT_MODES=(standard)
-SAVE_DIR="artifacts/checkpoints-analysisv2"
+SAVE_DIR="artifacts/checkpoints-analysisv2-epochs1"
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
@@ -43,6 +43,7 @@ for MODEL in "${MODELS[@]}"; do
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \
+      --epochs=1 \
       --train-dataset=Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN \
       --grad-cross-matrix
 
