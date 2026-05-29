@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-4
+#SBATCH --array=0
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -26,14 +26,14 @@ if [ ! -d "$SLURM_TMPDIR/data" ]; then
 fi
 ln -sfn "$SLURM_TMPDIR/data" data
 
-# ===== LoRA experiments on the original 8-dataset benchmark =====
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-FT_MODE="lora"
+# ===== One-off: FFT regmean on ViT-B-16 with test-set covariance =====
+MODELS=(ViT-B-16)
+FT_MODE="standard"
 MERGE_MODE=d
 HPO=''
 
 # Array dispatch: one task per method. Keep --array=0-N in sync with len(METHODS)-1.
-METHODS=(mean isoc tsv actmat wudi)
+METHODS=(regmean)
 method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
 for MODEL in "${MODELS[@]}"; do
