@@ -36,12 +36,13 @@ fi
 # 3. Finetune models (using FFT & LoRA)
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
 FT_MODES=(standard lora)
-SAVE_DIR="artifacts/checkpoints"
+SAVE_DIR="artifacts/checkpoints-sgd"
+OPTIMIZER="sgd"
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
 
-    echo "[BASH] Running finetune.py | model: $MODEL | ft mode: $FT_MODE | save dir: $SAVE_DIR"
+    echo "[BASH] Running finetune.py | model: $MODEL | ft mode: $FT_MODE | optimizer: $OPTIMIZER | save dir: $SAVE_DIR"
     python scripts/vision/finetune.py \
       --finetuning-mode="$FT_MODE" \
       --model="$MODEL" \
@@ -49,6 +50,7 @@ for MODEL in "${MODELS[@]}"; do
       --num-workers=1 \
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
+      --optimizer="$OPTIMIZER" \
       --save="$SAVE_DIR"
 
   done

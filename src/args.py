@@ -79,6 +79,19 @@ def parse_arguments():
     )
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate.")
     parser.add_argument("--wd", type=float, default=0.1, help="Weight decay.")
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        default="adamw",
+        choices=["adamw", "sgd"],
+        help="Optimizer for vision fine-tuning.",
+    )
+    parser.add_argument(
+        "--momentum",
+        type=float,
+        default=0.9,
+        help="Momentum (SGD optimizer only).",
+    )
     parser.add_argument("--ls", type=float, default=0.0, help="Label smoothing.")
     parser.add_argument("--warmup-length", type=int, default=500)
     parser.add_argument("--epochs", type=int, default=10)

@@ -579,7 +579,14 @@ def finetune(rank, args):
         loss_fn = torch.nn.CrossEntropyLoss()
 
     params = [p for p in ddp_model.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.wd)
+    if args.optimizer == "sgd":
+        optimizer = torch.optim.SGD(
+            params, lr=args.lr, momentum=args.momentum, weight_decay=args.wd
+        )
+    else:
+        optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.wd)
+    if is_main_process():
+        print(f"Using optimizer: {args.optimizer}")
 
     scheduler = cosine_lr(
         optimizer,
