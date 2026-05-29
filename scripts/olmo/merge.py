@@ -33,8 +33,9 @@ def merge(args):
     if args.cache_dir:
         os.environ["HF_HOME"] = args.cache_dir
 
+    tasks = args.merge_tasks if args.merge_tasks else OLMO_TASKS
     save_root = Path(args.save).expanduser().resolve()
-    task_dirs = [save_root / t for t in OLMO_TASKS]
+    task_dirs = [save_root / t for t in tasks]
     output_dir = Path(args.output_dir).expanduser().resolve()
 
     for td in task_dirs:
@@ -45,7 +46,7 @@ def merge(args):
             )
 
     pretrained_dir = (task_dirs[0] / "pretrained").resolve()
-    print(f"Tasks          : {OLMO_TASKS}")
+    print(f"Tasks          : {tasks}")
     print(f"Merge function : {args.merge_func}")
     print(f"Output dir     : {output_dir}")
     print("=" * 80)

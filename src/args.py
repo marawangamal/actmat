@@ -319,6 +319,14 @@ def parse_arguments():
         help="OLMo finetune/covariance: capability subset (math, code, if, all).",
     )
     parser.add_argument(
+        "--merge-tasks",
+        type=str,
+        nargs="+",
+        default=None,
+        help="Param-folder merge: names of the per-task subdirs under --save to "
+        "merge (e.g. ar cs de es). Defaults to the OLMo experts (Math Code IF).",
+    )
+    parser.add_argument(
         "--bf16", action="store_true", default=False, help="OLMo: use bfloat16."
     )
     parser.add_argument(

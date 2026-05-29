@@ -59,6 +59,11 @@ CONFIGS = [
         "task_vector_cls": ParamFolderTaskVector,
     },
     {
+        "model": "Olmo-3-7b-polyglot",
+        "datasets": ["ar", "cs", "de", "es"],
+        "task_vector_cls": ParamFolderTaskVector,
+    },
+    {
         "model": "gemma-2-2b-it",
         "datasets": ["instruction", "math", "coding", "multilingual"],
         "task_vector_cls": ParamFolderTaskVector,

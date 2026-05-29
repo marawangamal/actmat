@@ -4,6 +4,7 @@ import time
 from typing import Dict, Optional
 
 import torch
+import trackio
 
 # --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=data/vision   --save=$SCRATCH/actmat/checkpoints/vision
 from src.args import parse_arguments
@@ -598,6 +599,26 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {args.epochs * num_batches // args.num_grad_accumulation}")
 
+    if is_main_process():
+        trackio.init(
+            project="actmat-vision",
+            name=f"{args.model}-{train_dataset}-{args.finetuning_mode}-{args.optimizer}",
+            config={
+                "model": args.model,
+                "dataset": train_dataset,
+                "finetuning_mode": args.finetuning_mode,
+                "optimizer": args.optimizer,
+                "momentum": args.momentum,
+                "lr": args.lr,
+                "wd": args.wd,
+                "ls": args.ls,
+                "batch_size": args.batch_size,
+                "num_grad_accumulation": args.num_grad_accumulation,
+                "epochs": args.epochs,
+                "warmup_length": args.warmup_length,
+            },
+        )
+
     grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
         grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
@@ -669,6 +690,15 @@ def finetune(rank, args):
                     f"Elapsed {_format_duration(run_elapsed)}",  # noqa: E501
                     flush=True,
                 )
+                trackio.log(
+                    {
+                        "train/loss": loss.item(),
+                        "train/epoch": epoch,
+                        "train/lr": optimizer.param_groups[0]["lr"],
+                        "train/elapsed_sec": run_elapsed,
+                    },
+                    step=step,
+                )
 
         if args.max_steps is not None and step >= args.max_steps:
             break
@@ -685,7 +715,8 @@ def finetune(rank, args):
         if lora_finetuning:
             image_encoder = merge_lora(image_encoder)
 
-        eval_single_dataset(image_encoder, train_dataset, args)
+        eval_metrics = eval_single_dataset(image_encoder, train_dataset, args)
+        trackio.log({"val/top1": eval_metrics["top1"]}, step=step)
 
     if args.save is not None and is_main_process():
         zs_path = os.path.join(ckpdir, "pretrained.pt")
@@ -698,9 +729,12 @@ def finetune(rank, args):
                 m._backward_hooks.clear()
             unswap_mha(enc_to_save)
         enc_to_save.save(ft_path)
+        trackio.finish()
         cleanup_ddp()
         return zs_path, ft_path
 
+    if is_main_process():
+        trackio.finish()
     cleanup_ddp()
 
 
