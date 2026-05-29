@@ -36,7 +36,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b"
-METHODS=(mean regmean wudi_unweighted)
+METHODS=(sum04)
 
 # ── OLMES tasks, split by which expert's chat template they need ─────────────
 CODE_TASKS=(
@@ -134,5 +134,6 @@ for method in "${METHODS[@]}"; do
 
   # 3. Evaluate each task group against its matching view
   run_olmes "$CODE_VIEW" "${RESULTS_DIR}/chat-code" "${CODE_TASKS[@]}"
-  run_olmes "$MATH_VIEW" "${RESULTS_DIR}/chat-math" "${MATH_TASKS[@]}"
+  # AIME/math skipped for sum04: paper-snapshot AIME already in *-reb-chat.
+  # run_olmes "$MATH_VIEW" "${RESULTS_DIR}/chat-math" "${MATH_TASKS[@]}"
 done
