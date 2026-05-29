@@ -20,8 +20,10 @@ from src.merging import (
     merge_actmat_isoc,
     merge_actmat_l1,
     merge_actmat_mons,
-    merge_actmat_norm,
+    merge_actmat_norm_estimator,
     merge_actmat_norm_softmax_bias,
+    merge_actmat_norm_weight,
+    merge_actmat_norm_weight_and_estimator,
     merge_actmat_p,
     merge_actmat_softmax_bias,
     merge_ties,
@@ -382,14 +384,14 @@ class TestMergeActmatGdSoftmaxBias(unittest.TestCase):
         self.assertFalse(torch.isinf(out).any())
 
 
-class TestMergeActmatNorm(unittest.TestCase):
+class TestMergeActmatNormWeight(unittest.TestCase):
     """Vanilla ACTMat kernel `c = dᵀd` with the RHS projection using the
     per-task Frobenius-normalized `dn_t = d_t / ‖d_t‖_F`."""
 
     def test_shape(self):
         torch.manual_seed(0)
         d = torch.randn(3, 6, 5)
-        self.assertEqual(merge_actmat_norm(d).shape, (6, 5))
+        self.assertEqual(merge_actmat_norm_weight(d).shape, (6, 5))
 
     def test_equal_norm_tasks_equal_actmat_up_to_scale(self):
         """If every task has the same Frobenius norm μ, dn = d/μ, so the
@@ -397,9 +399,116 @@ class TestMergeActmatNorm(unittest.TestCase):
         torch.manual_seed(0)
         d = torch.randn(3, 4, 5)
         d = d / d.norm(dim=(-2, -1), keepdim=True) * 2.5  # all norm = 2.5
-        out = merge_actmat_norm(d)
+        out = merge_actmat_norm_weight(d)
         expected = merge_actmat(d) / 2.5
         self.assertTrue(torch.allclose(out, expected, atol=1e-4))
+
+    def test_no_nan_with_zero_delta(self):
+        """A zero-norm task must not produce NaN/Inf (norm divisor is clamped)."""
+        torch.manual_seed(1)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_norm_weight(d)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
+
+    def test_differs_from_actmat_on_unequal_norms(self):
+        """With unequal norms the per-task target normalization is not a global
+        scalar, so the result differs in direction from vanilla ACTMat."""
+        torch.manual_seed(2)
+        d = torch.randn(3, 4, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+        self.assertFalse(
+            torch.allclose(merge_actmat_norm_weight(d), merge_actmat(d), atol=1e-3)
+        )
+
+
+class TestMergeActmatNormEstimator(unittest.TestCase):
+    """ACTMat with the estimator c_t = dn_tᵀdn_t (per-task normalized) and the
+    target on raw d. Equivalent to merge_actmat_p(p=1) ≡ merge_actmat_mons."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        self.assertEqual(merge_actmat_norm_estimator(d).shape, (6, 5))
+
+    def test_equals_actmat_p1(self):
+        """c_t = ‖d_t‖⁻²·d_tᵀd_t is exactly the p=1 per-task weighting."""
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+        self.assertTrue(
+            torch.allclose(
+                merge_actmat_norm_estimator(d), merge_actmat_p(d, p=1.0), atol=1e-4
+            )
+        )
+
+    def test_equals_mons(self):
+        """p=1 weighting matches mons up to a scalar μ² that cancels in pinv."""
+        torch.manual_seed(1)
+        d = torch.randn(3, 6, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+        self.assertTrue(
+            torch.allclose(
+                merge_actmat_norm_estimator(d), merge_actmat_mons(d), atol=1e-4
+            )
+        )
+
+    def test_equal_norms_equals_actmat(self):
+        """With equal norms μ the estimator is (1/μ²)·dᵀd; the scalar cancels in
+        the pinv solve and the raw-d target is unchanged → vanilla ACTMat."""
+        torch.manual_seed(2)
+        d = torch.randn(3, 4, 5)
+        d = d / d.norm(dim=(-2, -1), keepdim=True) * 2.5  # all norm = 2.5
+        self.assertTrue(
+            torch.allclose(merge_actmat_norm_estimator(d), merge_actmat(d), atol=1e-4)
+        )
+
+    def test_no_nan_with_zero_delta(self):
+        torch.manual_seed(3)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_norm_estimator(d)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
+
+
+class TestMergeActmatNormWeightAndEstimator(unittest.TestCase):
+    """ACTMat with BOTH estimator and target per-task normalized. Equal norms μ
+    → (1/μ)·merge_actmat(d) (same scale relation as norm_weight)."""
+
+    def test_shape(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 6, 5)
+        self.assertEqual(merge_actmat_norm_weight_and_estimator(d).shape, (6, 5))
+
+    def test_equal_norm_tasks_equal_actmat_up_to_scale(self):
+        """All norms = μ: dn = d/μ, c = (1/μ²)dᵀd. The estimator scalar cancels
+        in pinv, leaving the (1/μ) from the normalized target → (1/μ)·actmat."""
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 5)
+        d = d / d.norm(dim=(-2, -1), keepdim=True) * 2.5  # all norm = 2.5
+        out = merge_actmat_norm_weight_and_estimator(d)
+        expected = merge_actmat(d) / 2.5
+        self.assertTrue(torch.allclose(out, expected, atol=1e-4))
+
+    def test_equals_normalized_mons_estimator(self):
+        """Shares mons's normalized estimator but normalizes the target too, so
+        it differs from mons whenever task norms are unequal."""
+        torch.manual_seed(1)
+        d = torch.randn(3, 6, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
+        self.assertFalse(
+            torch.allclose(
+                merge_actmat_norm_weight_and_estimator(d),
+                merge_actmat_mons(d),
+                atol=1e-3,
+            )
+        )
+
+    def test_no_nan_with_zero_delta(self):
+        torch.manual_seed(2)
+        d = torch.randn(3, 4, 5)
+        d[1] = 0.0
+        out = merge_actmat_norm_weight_and_estimator(d)
+        self.assertFalse(torch.isnan(out).any())
+        self.assertFalse(torch.isinf(out).any())
 
 
 def _actmat_l1_loss(delta: torch.Tensor, d: torch.Tensor, eps: float = 1e-8) -> float:
@@ -579,7 +688,7 @@ class TestMergeActmatNormSoftmaxBias(unittest.TestCase):
         torch.manual_seed(2)
         d = torch.randn(3, 6, 5) * torch.tensor([1.0, 5.0, 20.0]).view(-1, 1, 1)
         out_bias = merge_actmat_norm_softmax_bias(d)
-        out_no_bias = merge_actmat_norm(d)
+        out_no_bias = merge_actmat_norm_weight(d)
         self.assertFalse(torch.allclose(out_bias, out_no_bias, atol=1e-3))
 
 

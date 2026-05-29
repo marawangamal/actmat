@@ -120,9 +120,9 @@ if __name__ == "__main__":
         checkpoint_dir = f"{args.save}/{task}Val"
         if args.load is not None:
             ckpt_name = os.path.basename(args.load)  # e.g., 'checkpoint_100.pt'
-            cov_path = os.path.join(checkpoint_dir, f"covariance_{ckpt_name}")
+            cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance_{ckpt_name}")
         else:
-            cov_path = os.path.join(checkpoint_dir, "covariance.pt")
+            cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance.pt")
 
         if os.path.exists(cov_path) and not args.overwrite:
             print(f"Skipping {task} (cached: {cov_path})")

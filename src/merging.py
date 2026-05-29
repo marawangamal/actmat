@@ -334,10 +334,44 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
-def merge_actmat_norm(d: torch.Tensor, *args, **kwargs):
+def merge_actmat_norm_weight(d: torch.Tensor, *args, **kwargs):
+    """ACTMat with the merge *target* (weight projection) per-task normalized.
+
+    Estimator stays unnormalized (c = d_tᵀd_t), but the RHS uses the Frobenius-
+    normalized dn_t = d_t/‖d_t‖_F. With all task norms equal to μ this reduces
+    to (1/μ)·merge_actmat(d).
+    """
     c = d.transpose(1, 2) @ d
-    dn = d / d.norm(dim=(-2, -1), keepdim=True)
-    return (dn @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+    dn = d / d.norm(dim=(-2, -1), keepdim=True).clamp_min(1e-12)
+    c_sum = c.sum(dim=0)
+    # fp64 promotion: c_sum can be ill-conditioned where fp32 cusolver SVD fails.
+    return (dn @ c).sum(dim=0) @ pinv(c_sum.double()).to(c_sum.dtype)
+
+
+def merge_actmat_norm_estimator(d: torch.Tensor, *args, **kwargs):
+    """ACTMat with the *estimator* built from per-task normalized dn, target on raw d.
+
+    c_t = dn_tᵀdn_t = ‖d_t‖⁻²·d_tᵀd_t, target uses the unnormalized d. This is
+    exactly merge_actmat_p(p=1) ≡ merge_actmat_mons (the per-task ‖d_t‖⁻² weighting
+    matches; any common scalar cancels in the pinv solve).
+    """
+    dn = d / d.norm(dim=(-2, -1), keepdim=True).clamp_min(1e-12)
+    c = dn.transpose(1, 2) @ dn
+    c_sum = c.sum(dim=0)
+    return (d @ c).sum(dim=0) @ pinv(c_sum.double()).to(c_sum.dtype)
+
+
+def merge_actmat_norm_weight_and_estimator(d: torch.Tensor, *args, **kwargs):
+    """ACTMat with BOTH the estimator and the target per-task normalized.
+
+    dn_t = d_t/‖d_t‖_F; c_t = dn_tᵀdn_t; target uses dn. Same norm-equalizing
+    estimator as merge_actmat_mons, but the projection is normalized too — so
+    with all task norms equal to μ this reduces to (1/μ)·merge_actmat(d).
+    """
+    dn = d / d.norm(dim=(-2, -1), keepdim=True).clamp_min(1e-12)
+    c = dn.transpose(1, 2) @ dn
+    c_sum = c.sum(dim=0)
+    return (dn @ c).sum(dim=0) @ pinv(c_sum.double()).to(c_sum.dtype)
 
 
 def merge_actmat_l1(
