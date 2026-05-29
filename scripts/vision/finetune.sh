@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=finetune_vision
-#SBATCH --partition=main
+#SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=08:00:00
-#SBATCH --output=artifacts/logs/%x_%j.out
-#SBATCH --error=artifacts/logs/%x_%j.err
+#SBATCH --array=0-7
+#SBATCH --output=artifacts/logs/%x_%A_%a.out
+#SBATCH --error=artifacts/logs/%x_%A_%a.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -33,28 +34,26 @@ if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnis
   cp downloads/kmnist/*.gz "$KMNIST_RAW_DST/"
 fi
 
-# 3. Finetune models (using FFT & LoRA)
-MODELS=(ViT-B-16)
-FT_MODES=(standard)
+# 3. Finetune (one array task per dataset, run in parallel)
+MODEL="ViT-B-16"
+FT_MODE="standard"
 SAVE_DIR="artifacts/checkpoints-sgd"
 OPTIMIZER="sgd"
-# Standard 8-dataset task-arithmetic benchmark (Ilharco et al.).
-DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN"
+# Standard 8-dataset task-arithmetic benchmark (Ilharco et al.), indexed by array id.
+DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
+DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
+# Unique DDP rendezvous port per task so co-located array tasks don't collide.
+PORT=$((12355 + SLURM_ARRAY_TASK_ID))
 
-for MODEL in "${MODELS[@]}"; do
-  for FT_MODE in "${FT_MODES[@]}"; do
-
-    echo "[BASH] Running finetune.py | model: $MODEL | ft mode: $FT_MODE | optimizer: $OPTIMIZER | save dir: $SAVE_DIR"
-    python scripts/vision/finetune.py \
-      --finetuning-mode="$FT_MODE" \
-      --model="$MODEL" \
-      --world-size=1 \
-      --num-workers=1 \
-      --cache-dir="$OPENCLIP_DIR" \
-      --data-location="$DATA_DIR" \
-      --optimizer="$OPTIMIZER" \
-      --train-dataset="$DATASETS" \
-      --save="$SAVE_DIR"
-
-  done
-done
+echo "[BASH] Running finetune.py | model: $MODEL | ft mode: $FT_MODE | optimizer: $OPTIMIZER | dataset: $DATASET | save dir: $SAVE_DIR"
+python scripts/vision/finetune.py \
+  --finetuning-mode="$FT_MODE" \
+  --model="$MODEL" \
+  --world-size=1 \
+  --num-workers=1 \
+  --cache-dir="$OPENCLIP_DIR" \
+  --data-location="$DATA_DIR" \
+  --optimizer="$OPTIMIZER" \
+  --train-dataset="$DATASET" \
+  --port="$PORT" \
+  --save="$SAVE_DIR"

@@ -761,9 +761,9 @@ if __name__ == "__main__":
 
     for dataset in train_datasets:
         # HACK: Some command line arguments are overwritten by defaults here.
-        # SGD needs a much larger LR than AdamW: AdamW normalizes by the grad
-        # RMS (effective step ~lr), while SGD steps by lr*raw_grad.
-        args.lr = 1e-3 if args.optimizer == "sgd" else 1e-5
+        # SGD needs a larger LR than AdamW (AdamW normalizes by the grad RMS,
+        # SGD steps by lr*raw_grad), but 1e-3 diverged on Cars; 1e-4 is stable.
+        args.lr = 1e-4 if args.optimizer == "sgd" else 1e-5
         if not args.grad_cross_matrix and args.max_samples is None:
             args.epochs = epochs[dataset]
         args.train_dataset = dataset + "Val"
