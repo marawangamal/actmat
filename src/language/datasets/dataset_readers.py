@@ -359,6 +359,15 @@ class StoryClozeReader(DatasetReader):
             for idx, example in enumerate(huggingFace_data):
                 example["idx"] = idx
                 example["lbl"] = int(example["answer_right_ending"]) - 1
+                # The CSV columns don't match the field names the promptsource
+                # `story_cloze/2016` templates reference. Remap so the prompt and
+                # answer choices render with real text; otherwise the two choices
+                # render empty/identical and the model predicts a constant class
+                # (accuracy pinned at the majority rate ~0.512 regardless of weights).
+                for i in range(1, 5):
+                    example[f"input_sentence_{i}"] = example[f"input_sentence{i}"]
+                example["sentence_quiz1"] = example["random_fifth_sentence_quiz1"]
+                example["sentence_quiz2"] = example["random_fifth_sentence_quiz2"]
                 orig_data.append(example)
 
             if split.lower() in ["validation", "test"]:
