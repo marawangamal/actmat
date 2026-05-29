@@ -34,10 +34,12 @@ if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnis
 fi
 
 # 3. Finetune models (using FFT & LoRA)
-MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
-FT_MODES=(standard lora)
+MODELS=(ViT-B-16)
+FT_MODES=(standard)
 SAVE_DIR="artifacts/checkpoints-sgd"
 OPTIMIZER="sgd"
+# Standard 8-dataset task-arithmetic benchmark (Ilharco et al.).
+DATASETS="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN"
 
 for MODEL in "${MODELS[@]}"; do
   for FT_MODE in "${FT_MODES[@]}"; do
@@ -51,6 +53,7 @@ for MODEL in "${MODELS[@]}"; do
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --optimizer="$OPTIMIZER" \
+      --train-dataset="$DATASETS" \
       --save="$SAVE_DIR"
 
   done
