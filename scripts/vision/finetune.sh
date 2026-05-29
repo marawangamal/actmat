@@ -39,6 +39,7 @@ MODEL="ViT-B-16"
 FT_MODE="standard"
 SAVE_DIR="artifacts/checkpoints-sgd"
 OPTIMIZER="sgd"
+LR="1e-4"
 # Standard 8-dataset task-arithmetic benchmark (Ilharco et al.), indexed by array id.
 DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
@@ -54,6 +55,7 @@ python scripts/vision/finetune.py \
   --cache-dir="$OPENCLIP_DIR" \
   --data-location="$DATA_DIR" \
   --optimizer="$OPTIMIZER" \
+  --lr="$LR" \
   --train-dataset="$DATASET" \
   --port="$PORT" \
   --save="$SAVE_DIR"
