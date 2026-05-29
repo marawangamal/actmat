@@ -3,7 +3,7 @@
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
+#SBATCH --mem=48G
 #SBATCH --time=04:00:00
 #SBATCH --array=0-3
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
@@ -16,6 +16,8 @@ mkdir -p artifacts/logs
 source ".venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
+# Disable trackio: concurrent array tasks hang on the shared NFS SQLite store.
+export USE_TRACKIO=0
 DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 

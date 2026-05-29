@@ -22,7 +22,7 @@
 set -euo pipefail
 mkdir -p artifacts/logs
 
-source "$SCRATCH/actmat/.venv-olmo/bin/activate"
+source "$SCRATCH/actmat/.venv-pg/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export HF_HOME=$SCRATCH/huggingface
 export SSL_CERT_DIR=/etc/ssl/certs

@@ -4,7 +4,13 @@ import time
 from typing import Dict, Optional
 
 import torch
-import trackio
+
+# Trackio logging is gated: concurrent array tasks writing to the same
+# NFS-backed trackio store hang on SQLite locks. Disable with USE_TRACKIO=0
+# for parallel sweeps (accuracy is still recovered from the logs).
+USE_TRACKIO = os.environ.get("USE_TRACKIO", "1") == "1"
+if USE_TRACKIO:
+    import trackio
 
 # --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=data/vision   --save=$SCRATCH/actmat/checkpoints/vision
 from src.args import parse_arguments
@@ -599,7 +605,7 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {args.epochs * num_batches // args.num_grad_accumulation}")
 
-    if is_main_process():
+    if USE_TRACKIO and is_main_process():
         trackio.init(
             project="actmat-vision",
             name=f"{args.model}-{train_dataset}-{args.finetuning_mode}-{args.optimizer}",
@@ -690,15 +696,16 @@ def finetune(rank, args):
                     f"Elapsed {_format_duration(run_elapsed)}",  # noqa: E501
                     flush=True,
                 )
-                trackio.log(
-                    {
-                        "train/loss": loss.item(),
-                        "train/epoch": epoch,
-                        "train/lr": optimizer.param_groups[0]["lr"],
-                        "train/elapsed_sec": run_elapsed,
-                    },
-                    step=step,
-                )
+                if USE_TRACKIO:
+                    trackio.log(
+                        {
+                            "train/loss": loss.item(),
+                            "train/epoch": epoch,
+                            "train/lr": optimizer.param_groups[0]["lr"],
+                            "train/elapsed_sec": run_elapsed,
+                        },
+                        step=step,
+                    )
 
         if args.max_steps is not None and step >= args.max_steps:
             break
@@ -716,7 +723,8 @@ def finetune(rank, args):
             image_encoder = merge_lora(image_encoder)
 
         eval_metrics = eval_single_dataset(image_encoder, train_dataset, args)
-        trackio.log({"val/top1": eval_metrics["top1"]}, step=step)
+        if USE_TRACKIO:
+            trackio.log({"val/top1": eval_metrics["top1"]}, step=step)
 
     if args.save is not None and is_main_process():
         zs_path = os.path.join(ckpdir, "pretrained.pt")
@@ -729,11 +737,12 @@ def finetune(rank, args):
                 m._backward_hooks.clear()
             unswap_mha(enc_to_save)
         enc_to_save.save(ft_path)
-        trackio.finish()
+        if USE_TRACKIO:
+            trackio.finish()
         cleanup_ddp()
         return zs_path, ft_path
 
-    if is_main_process():
+    if USE_TRACKIO and is_main_process():
         trackio.finish()
     cleanup_ddp()
 
