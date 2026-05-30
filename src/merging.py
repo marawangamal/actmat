@@ -364,6 +364,21 @@ def merge_actmat_10k(d: torch.Tensor, *args, dim_threshold: int = 10_000, **kwar
     return merge_actmat(d)
 
 
+def merge_actmat_10ki(d: torch.Tensor, *args, dim_threshold: int = 10_000, **kwargs):
+    """ACTMat, but mean-merge only layers whose INPUT dim exceeds dim_threshold.
+
+    delta d is (T, Do, Di). The ACTMat covariance c = dᵀd and its pinv are
+    (Di, Di), so both the O(Di³) cost and the conditioning scale with the input
+    dimension Di alone — not the output dim Do. A wide-output/narrow-input layer
+    (e.g. gate/up_proj, 13824×5120) is therefore still cheap and well-posed and
+    keeps the ACTMat solve; only wide-input layers (e.g. down_proj, 5120×13824,
+    Di > dim_threshold) fall back to mean.
+    """
+    if d.shape[-1] > dim_threshold:
+        return d.mean(dim=0)
+    return merge_actmat(d)
+
+
 def merge_actmat_norm_weight(d: torch.Tensor, *args, **kwargs):
     """ACTMat with the merge *target* (weight projection) per-task normalized.
 
