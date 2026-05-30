@@ -1,0 +1,1485 @@
+{
+  "results": {
+    "global_mmlu_ar_business": {
+      "name": "global_mmlu_ar_business",
+      "alias": "global_mmlu_ar_business",
+      "sample_len": 58,
+      "acc,none": 0.3620689655172414,
+      "acc_stderr,none": 0.06365684176876799
+    },
+    "global_mmlu_ar_humanities": {
+      "name": "global_mmlu_ar_humanities",
+      "alias": "global_mmlu_ar_humanities",
+      "sample_len": 102,
+      "acc,none": 0.4411764705882353,
+      "acc_stderr,none": 0.049406356306056595
+    },
+    "global_mmlu_ar_medical": {
+      "name": "global_mmlu_ar_medical",
+      "alias": "global_mmlu_ar_medical",
+      "sample_len": 36,
+      "acc,none": 0.2777777777777778,
+      "acc_stderr,none": 0.07570946042991634
+    },
+    "global_mmlu_ar_other": {
+      "name": "global_mmlu_ar_other",
+      "alias": "global_mmlu_ar_other",
+      "sample_len": 56,
+      "acc,none": 0.375,
+      "acc_stderr,none": 0.06527912098338669
+    },
+    "global_mmlu_ar_stem": {
+      "name": "global_mmlu_ar_stem",
+      "alias": "global_mmlu_ar_stem",
+      "sample_len": 46,
+      "acc,none": 0.2826086956521739,
+      "acc_stderr,none": 0.06712194885164874
+    },
+    "global_mmlu_ar_social_sciences": {
+      "name": "global_mmlu_ar_social_sciences",
+      "alias": "global_mmlu_ar_social_sciences",
+      "sample_len": 102,
+      "acc,none": 0.4117647058823529,
+      "acc_stderr,none": 0.048971049527263666
+    },
+    "global_mmlu_de_business": {
+      "name": "global_mmlu_de_business",
+      "alias": "global_mmlu_de_business",
+      "sample_len": 58,
+      "acc,none": 0.5517241379310345,
+      "acc_stderr,none": 0.06587130109529919
+    },
+    "global_mmlu_de_humanities": {
+      "name": "global_mmlu_de_humanities",
+      "alias": "global_mmlu_de_humanities",
+      "sample_len": 102,
+      "acc,none": 0.5882352941176471,
+      "acc_stderr,none": 0.04897104952726366
+    },
+    "global_mmlu_de_medical": {
+      "name": "global_mmlu_de_medical",
+      "alias": "global_mmlu_de_medical",
+      "sample_len": 36,
+      "acc,none": 0.4166666666666667,
+      "acc_stderr,none": 0.0833333333333333
+    },
+    "global_mmlu_de_other": {
+      "name": "global_mmlu_de_other",
+      "alias": "global_mmlu_de_other",
+      "sample_len": 56,
+      "acc,none": 0.5892857142857143,
+      "acc_stderr,none": 0.06633634150359541
+    },
+    "global_mmlu_de_stem": {
+      "name": "global_mmlu_de_stem",
+      "alias": "global_mmlu_de_stem",
+      "sample_len": 46,
+      "acc,none": 0.30434782608695654,
+      "acc_stderr,none": 0.06859222936927092
+    },
+    "global_mmlu_de_social_sciences": {
+      "name": "global_mmlu_de_social_sciences",
+      "alias": "global_mmlu_de_social_sciences",
+      "sample_len": 102,
+      "acc,none": 0.4803921568627451,
+      "acc_stderr,none": 0.04971358884367405
+    },
+    "global_mmlu_es_business": {
+      "name": "global_mmlu_es_business",
+      "alias": "global_mmlu_es_business",
+      "sample_len": 58,
+      "acc,none": 0.5517241379310345,
+      "acc_stderr,none": 0.06587130109529919
+    },
+    "global_mmlu_es_humanities": {
+      "name": "global_mmlu_es_humanities",
+      "alias": "global_mmlu_es_humanities",
+      "sample_len": 102,
+      "acc,none": 0.5686274509803921,
+      "acc_stderr,none": 0.04928099597287534
+    },
+    "global_mmlu_es_medical": {
+      "name": "global_mmlu_es_medical",
+      "alias": "global_mmlu_es_medical",
+      "sample_len": 36,
+      "acc,none": 0.5,
+      "acc_stderr,none": 0.08451542547285167
+    },
+    "global_mmlu_es_other": {
+      "name": "global_mmlu_es_other",
+      "alias": "global_mmlu_es_other",
+      "sample_len": 56,
+      "acc,none": 0.6071428571428571,
+      "acc_stderr,none": 0.0658538889806635
+    },
+    "global_mmlu_es_stem": {
+      "name": "global_mmlu_es_stem",
+      "alias": "global_mmlu_es_stem",
+      "sample_len": 46,
+      "acc,none": 0.41304347826086957,
+      "acc_stderr,none": 0.07339975224406144
+    },
+    "global_mmlu_es_social_sciences": {
+      "name": "global_mmlu_es_social_sciences",
+      "alias": "global_mmlu_es_social_sciences",
+      "sample_len": 102,
+      "acc,none": 0.5098039215686274,
+      "acc_stderr,none": 0.04974229460422817
+    },
+    "global_mmlu_ar": {
+      "alias": "global_mmlu_ar",
+      "name": "global_mmlu_ar",
+      "sample_len": 400,
+      "acc,none": 0.38,
+      "acc_stderr,none": 0.024281921017925343,
+      "sample_count": {
+        "acc,none": 400
+      }
+    },
+    "global_mmlu_de": {
+      "alias": "global_mmlu_de",
+      "name": "global_mmlu_de",
+      "sample_len": 400,
+      "acc,none": 0.5075,
+      "acc_stderr,none": 0.024751838894439077,
+      "sample_count": {
+        "acc,none": 400
+      }
+    },
+    "global_mmlu_es": {
+      "alias": "global_mmlu_es",
+      "name": "global_mmlu_es",
+      "sample_len": 400,
+      "acc,none": 0.5325,
+      "acc_stderr,none": 0.024982728587006713,
+      "sample_count": {
+        "acc,none": 400
+      }
+    }
+  },
+  "groups": {
+    "global_mmlu_ar": {
+      "alias": "global_mmlu_ar",
+      "name": "global_mmlu_ar",
+      "sample_len": 400,
+      "acc,none": 0.38,
+      "acc_stderr,none": 0.024281921017925343,
+      "sample_count": {
+        "acc,none": 400
+      }
+    },
+    "global_mmlu_de": {
+      "alias": "global_mmlu_de",
+      "name": "global_mmlu_de",
+      "sample_len": 400,
+      "acc,none": 0.5075,
+      "acc_stderr,none": 0.024751838894439077,
+      "sample_count": {
+        "acc,none": 400
+      }
+    },
+    "global_mmlu_es": {
+      "alias": "global_mmlu_es",
+      "name": "global_mmlu_es",
+      "sample_len": 400,
+      "acc,none": 0.5325,
+      "acc_stderr,none": 0.024982728587006713,
+      "sample_count": {
+        "acc,none": 400
+      }
+    }
+  },
+  "group_subtasks": {
+    "global_mmlu_ar": [
+      "global_mmlu_ar_business",
+      "global_mmlu_ar_humanities",
+      "global_mmlu_ar_medical",
+      "global_mmlu_ar_other",
+      "global_mmlu_ar_stem",
+      "global_mmlu_ar_social_sciences"
+    ],
+    "global_mmlu_de": [
+      "global_mmlu_de_business",
+      "global_mmlu_de_humanities",
+      "global_mmlu_de_medical",
+      "global_mmlu_de_other",
+      "global_mmlu_de_stem",
+      "global_mmlu_de_social_sciences"
+    ],
+    "global_mmlu_es": [
+      "global_mmlu_es_business",
+      "global_mmlu_es_humanities",
+      "global_mmlu_es_medical",
+      "global_mmlu_es_other",
+      "global_mmlu_es_stem",
+      "global_mmlu_es_social_sciences"
+    ]
+  },
+  "configs": {
+    "global_mmlu_ar_business": {
+      "task": "global_mmlu_ar_business",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "ar",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Business')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Business')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/ar/global_mmlu_ar_business.yaml"
+      }
+    },
+    "global_mmlu_ar_humanities": {
+      "task": "global_mmlu_ar_humanities",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "ar",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Humanities')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Humanities')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/ar/global_mmlu_ar_humanities.yaml"
+      }
+    },
+    "global_mmlu_ar_medical": {
+      "task": "global_mmlu_ar_medical",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "ar",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Medical')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Medical')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/ar/global_mmlu_ar_medical.yaml"
+      }
+    },
+    "global_mmlu_ar_other": {
+      "task": "global_mmlu_ar_other",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "ar",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Other')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Other')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/ar/global_mmlu_ar_other.yaml"
+      }
+    },
+    "global_mmlu_ar_social_sciences": {
+      "task": "global_mmlu_ar_social_sciences",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "ar",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Social Sciences')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='Social Sciences')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/ar/global_mmlu_ar_social_sciences.yaml"
+      }
+    },
+    "global_mmlu_ar_stem": {
+      "task": "global_mmlu_ar_stem",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "ar",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='STEM')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f3618163c40>, category='STEM')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/ar/global_mmlu_ar_stem.yaml"
+      }
+    },
+    "global_mmlu_de_business": {
+      "task": "global_mmlu_de_business",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "de",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Business')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Business')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/de/global_mmlu_de_business.yaml"
+      }
+    },
+    "global_mmlu_de_humanities": {
+      "task": "global_mmlu_de_humanities",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "de",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Humanities')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Humanities')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/de/global_mmlu_de_humanities.yaml"
+      }
+    },
+    "global_mmlu_de_medical": {
+      "task": "global_mmlu_de_medical",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "de",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Medical')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Medical')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/de/global_mmlu_de_medical.yaml"
+      }
+    },
+    "global_mmlu_de_other": {
+      "task": "global_mmlu_de_other",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "de",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Other')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Other')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/de/global_mmlu_de_other.yaml"
+      }
+    },
+    "global_mmlu_de_social_sciences": {
+      "task": "global_mmlu_de_social_sciences",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "de",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Social Sciences')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='Social Sciences')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/de/global_mmlu_de_social_sciences.yaml"
+      }
+    },
+    "global_mmlu_de_stem": {
+      "task": "global_mmlu_de_stem",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "de",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='STEM')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1954e0>, category='STEM')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/de/global_mmlu_de_stem.yaml"
+      }
+    },
+    "global_mmlu_es_business": {
+      "task": "global_mmlu_es_business",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "es",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Business')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Business')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/es/global_mmlu_es_business.yaml"
+      }
+    },
+    "global_mmlu_es_humanities": {
+      "task": "global_mmlu_es_humanities",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "es",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Humanities')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Humanities')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/es/global_mmlu_es_humanities.yaml"
+      }
+    },
+    "global_mmlu_es_medical": {
+      "task": "global_mmlu_es_medical",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "es",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Medical')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Medical')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/es/global_mmlu_es_medical.yaml"
+      }
+    },
+    "global_mmlu_es_other": {
+      "task": "global_mmlu_es_other",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "es",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Other')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Other')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/es/global_mmlu_es_other.yaml"
+      }
+    },
+    "global_mmlu_es_social_sciences": {
+      "task": "global_mmlu_es_social_sciences",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "es",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Social Sciences')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='Social Sciences')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/es/global_mmlu_es_social_sciences.yaml"
+      }
+    },
+    "global_mmlu_es_stem": {
+      "task": "global_mmlu_es_stem",
+      "dataset_path": "CohereLabs/Global-MMLU-Lite",
+      "dataset_name": "es",
+      "test_split": "test",
+      "fewshot_split": "dev",
+      "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='STEM')",
+      "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "dev",
+        "process_docs": "functools.partial(<function process_docs at 0x7f360c1d7380>, category='STEM')",
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{question.strip()}}\nA. {{option_a}}\nB. {{option_b}}\nC. {{option_c}}\nD. {{option_d}}\nAnswer:",
+        "doc_to_choice": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+        "dtype": "bfloat16",
+        "max_length": 4096,
+        "trust_remote_code": false,
+        "config_source": "/network/scratch/m/marawan.gamal/actmat/.venv-pg/lib/python3.11/site-packages/lm_eval/tasks/global_mmlu/default/es/global_mmlu_es_stem.yaml"
+      }
+    }
+  },
+  "versions": {
+    "global_mmlu_ar": "0.0",
+    "global_mmlu_ar_business": 0.0,
+    "global_mmlu_ar_humanities": 0.0,
+    "global_mmlu_ar_medical": 0.0,
+    "global_mmlu_ar_other": 0.0,
+    "global_mmlu_ar_social_sciences": 0.0,
+    "global_mmlu_ar_stem": 0.0,
+    "global_mmlu_de": "0.0",
+    "global_mmlu_de_business": 0.0,
+    "global_mmlu_de_humanities": 0.0,
+    "global_mmlu_de_medical": 0.0,
+    "global_mmlu_de_other": 0.0,
+    "global_mmlu_de_social_sciences": 0.0,
+    "global_mmlu_de_stem": 0.0,
+    "global_mmlu_es": "0.0",
+    "global_mmlu_es_business": 0.0,
+    "global_mmlu_es_humanities": 0.0,
+    "global_mmlu_es_medical": 0.0,
+    "global_mmlu_es_other": 0.0,
+    "global_mmlu_es_social_sciences": 0.0,
+    "global_mmlu_es_stem": 0.0
+  },
+  "n-shot": {
+    "global_mmlu_ar": 0,
+    "global_mmlu_ar_business": 0,
+    "global_mmlu_ar_humanities": 0,
+    "global_mmlu_ar_medical": 0,
+    "global_mmlu_ar_other": 0,
+    "global_mmlu_ar_social_sciences": 0,
+    "global_mmlu_ar_stem": 0,
+    "global_mmlu_de": 0,
+    "global_mmlu_de_business": 0,
+    "global_mmlu_de_humanities": 0,
+    "global_mmlu_de_medical": 0,
+    "global_mmlu_de_other": 0,
+    "global_mmlu_de_social_sciences": 0,
+    "global_mmlu_de_stem": 0,
+    "global_mmlu_es": 0,
+    "global_mmlu_es_business": 0,
+    "global_mmlu_es_humanities": 0,
+    "global_mmlu_es_medical": 0,
+    "global_mmlu_es_other": 0,
+    "global_mmlu_es_social_sciences": 0,
+    "global_mmlu_es_stem": 0
+  },
+  "higher_is_better": {
+    "global_mmlu_ar": {
+      "acc": true
+    },
+    "global_mmlu_ar_business": {
+      "acc": true
+    },
+    "global_mmlu_ar_humanities": {
+      "acc": true
+    },
+    "global_mmlu_ar_medical": {
+      "acc": true
+    },
+    "global_mmlu_ar_other": {
+      "acc": true
+    },
+    "global_mmlu_ar_social_sciences": {
+      "acc": true
+    },
+    "global_mmlu_ar_stem": {
+      "acc": true
+    },
+    "global_mmlu_de": {
+      "acc": true
+    },
+    "global_mmlu_de_business": {
+      "acc": true
+    },
+    "global_mmlu_de_humanities": {
+      "acc": true
+    },
+    "global_mmlu_de_medical": {
+      "acc": true
+    },
+    "global_mmlu_de_other": {
+      "acc": true
+    },
+    "global_mmlu_de_social_sciences": {
+      "acc": true
+    },
+    "global_mmlu_de_stem": {
+      "acc": true
+    },
+    "global_mmlu_es": {
+      "acc": true
+    },
+    "global_mmlu_es_business": {
+      "acc": true
+    },
+    "global_mmlu_es_humanities": {
+      "acc": true
+    },
+    "global_mmlu_es_medical": {
+      "acc": true
+    },
+    "global_mmlu_es_other": {
+      "acc": true
+    },
+    "global_mmlu_es_social_sciences": {
+      "acc": true
+    },
+    "global_mmlu_es_stem": {
+      "acc": true
+    }
+  },
+  "n-samples": {
+    "global_mmlu_ar_business": {
+      "original": 58,
+      "effective": 58
+    },
+    "global_mmlu_ar_humanities": {
+      "original": 102,
+      "effective": 102
+    },
+    "global_mmlu_ar_medical": {
+      "original": 36,
+      "effective": 36
+    },
+    "global_mmlu_ar_other": {
+      "original": 56,
+      "effective": 56
+    },
+    "global_mmlu_ar_stem": {
+      "original": 46,
+      "effective": 46
+    },
+    "global_mmlu_ar_social_sciences": {
+      "original": 102,
+      "effective": 102
+    },
+    "global_mmlu_de_business": {
+      "original": 58,
+      "effective": 58
+    },
+    "global_mmlu_de_humanities": {
+      "original": 102,
+      "effective": 102
+    },
+    "global_mmlu_de_medical": {
+      "original": 36,
+      "effective": 36
+    },
+    "global_mmlu_de_other": {
+      "original": 56,
+      "effective": 56
+    },
+    "global_mmlu_de_stem": {
+      "original": 46,
+      "effective": 46
+    },
+    "global_mmlu_de_social_sciences": {
+      "original": 102,
+      "effective": 102
+    },
+    "global_mmlu_es_business": {
+      "original": 58,
+      "effective": 58
+    },
+    "global_mmlu_es_humanities": {
+      "original": 102,
+      "effective": 102
+    },
+    "global_mmlu_es_medical": {
+      "original": 36,
+      "effective": 36
+    },
+    "global_mmlu_es_other": {
+      "original": 56,
+      "effective": 56
+    },
+    "global_mmlu_es_stem": {
+      "original": 46,
+      "effective": 46
+    },
+    "global_mmlu_es_social_sciences": {
+      "original": 102,
+      "effective": 102
+    }
+  },
+  "config": {
+    "model": "hf",
+    "model_args": {
+      "pretrained": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+      "dtype": "bfloat16",
+      "max_length": 4096,
+      "trust_remote_code": false
+    },
+    "model_num_parameters": 7298011136,
+    "model_dtype": "torch.bfloat16",
+    "model_revision": "main",
+    "model_sha": "",
+    "batch_size": "16",
+    "batch_sizes": [],
+    "device": "cuda:0",
+    "use_cache": null,
+    "limit": null,
+    "bootstrap_iters": 100000,
+    "gen_kwargs": {},
+    "random_seed": 0,
+    "numpy_seed": 1234,
+    "torch_seed": 1234,
+    "fewshot_seed": 1234
+  },
+  "git_hash": "d62c040",
+  "date": 1780110846.6925898,
+  "pretty_env_info": "PyTorch version: 2.12.0+cu130\nIs debug build: False\nCUDA used to build PyTorch: 13.0\nROCM used to build PyTorch: N/A\n\nOS: Ubuntu 22.04.5 LTS (x86_64)\nGCC version: (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0\nClang version: Could not collect\nCMake version: Could not collect\nLibc version: glibc-2.35\n\nPython version: 3.11.15 (main, Mar 10 2026, 18:16:52) [Clang 21.1.4 ] (64-bit runtime)\nPython platform: Linux-5.15.0-173-generic-x86_64-with-glibc2.35\nIs CUDA available: True\nCUDA runtime version: Could not collect\nCUDA_MODULE_LOADING set to: \nGPU models and configuration: GPU 0: NVIDIA L40S\nNvidia driver version: 580.95.05\ncuDNN version: Could not collect\nIs XPU available: False\nHIP runtime version: N/A\nMIOpen runtime version: N/A\nIs XNNPACK available: True\nCaching allocator config: {'PYTORCH_CUDA_ALLOC_CONF': 'expandable_segments:True'}\n\nCPU:\nArchitecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           46 bits physical, 57 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  48\nOn-line CPU(s) list:                     0-47\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Xeon(R) Gold 5418Y\nCPU family:                              6\nModel:                                   143\nThread(s) per core:                      1\nCore(s) per socket:                      24\nSocket(s):                               2\nStepping:                                8\nBogoMIPS:                                4000.00\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb cat_l3 cat_l2 cdp_l3 invpcid_single cdp_l2 ssbd mba ibrs ibpb stibp ibrs_enhanced fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb intel_pt avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local split_lock_detect avx_vnni avx512_bf16 wbnoinvd dtherm ida arat pln pts avx512vbmi umip pku ospke waitpkg avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg tme avx512_vpopcntdq la57 rdpid bus_lock_detect cldemote movdiri movdir64b enqcmd fsrm md_clear serialize tsxldtrk pconfig arch_lbr amx_bf16 avx512_fp16 amx_tile amx_int8 flush_l1d arch_capabilities ibpb_exit_to_user\nL1d cache:                               2.3 MiB (48 instances)\nL1i cache:                               1.5 MiB (48 instances)\nL2 cache:                                96 MiB (48 instances)\nL3 cache:                                90 MiB (2 instances)\nNUMA node(s):                            2\nNUMA node0 CPU(s):                       0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46\nNUMA node1 CPU(s):                       1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47\nVulnerability Gather data sampling:      Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl and seccomp\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI BHI_DIS_S\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n\nVersions of relevant libraries:\n[pip3] Could not collect\n[conda] Could not collect",
+  "transformers_version": "4.57.6",
+  "lm_eval_version": "0.4.12",
+  "upper_git_hash": null,
+  "tokenizer_pad_token": [
+    "<|pad|>",
+    "100277"
+  ],
+  "tokenizer_eos_token": [
+    "<|endoftext|>",
+    "100257"
+  ],
+  "tokenizer_bos_token": [
+    null,
+    "None"
+  ],
+  "eot_token_id": 100257,
+  "max_length": 4096,
+  "task_hashes": {},
+  "model_source": "hf",
+  "model_name": "artifacts/checkpoints/Olmo-3-7b-polyglot/merged-tsv",
+  "model_name_sanitized": "artifacts__checkpoints__Olmo-3-7b-polyglot__merged-tsv",
+  "system_instruction": null,
+  "system_instruction_sha": null,
+  "fewshot_as_multiturn": null,
+  "chat_template": null,
+  "chat_template_sha": null,
+  "total_evaluation_time_seconds": "404.2437688820064"
+}

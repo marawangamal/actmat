@@ -157,6 +157,20 @@ def parse_arguments():
         default=5,
         help="Stop training after this many checkpoints without validation improvement.",
     )
+    parser.add_argument(
+        "--early-stop",
+        action="store_true",
+        default=False,
+        help="Single-task FT: evaluate the val split every epoch, save the best "
+             "model (by val top1) instead of the final one, and stop after "
+             "--patience epochs without improvement.",
+    )
+    parser.add_argument(
+        "--epochs-mult",
+        type=float,
+        default=1.0,
+        help="Scale the per-dataset epoch schedule by this factor (e.g. 2.0 = 2x epochs).",
+    )
 
     # ─── Finetuning mode ──────────────────────────────────────────────────────
     parser.add_argument(

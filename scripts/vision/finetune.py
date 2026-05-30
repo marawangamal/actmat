@@ -5,12 +5,12 @@ from typing import Dict, Optional
 
 import torch
 
-# Trackio logging is gated: concurrent array tasks writing to the same
-# NFS-backed trackio store hang on SQLite locks. Disable with USE_TRACKIO=0
-# for parallel sweeps (accuracy is still recovered from the logs).
-USE_TRACKIO = os.environ.get("USE_TRACKIO", "1") == "1"
-if USE_TRACKIO:
-    import trackio
+# Experiment logging via wandb (replaces trackio, which hung on concurrent
+# NFS-backed SQLite writes). Disable with USE_WANDB=0; set WANDB_MODE=offline
+# on nodes without internet (then `wandb sync` the run dirs later).
+USE_WANDB = os.environ.get("USE_WANDB", "1") == "1"
+if USE_WANDB:
+    import wandb
 
 # --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=data/vision   --save=$SCRATCH/actmat/checkpoints/vision
 from src.args import parse_arguments
@@ -605,29 +605,56 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {args.epochs * num_batches // args.num_grad_accumulation}")
 
-    if USE_TRACKIO and is_main_process():
-        trackio.init(
-            project="actmat-vision",
-            name=f"{args.model}-{train_dataset}-{args.finetuning_mode}-{args.optimizer}",
-            config={
-                "model": args.model,
-                "dataset": train_dataset,
-                "finetuning_mode": args.finetuning_mode,
-                "optimizer": args.optimizer,
-                "momentum": args.momentum,
-                "lr": args.lr,
-                "wd": args.wd,
-                "ls": args.ls,
-                "batch_size": args.batch_size,
-                "num_grad_accumulation": args.num_grad_accumulation,
-                "epochs": args.epochs,
-                "warmup_length": args.warmup_length,
-            },
+    log_wandb = USE_WANDB and is_main_process()
+    if log_wandb:
+        run_name = (
+            f"{args.model}_{train_dataset}_{args.finetuning_mode}"
+            f"_{args.optimizer}_lr{args.lr:g}_wd{args.wd:g}"
         )
+        if args.epochs_mult != 1.0:
+            run_name += f"_x{args.epochs_mult:g}"
+        if args.early_stop:
+            run_name += "_es"
+        try:
+            wandb.init(
+                project="actmat-vision",
+                name=run_name,
+                config={
+                    "model": args.model,
+                    "dataset": train_dataset,
+                    "finetuning_mode": args.finetuning_mode,
+                    "optimizer": args.optimizer,
+                    "momentum": args.momentum,
+                    "lr": args.lr,
+                    "wd": args.wd,
+                    "ls": args.ls,
+                    "batch_size": args.batch_size,
+                    "num_grad_accumulation": args.num_grad_accumulation,
+                    "epochs": args.epochs,
+                    "epochs_mult": args.epochs_mult,
+                    "early_stop": args.early_stop,
+                    "warmup_length": args.warmup_length,
+                },
+                settings=wandb.Settings(init_timeout=120),
+            )
+        except Exception as e:
+            print(f"[wandb] init failed ({e}); continuing without logging.", flush=True)
+            log_wandb = False
 
     grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
         grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
+
+    # Early stopping: track the best val-split model across epochs and save it
+    # instead of the final one (the SGD loss oscillates, so the last epoch is
+    # often not the best). Incompatible with grad-cross-matrix (mid-train save
+    # would not unswap MHA).
+    assert not (args.early_stop and args.grad_cross_matrix), (
+        "--early-stop is incompatible with --grad-cross-matrix."
+    )
+    best_val_acc = -1.0
+    bad_evals = 0
+    saved_best = False
 
     run_start_time = time.perf_counter()
     for epoch in range(args.epochs):
@@ -696,8 +723,8 @@ def finetune(rank, args):
                     f"Elapsed {_format_duration(run_elapsed)}",  # noqa: E501
                     flush=True,
                 )
-                if USE_TRACKIO:
-                    trackio.log(
+                if log_wandb:
+                    wandb.log(
                         {
                             "train/loss": loss.item(),
                             "train/epoch": epoch,
@@ -710,8 +737,55 @@ def finetune(rank, args):
         if args.max_steps is not None and step >= args.max_steps:
             break
 
+        # End-of-epoch validation + best-checkpoint save (single-GPU only).
+        if args.early_stop and is_main_process():
+            ddp_model.eval()
+            enc = ddp_model.module.image_encoder
+            val_acc = eval_single_dataset(enc, train_dataset, args)["top1"]
+            improved = val_acc > best_val_acc
+            print(
+                f"[Early-stop @ epoch {epoch}] val top1: {100 * val_acc:.2f}%  "
+                f"(best {100 * max(best_val_acc, val_acc):.2f}%)"
+                + (
+                    "  -> new best, saved"
+                    if improved and not lora_finetuning
+                    else ""
+                ),
+                flush=True,
+            )
+            if log_wandb:
+                wandb.log(
+                    {"val/top1": val_acc, "val/best_top1": max(best_val_acc, val_acc)},
+                    step=step,
+                )
+            if improved:
+                best_val_acc = val_acc
+                bad_evals = 0
+                # LoRA can't be merged mid-training (destructive); its best is
+                # saved at the end. Standard FT saves the best encoder now.
+                if args.save is not None and not lora_finetuning:
+                    ddp_model.module.image_encoder.save(
+                        os.path.join(ckpdir, f"{prefix}finetuned.pt")
+                    )
+                    saved_best = True
+            else:
+                bad_evals += 1
+            ddp_model.train()
+            if bad_evals >= args.patience:
+                print(
+                    f"Early stopping at epoch {epoch} "
+                    f"(no val improvement for {args.patience} epochs).",
+                    flush=True,
+                )
+                break
+
     if grad_cross_tracker is not None:
         grad_cross_tracker.save(ckpdir)
+
+    # Standard FT with early stopping already saved the best model during
+    # training; skip the final eval/save so we don't overwrite it with the
+    # (possibly worse) last-epoch model.
+    best_already_saved = args.early_stop and saved_best and not lora_finetuning
 
     # FIXME: Make this work with DDP.
     if is_main_process():
@@ -722,28 +796,36 @@ def finetune(rank, args):
         if lora_finetuning:
             image_encoder = merge_lora(image_encoder)
 
-        eval_metrics = eval_single_dataset(image_encoder, train_dataset, args)
-        if USE_TRACKIO:
-            trackio.log({"val/top1": eval_metrics["top1"]}, step=step)
+        if best_already_saved:
+            print(
+                f"Best val top1: {100 * best_val_acc:.2f}% "
+                f"(saved to {prefix}finetuned.pt); skipping final-model save.",
+                flush=True,
+            )
+        else:
+            eval_metrics = eval_single_dataset(image_encoder, train_dataset, args)
+            if log_wandb:
+                wandb.log({"val/top1": eval_metrics["top1"]}, step=step)
 
     if args.save is not None and is_main_process():
         zs_path = os.path.join(ckpdir, "pretrained.pt")
         ft_path = os.path.join(ckpdir, f"{prefix}finetuned.pt")
-        enc_to_save = image_encoder
-        if args.grad_cross_matrix:
-            enc_to_save = copy.deepcopy(image_encoder).cpu()
-            for m in enc_to_save.modules():
-                m._forward_hooks.clear()
-                m._backward_hooks.clear()
-            unswap_mha(enc_to_save)
-        enc_to_save.save(ft_path)
-        if USE_TRACKIO:
-            trackio.finish()
+        if not best_already_saved:
+            enc_to_save = image_encoder
+            if args.grad_cross_matrix:
+                enc_to_save = copy.deepcopy(image_encoder).cpu()
+                for m in enc_to_save.modules():
+                    m._forward_hooks.clear()
+                    m._backward_hooks.clear()
+                unswap_mha(enc_to_save)
+            enc_to_save.save(ft_path)
+        if log_wandb:
+            wandb.finish()
         cleanup_ddp()
         return zs_path, ft_path
 
-    if USE_TRACKIO and is_main_process():
-        trackio.finish()
+    if log_wandb:
+        wandb.finish()
     cleanup_ddp()
 
 
@@ -810,7 +892,7 @@ if __name__ == "__main__":
         if args.optimizer == "adamw":
             args.lr = 1e-5
         if not args.grad_cross_matrix and args.max_samples is None:
-            args.epochs = epochs[dataset]
+            args.epochs = max(1, round(args.epochs_mult * epochs[dataset]))
         args.train_dataset = dataset + "Val"
 
         # We use gradient accumulation to simulate larger batch sizes if the model does not fit in memory.

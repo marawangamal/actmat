@@ -17,4 +17,4 @@ data/
 artifacts/logs
 artifacts/checkpoints*
 
-
+wandb
