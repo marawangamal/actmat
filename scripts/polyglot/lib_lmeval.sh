@@ -28,10 +28,15 @@
 
 GMMLU_TASKS="global_mmlu_ar,global_mmlu_de,global_mmlu_es"
 MGSM_TASKS="mgsm_native_cot_de,mgsm_native_cot_es"
-HF_COMMON="dtype=bfloat16,max_length=8192,trust_remote_code=False"
-# Fixed batch size (not 'auto' — the auto search is slow/flaky). 32 fits a 7B
-# bf16 model on a 46GB L40S for these short MCQ/math sequences. Override via env.
-BATCH_SIZE="${BATCH_SIZE:-32}"
+# max_length=4096 (not 8192): MCQ/math sequences are short, and 8192 at batch 32
+# OOMs a 44GB L40S during Global-MMLU loglikelihood batching.
+HF_COMMON="dtype=bfloat16,max_length=4096,trust_remote_code=False"
+# Fixed batch size (not 'auto' — the auto search is slow/flaky). 16 is a safe fit
+# for a 7B bf16 model on a 44GB L40S; bump via env on bigger GPUs.
+BATCH_SIZE="${BATCH_SIZE:-16}"
+# Per-benchmark toggles (default: run both). Set RUN_GMMLU=0 for MGSM-only, etc.
+RUN_GMMLU="${RUN_GMMLU:-1}"
+RUN_MGSM="${RUN_MGSM:-1}"
 
 # run_lmeval <model_path_or_hf_id> <out_dir>
 # Two invocations because few-shot count differs (Global-MMLU 0-shot, MGSM 5-shot).
@@ -42,7 +47,9 @@ run_lmeval() {
   local out="$2"
   mkdir -p "$out"
 
-  if compgen -G "${out}/global_mmlu/**/results_*.json" > /dev/null; then
+  if [[ "$RUN_GMMLU" != "1" ]]; then
+    echo ">>> skip global_mmlu (RUN_GMMLU=$RUN_GMMLU)"
+  elif compgen -G "${out}/global_mmlu/**/results_*.json" > /dev/null; then
     echo ">>> skip global_mmlu (exists): ${out}/global_mmlu"
   else
     echo ">>> lm-eval Global-MMLU (0-shot) | model=${model}"
@@ -53,7 +60,9 @@ run_lmeval() {
       --output_path "${out}/global_mmlu"
   fi
 
-  if compgen -G "${out}/mgsm/**/results_*.json" > /dev/null; then
+  if [[ "$RUN_MGSM" != "1" ]]; then
+    echo ">>> skip mgsm (RUN_MGSM=$RUN_MGSM)"
+  elif compgen -G "${out}/mgsm/**/results_*.json" > /dev/null; then
     echo ">>> skip mgsm (exists): ${out}/mgsm"
   else
     echo ">>> lm-eval MGSM (5-shot, greedy) | model=${model}"

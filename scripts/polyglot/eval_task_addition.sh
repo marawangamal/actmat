@@ -26,13 +26,16 @@ source "$SCRATCH/actmat/.venv-pg/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export HF_HOME=$SCRATCH/huggingface
 export SSL_CERT_DIR=/etc/ssl/certs
+# Reduce CUDA fragmentation (eval OOM'd with ~3.8GB reserved-but-unallocated).
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 source scripts/polyglot/lib_lmeval.sh
 
 # ── CONFIG ──────────────────────────────────────────────────────────────────
 MODEL="Olmo-3-7b-polyglot"
 BASE="artifacts/checkpoints/${MODEL}"
-LANGS=(ar cs de es)
+LANGS=(ar de es)   # cs dropped: not in lm-eval MGSM or Global-MMLU. ar+de+es have
+                   # Global-MMLU; de+es also have MGSM. All merged langs are evaluable.
 read -r -a METHODS <<< "${METHODS:-mean tsv actmat}"   # data-free methods only
 EVAL_EXPERTS="${EVAL_EXPERTS:-0}"                       # 1 => also eval base + experts
 RESULTS_ROOT="artifacts/results-polyglot"

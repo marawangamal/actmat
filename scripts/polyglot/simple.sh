@@ -15,7 +15,8 @@ export HF_HOME=$SCRATCH/huggingface
 export SSL_CERT_DIR=/etc/ssl/certs
 
 # MODEL="${MODEL:-allenai/Olmo-3-1025-7B}"
-MODEL="${MODEL:-allenai/ljvmiranda921/Polyglot-OLMo3-7B-SFT-de}"
+MODEL="${MODEL:-ljvmiranda921/Polyglot-OLMo3-7B-SFT-de}"
+# Expert override, e.g.: MODEL=ljvmiranda921/Polyglot-OLMo3-7B-SFT-de bash scripts/polyglot/simple.sh
 TASK="${TASK:-mgsm_native_cot_de}"  # paper's MATH benchmark (M-GSM), German, CoT
 NUM_FEWSHOT="${NUM_FEWSHOT:-5}"     # MGSM is 5-shot in the paper
 
