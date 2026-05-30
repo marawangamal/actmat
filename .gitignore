@@ -8,6 +8,7 @@
 *predictions.jsonl
 *inputs.jsonl
 *requests.jsonl
+*.parquet
 
 .claude/
 .vscode/
@@ -18,3 +19,4 @@ artifacts/logs
 artifacts/checkpoints*
 
 wandb
+

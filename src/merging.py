@@ -334,6 +334,36 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_actmat_double(d: torch.Tensor, *args, **kwargs):
+    """ACTMat solved entirely in float64, result cast back to the input dtype.
+
+    Identical objective/closed form to :func:`merge_actmat`, but the covariance
+    accumulation, projection, and pinv solve all run in double precision. The
+    estimator c = Σ_t d_tᵀd_t and the pinv are sensitive to round-off on large,
+    ill-conditioned layers (e.g. 13B models loaded in bf16); fp64 keeps the
+    solve numerically stable.
+    """
+    orig_dtype = d.dtype
+    d = d.double()
+    c = d.transpose(1, 2) @ d
+    out = (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+    return out.to(orig_dtype)
+
+
+def merge_actmat_10k(d: torch.Tensor, *args, dim_threshold: int = 10_000, **kwargs):
+    """ACTMat on narrow layers, plain mean on any layer with a dim > dim_threshold.
+
+    The closed-form ACTMat solve is O(Di³) in the input dimension and is most
+    ill-conditioned on the widest layers (e.g. the 13824-wide MLP projections of
+    Llama-2-13B). Falling back to a simple mean there skips the expensive/unstable
+    pinv while keeping the ACTMat solve on the narrower attention/projection
+    layers (≤ dim_threshold on both dims).
+    """
+    if max(d.shape[-2], d.shape[-1]) > dim_threshold:
+        return d.mean(dim=0)
+    return merge_actmat(d)
+
+
 def merge_actmat_norm_weight(d: torch.Tensor, *args, **kwargs):
     """ACTMat with the merge *target* (weight projection) per-task normalized.
 

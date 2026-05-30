@@ -1,0 +1,842 @@
+{
+  "config_general": {
+    "lighteval_sha": "a54d904d77ef02210bf7520cfcaba939cf025622",
+    "num_fewshot_seeds": 1,
+    "max_samples": null,
+    "job_id": "0",
+    "start_time": 350033.494834807,
+    "end_time": 353126.412038683,
+    "total_evaluation_time_secondes": "3092.9172038760153",
+    "model_config": {
+      "model_name": "/network/scratch/m/marawan.gamal/actmat/artifacts/checkpoints/Olmo-3-7b-polyglot-all/merged-tsv",
+      "generation_parameters": {
+        "num_blocks": null,
+        "block_size": null,
+        "early_stopping": null,
+        "repetition_penalty": null,
+        "frequency_penalty": null,
+        "length_penalty": null,
+        "presence_penalty": null,
+        "max_new_tokens": 4096,
+        "min_new_tokens": null,
+        "seed": null,
+        "stop_tokens": null,
+        "temperature": 0.6,
+        "top_k": null,
+        "min_p": null,
+        "top_p": 0.95,
+        "truncate_prompt": null,
+        "cache_implementation": null,
+        "response_format": null
+      },
+      "system_prompt": null,
+      "cache_dir": "~/.cache/huggingface/lighteval",
+      "tokenizer": null,
+      "revision": "main",
+      "dtype": "bfloat16",
+      "tensor_parallel_size": 1,
+      "data_parallel_size": 1,
+      "pipeline_parallel_size": 1,
+      "gpu_memory_utilization": 0.9,
+      "enable_prefix_caching": null,
+      "max_model_length": 8192,
+      "quantization": null,
+      "load_format": null,
+      "swap_space": 4,
+      "seed": 1234,
+      "trust_remote_code": false,
+      "add_special_tokens": true,
+      "multichoice_continuations_start_space": true,
+      "pairwise_tokenization": false,
+      "max_num_seqs": 128,
+      "max_num_batched_tokens": 2048,
+      "subfolder": null,
+      "is_async": false,
+      "override_chat_template": null
+    },
+    "model_name": "/network/scratch/m/marawan.gamal/actmat/artifacts/checkpoints/Olmo-3-7b-polyglot-all/merged-tsv"
+  },
+  "results": {
+    "mrewardbench_mcf:cs|0": {
+      "acc_norm_token": 0.5099337748344371,
+      "acc_norm_token_stderr": 0.009334578271428067,
+      "weighted_acc": 0.5181351390985931,
+      "weighted_acc_stderr": 0.0003663545854670357,
+      "weighted_acc_chat": 0.5033783783783784,
+      "weighted_acc_chat_stderr": 0.0009384996202726695,
+      "weighted_acc_chat_hard": 0.5552825552825553,
+      "weighted_acc_chat_hard_stderr": 0.0007871082988199898,
+      "weighted_acc_safety": 0.5244565217391305,
+      "weighted_acc_safety_stderr": 0.0005777758148317223,
+      "weighted_acc_reasoning": 0.4894231009943082,
+      "weighted_acc_reasoning_stderr": 0.00044483271901266856
+    },
+    "mrewardbench_mcf:ar|0": {
+      "acc_norm_token": 0.502962704775183,
+      "acc_norm_token_stderr": 0.009336257182621986,
+      "weighted_acc": 0.4995899419277053,
+      "weighted_acc_stderr": 0.00034927026858312427,
+      "weighted_acc_chat": 0.5101351351351351,
+      "weighted_acc_chat_stderr": 0.0008690358898323835,
+      "weighted_acc_chat_hard": 0.4914004914004914,
+      "weighted_acc_chat_hard_stderr": 0.0008164619111651159,
+      "weighted_acc_safety": 0.5027173913043478,
+      "weighted_acc_safety_stderr": 0.0005907705618909317,
+      "weighted_acc_reasoning": 0.4941067498708469,
+      "weighted_acc_reasoning_stderr": 0.0004592589957472754
+    },
+    "global_mmlu_lite:es|0": {
+      "acc": 0.5175,
+      "acc_stderr": 0.025015972341295333
+    },
+    "mrewardbench_mcf:de|0": {
+      "acc_norm_token": 0.48553502962704775,
+      "acc_norm_token_stderr": 0.009332513250335166,
+      "weighted_acc": 0.49393699136064406,
+      "weighted_acc_stderr": 0.00034243995245747735,
+      "weighted_acc_chat": 0.6283783783783784,
+      "weighted_acc_chat_stderr": 0.0009067930618913259,
+      "weighted_acc_chat_hard": 0.44963144963144963,
+      "weighted_acc_chat_hard_stderr": 0.0007914312709826903,
+      "weighted_acc_safety": 0.4483695652173913,
+      "weighted_acc_safety_stderr": 0.0005467231425062967,
+      "weighted_acc_reasoning": 0.44936857221535687,
+      "weighted_acc_reasoning_stderr": 0.0004179576135481387
+    },
+    "mrewardbench_mcf:es|0": {
+      "acc_norm_token": 0.49808295573370515,
+      "acc_norm_token_stderr": 0.009336352463122113,
+      "weighted_acc": 0.5008471252113211,
+      "weighted_acc_stderr": 0.00035259979985420353,
+      "weighted_acc_chat": 0.5675675675675675,
+      "weighted_acc_chat_stderr": 0.0008994815280251173,
+      "weighted_acc_chat_hard": 0.45454545454545453,
+      "weighted_acc_chat_hard_stderr": 0.000766652778416533,
+      "weighted_acc_safety": 0.49184782608695654,
+      "weighted_acc_safety_stderr": 0.0005395443789385142,
+      "weighted_acc_reasoning": 0.48942765264530574,
+      "weighted_acc_reasoning_stderr": 0.0004530878532725722
+    },
+    "global_mmlu_lite:de|0": {
+      "acc": 0.5025,
+      "acc_stderr": 0.0250309958227734
+    },
+    "global_mmlu_lite:ar|0": {
+      "acc": 0.385,
+      "acc_stderr": 0.02436023506930046
+    },
+    "mgsm_custom:de|5": {
+      "extractive_match": 0.108,
+      "extractive_match_stderr": 0.01966955938156875
+    },
+    "mgsm_custom:es|5": {
+      "extractive_match": 0.16,
+      "extractive_match_stderr": 0.023232714782060664
+    },
+    "mrewardbench_mcf:_average|0": {
+      "acc_norm_token": 0.49912861624259325,
+      "acc_norm_token_stderr": 0.009334925291876833,
+      "weighted_acc": 0.5031272993995659,
+      "weighted_acc_stderr": 0.00035266615159046025,
+      "weighted_acc_chat": 0.5523648648648649,
+      "weighted_acc_chat_stderr": 0.000903452525005374,
+      "weighted_acc_chat_hard": 0.4877149877149878,
+      "weighted_acc_chat_hard_stderr": 0.0007904135648460822,
+      "weighted_acc_safety": 0.49184782608695654,
+      "weighted_acc_safety_stderr": 0.0005637034745418662,
+      "weighted_acc_reasoning": 0.4805815189314544,
+      "weighted_acc_reasoning_stderr": 0.00044378429539516375
+    },
+    "global_mmlu_lite:_average|0": {
+      "acc": 0.4683333333333333,
+      "acc_stderr": 0.02480240107778973
+    },
+    "mgsm_custom:_average|5": {
+      "extractive_match": 0.134,
+      "extractive_match_stderr": 0.021451137081814706
+    },
+    "all": {
+      "acc_norm_token": 0.49912861624259325,
+      "acc_norm_token_stderr": 0.009334925291876833,
+      "weighted_acc": 0.5031272993995659,
+      "weighted_acc_stderr": 0.00035266615159046025,
+      "weighted_acc_chat": 0.5523648648648649,
+      "weighted_acc_chat_stderr": 0.000903452525005374,
+      "weighted_acc_chat_hard": 0.4877149877149878,
+      "weighted_acc_chat_hard_stderr": 0.0007904135648460822,
+      "weighted_acc_safety": 0.49184782608695654,
+      "weighted_acc_safety_stderr": 0.0005637034745418662,
+      "weighted_acc_reasoning": 0.4805815189314544,
+      "weighted_acc_reasoning_stderr": 0.00044378429539516375,
+      "acc": 0.4683333333333333,
+      "acc_stderr": 0.02480240107778973,
+      "extractive_match": 0.134,
+      "extractive_match_stderr": 0.021451137081814706
+    }
+  },
+  "versions": {},
+  "config_tasks": {
+    "mrewardbench_mcf:cs|0": {
+      "name": "mrewardbench_mcf:cs",
+      "prompt_function": "prompt_fn_with_source",
+      "hf_repo": "CohereLabsCommunity/multilingual-reward-bench",
+      "hf_subset": "ces_Latn",
+      "metrics": [
+        {
+          "metric_name": "acc_norm_token",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=LogProbTokenNorm(name='norm_token'))",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa072cb5690>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=None)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa30c9108d0>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat_hard",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa3003715d0>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat Hard)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_safety",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa300370050>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Safety)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_reasoning",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ecf289d0>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Reasoning)",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "test",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    },
+    "mrewardbench_mcf:ar|0": {
+      "name": "mrewardbench_mcf:ar",
+      "prompt_function": "prompt_fn_with_source",
+      "hf_repo": "CohereLabsCommunity/multilingual-reward-bench",
+      "hf_subset": "arb_Arab",
+      "metrics": [
+        {
+          "metric_name": "acc_norm_token",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=LogProbTokenNorm(name='norm_token'))",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa30c9108d0>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=None)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa3003715d0>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat_hard",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa3003738d0>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat Hard)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_safety",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ecf289d0>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Safety)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_reasoning",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ecf29a50>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Reasoning)",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "test",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    },
+    "global_mmlu_lite:es|0": {
+      "name": "global_mmlu_lite:es",
+      "prompt_function": "prompt_fn",
+      "hf_repo": "CohereForAI/Global-MMLU-Lite",
+      "hf_subset": "es",
+      "metrics": [
+        {
+          "metric_name": "acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=None)",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "dev",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    },
+    "mrewardbench_mcf:de|0": {
+      "name": "mrewardbench_mcf:de",
+      "prompt_function": "prompt_fn_with_source",
+      "hf_repo": "CohereLabsCommunity/multilingual-reward-bench",
+      "hf_subset": "deu_Latn",
+      "metrics": [
+        {
+          "metric_name": "acc_norm_token",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=LogProbTokenNorm(name='norm_token'))",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa291543690>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=None)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa06f286250>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat_hard",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ed71ef10>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat Hard)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_safety",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2edc05e50>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Safety)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_reasoning",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ecf95790>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Reasoning)",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "test",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    },
+    "mrewardbench_mcf:es|0": {
+      "name": "mrewardbench_mcf:es",
+      "prompt_function": "prompt_fn_with_source",
+      "hf_repo": "CohereLabsCommunity/multilingual-reward-bench",
+      "hf_subset": "spa_Latn",
+      "metrics": [
+        {
+          "metric_name": "acc_norm_token",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=LogProbTokenNorm(name='norm_token'))",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa291543690>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=None)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa06f286250>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_chat_hard",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ed71e810>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Chat Hard)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_safety",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ed71ef10>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Safety)",
+          "batched_compute": false
+        },
+        {
+          "metric_name": "weighted_acc_reasoning",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "<lighteval_tasks.MRewardBenchPreparator object at 0x7fa2ecf95790>",
+          "corpus_level_fn": "MRewardBenchWeightedAccuracy(category=Reasoning)",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "test",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    },
+    "mgsm_custom:de|5": {
+      "name": "mgsm_custom:de",
+      "prompt_function": "<lambda>",
+      "hf_repo": "juletxara/mgsm",
+      "hf_subset": "de",
+      "metrics": [
+        {
+          "metric_name": "extractive_match",
+          "higher_is_better": true,
+          "category": "GENERATIVE",
+          "sample_level_fn": "MultilingualExtractiveMatchMetric(language=Language.GERMAN, gold_extraction_target=(ExprExtractionConfig(try_extract_without_anchor=True),), pred_extraction_target=(ExprExtractionConfig(try_extract_without_anchor=True),), aggregation_function=max, fallback_mode=first_match, extraction_mode=first_match, precision=2, timeout_seconds=5)",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "train",
+      "few_shots_select": "sequential",
+      "generation_size": 50,
+      "generation_grammar": null,
+      "stop_sequence": [
+        "\n"
+      ],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 5,
+      "version": 0
+    },
+    "global_mmlu_lite:de|0": {
+      "name": "global_mmlu_lite:de",
+      "prompt_function": "prompt_fn",
+      "hf_repo": "CohereForAI/Global-MMLU-Lite",
+      "hf_subset": "de",
+      "metrics": [
+        {
+          "metric_name": "acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=None)",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "dev",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    },
+    "global_mmlu_lite:ar|0": {
+      "name": "global_mmlu_lite:ar",
+      "prompt_function": "prompt_fn",
+      "hf_repo": "CohereForAI/Global-MMLU-Lite",
+      "hf_subset": "ar",
+      "metrics": [
+        {
+          "metric_name": "acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=None)",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "dev",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    },
+    "mgsm_custom:es|5": {
+      "name": "mgsm_custom:es",
+      "prompt_function": "<lambda>",
+      "hf_repo": "juletxara/mgsm",
+      "hf_subset": "es",
+      "metrics": [
+        {
+          "metric_name": "extractive_match",
+          "higher_is_better": true,
+          "category": "GENERATIVE",
+          "sample_level_fn": "MultilingualExtractiveMatchMetric(language=Language.SPANISH, gold_extraction_target=(ExprExtractionConfig(try_extract_without_anchor=True),), pred_extraction_target=(ExprExtractionConfig(try_extract_without_anchor=True),), aggregation_function=max, fallback_mode=first_match, extraction_mode=first_match, precision=2, timeout_seconds=5)",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "train",
+      "few_shots_select": "sequential",
+      "generation_size": 50,
+      "generation_grammar": null,
+      "stop_sequence": [
+        "\n"
+      ],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 5,
+      "version": 0
+    }
+  },
+  "summary_tasks": {
+    "mrewardbench_mcf:cs|0": {
+      "hashes": {
+        "hash_examples": "1f684ff32b556879",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "742482697ca5ded1",
+        "hash_cont_tokens": "fa8c0dd31b2f632d"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "mrewardbench_mcf:ar|0": {
+      "hashes": {
+        "hash_examples": "ab4e6c7a5d39e381",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "dd1a1a0efbd204fa",
+        "hash_cont_tokens": "fa8c0dd31b2f632d"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "global_mmlu_lite:es|0": {
+      "hashes": {
+        "hash_examples": "3966ca176f7d2153",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "23c0b56bf3755627",
+        "hash_cont_tokens": "24200cc9b5fde18e"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "mrewardbench_mcf:de|0": {
+      "hashes": {
+        "hash_examples": "7502dc6d76e580b0",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "88345de4c0a7b3c7",
+        "hash_cont_tokens": "fa8c0dd31b2f632d"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "mrewardbench_mcf:es|0": {
+      "hashes": {
+        "hash_examples": "c3c4f9802337f7d3",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "96f9b29cdcf2f72f",
+        "hash_cont_tokens": "fa8c0dd31b2f632d"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "global_mmlu_lite:de|0": {
+      "hashes": {
+        "hash_examples": "9260e8a275a1d1a2",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "5c6d51f5681ae11a",
+        "hash_cont_tokens": "24200cc9b5fde18e"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "global_mmlu_lite:ar|0": {
+      "hashes": {
+        "hash_examples": "15af619c2f48cee9",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "a2e08c93bf66ff1f",
+        "hash_cont_tokens": "24200cc9b5fde18e"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "mgsm_custom:de|5": {
+      "hashes": {
+        "hash_examples": "f1d0f0c24da99de5",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "38c672b5eb76b35a",
+        "hash_cont_tokens": "79864932152d27e2"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    },
+    "mgsm_custom:es|5": {
+      "hashes": {
+        "hash_examples": "a9da90577b25a9d0",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "81e84812a1e65434",
+        "hash_cont_tokens": "1236266571f687df"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    }
+  },
+  "summary_general": {
+    "hashes": {
+      "hash_examples": "4903037b6becaba6",
+      "hash_full_prompts": "36ab1e8e1061f5c1",
+      "hash_input_tokens": "cf2e74201f3ca2c6",
+      "hash_cont_tokens": "959089a46a1175ef"
+    },
+    "truncated": 0,
+    "non_truncated": 0,
+    "padded": 0,
+    "non_padded": 0
+  }
+}
