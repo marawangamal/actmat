@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=96G
 #SBATCH --time=06:00:00
-#SBATCH --array=0-8
+#SBATCH --array=0-10
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 #
@@ -42,6 +42,8 @@ ITEMS=(
   "merge-isoc:${CK}/merged-isoc"
   "merge-wudi:${CK}/merged-wudi"
   "merge-actmat_gd:${CK}/merged-actmat_gd"
+  "merge-ties:${CK}/merged-ties"
+  "merge-dare_ties:${CK}/merged-dare_ties"
   "expert-de:ljvmiranda921/Polyglot-OLMo3-7B-SFT-de"
   "expert-es:ljvmiranda921/Polyglot-OLMo3-7B-SFT-es"
 )

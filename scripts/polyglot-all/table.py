@@ -21,6 +21,8 @@ methods = {
     "wudi":      ("Olmo-3-7b-polyglot-all-wudi",      "merge-wudi"),
     "actmat":    ("Olmo-3-7b-polyglot-all-actmat",    "merge-actmat"),
     "actmat_gd": ("Olmo-3-7b-polyglot-all-actmat_gd", "merge-actmat_gd"),
+    "ties":      ("Olmo-3-7b-polyglot-all-ties",      "merge-ties"),
+    "dare_ties": ("Olmo-3-7b-polyglot-all-dare_ties", "merge-dare_ties"),
 }
 # experts collapse into one row: each language routed to its own expert
 experts = {l: (f"expert-{l}", f"expert-{l}") for l in ["ar", "cs", "de", "es"]}

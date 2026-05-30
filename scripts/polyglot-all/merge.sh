@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=96G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-5
+#SBATCH --array=0-7
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 #
@@ -31,7 +31,7 @@ PG="$ACTMAT/polyglot-teachers"                 # lighteval fork + custom tasks
 MODEL="Olmo-3-7b-polyglot-all"
 BASE="artifacts/checkpoints/${MODEL}"
 LANGS=(ar cs de es)
-METHODS=(mean tsv actmat isoc wudi actmat_gd)
+METHODS=(mean tsv actmat isoc wudi actmat_gd ties dare_ties)
 TASKS=(
     "global_mmlu_lite:ar" "global_mmlu_lite:de" "global_mmlu_lite:es"
     "mrewardbench_mcf:ar" "mrewardbench_mcf:cs" "mrewardbench_mcf:de" "mrewardbench_mcf:es"

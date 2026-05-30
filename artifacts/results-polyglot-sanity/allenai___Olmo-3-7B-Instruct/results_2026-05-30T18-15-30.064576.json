@@ -1,0 +1,140 @@
+{
+  "config_general": {
+    "lighteval_sha": "a54d904d77ef02210bf7520cfcaba939cf025622",
+    "num_fewshot_seeds": 1,
+    "max_samples": null,
+    "job_id": "0",
+    "start_time": 5709133.292337387,
+    "end_time": 5709274.45658527,
+    "total_evaluation_time_secondes": "141.16424788348377",
+    "model_config": {
+      "model_name": "allenai/Olmo-3-7B-Instruct",
+      "generation_parameters": {
+        "num_blocks": null,
+        "block_size": null,
+        "early_stopping": null,
+        "repetition_penalty": null,
+        "frequency_penalty": null,
+        "length_penalty": null,
+        "presence_penalty": null,
+        "max_new_tokens": 4096,
+        "min_new_tokens": null,
+        "seed": null,
+        "stop_tokens": null,
+        "temperature": 0.6,
+        "top_k": null,
+        "min_p": null,
+        "top_p": 0.95,
+        "truncate_prompt": null,
+        "cache_implementation": null,
+        "response_format": null
+      },
+      "system_prompt": null,
+      "cache_dir": "~/.cache/huggingface/lighteval",
+      "tokenizer": null,
+      "revision": "main",
+      "dtype": "bfloat16",
+      "tensor_parallel_size": 1,
+      "data_parallel_size": 1,
+      "pipeline_parallel_size": 1,
+      "gpu_memory_utilization": 0.9,
+      "enable_prefix_caching": null,
+      "max_model_length": 8192,
+      "quantization": null,
+      "load_format": null,
+      "swap_space": 4,
+      "seed": 1234,
+      "trust_remote_code": false,
+      "add_special_tokens": true,
+      "multichoice_continuations_start_space": true,
+      "pairwise_tokenization": false,
+      "max_num_seqs": 128,
+      "max_num_batched_tokens": 2048,
+      "subfolder": null,
+      "is_async": false,
+      "override_chat_template": null
+    },
+    "model_name": "allenai/Olmo-3-7B-Instruct"
+  },
+  "results": {
+    "global_mmlu_lite:ar|0": {
+      "acc": 0.3175,
+      "acc_stderr": 0.023304336619246625
+    },
+    "all": {
+      "acc": 0.3175,
+      "acc_stderr": 0.023304336619246625
+    }
+  },
+  "versions": {},
+  "config_tasks": {
+    "global_mmlu_lite:ar|0": {
+      "name": "global_mmlu_lite:ar",
+      "prompt_function": "prompt_fn",
+      "hf_repo": "CohereForAI/Global-MMLU-Lite",
+      "hf_subset": "ar",
+      "metrics": [
+        {
+          "metric_name": "acc",
+          "higher_is_better": true,
+          "category": "LOGPROBS",
+          "sample_level_fn": "LoglikelihoodAcc(logprob_normalization=None)",
+          "corpus_level_fn": "mean",
+          "batched_compute": false
+        }
+      ],
+      "solver": null,
+      "scorer": null,
+      "sample_fields": null,
+      "sample_to_fewshot": null,
+      "filter": null,
+      "hf_revision": null,
+      "hf_filter": null,
+      "hf_avail_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "evaluation_splits": [
+        "test"
+      ],
+      "few_shots_split": "dev",
+      "few_shots_select": null,
+      "generation_size": null,
+      "generation_grammar": null,
+      "stop_sequence": [],
+      "num_samples": null,
+      "original_num_docs": -1,
+      "effective_num_docs": -1,
+      "must_remove_duplicate_docs": false,
+      "num_fewshots": 0,
+      "version": 0
+    }
+  },
+  "summary_tasks": {
+    "global_mmlu_lite:ar|0": {
+      "hashes": {
+        "hash_examples": "15af619c2f48cee9",
+        "hash_full_prompts": "ef46db3751d8e999",
+        "hash_input_tokens": "771777f324f43f9d",
+        "hash_cont_tokens": "e6d5be35892f2131"
+      },
+      "truncated": 0,
+      "non_truncated": 0,
+      "padded": 0,
+      "non_padded": 0
+    }
+  },
+  "summary_general": {
+    "hashes": {
+      "hash_examples": "e0bea4e9a418b9e1",
+      "hash_full_prompts": "c166e5d20ad58f4e",
+      "hash_input_tokens": "f91dbed7882d6b51",
+      "hash_cont_tokens": "146ceed8fe15e294"
+    },
+    "truncated": 0,
+    "non_truncated": 0,
+    "padded": 0,
+    "non_padded": 0
+  }
+}

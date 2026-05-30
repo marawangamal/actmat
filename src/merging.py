@@ -1077,3 +1077,8 @@ def merge_dare(
         d_sparse = d_sparse / (1.0 - drop_rate)
     fn = getattr(sys.modules[__name__], "merge_" + base_merge)
     return fn(d_sparse, **kwargs)
+
+
+def merge_dare_ties(d: torch.Tensor, **kwargs) -> torch.Tensor:
+    """DARE-TIES: DARE drop-and-rescale with TIES as the base merge."""
+    return merge_dare(d, base_merge="ties", **kwargs)

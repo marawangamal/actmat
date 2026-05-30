@@ -1,7 +1,7 @@
 import json, glob, os, re, subprocess
 
 LANGS=["ar","cs","de","es"]
-METHODS=["mean","tsv","isoc","wudi","actmat","actmat_gd"]
+METHODS=["mean","tsv","isoc","wudi","actmat","actmat_gd","ties","dare_ties"]
 # benchmark -> langs (number-only MGSM dropped; CMGSM = CoT MGSM is the math benchmark)
 GROUPS=[("mmlu",["ar","de","es"]),("mrb",["ar","cs","de","es"]),("cmgsm",["de","es"])]
 GLABEL={"mmlu":"MMLU","mrb":"MRB","cmgsm":"CMGSM"}
