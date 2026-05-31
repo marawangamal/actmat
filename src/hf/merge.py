@@ -18,9 +18,13 @@ class HFDir:
         os.makedirs(model_dir, exist_ok=True)
         # maps each layer name -> its shard filename (sharded or single-file)
         index_path = osp.join(model_dir, "model.safetensors.index.json")
+        single_path = osp.join(model_dir, "model.safetensors")
         if osp.exists(index_path):
             with open(index_path) as f:
                 self.weight_map = json.load(f)["weight_map"]
+        elif osp.exists(single_path):
+            with safe_open(single_path, framework="pt", device="cpu") as f:
+                self.weight_map = {k: "model.safetensors" for k in f.keys()}
         else:
             self.weight_map = {}
         self.total_size = 0
