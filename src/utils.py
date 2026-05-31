@@ -64,6 +64,16 @@ def head_path(save, dataset):
     return os.path.join(expert_dir(save, dataset), "head.pt")
 
 
+def sanitize_hf_id(name_or_path):
+    """HF id / local path -> safe directory leaf (the repo/model basename).
+
+    e.g. "Qwen/Qwen2.5-Math-1.5B" -> "Qwen2.5-Math-1.5B"; a local path keeps its
+    final component. Used to key per-expert stats sidecars in the HF pathway,
+    whose weights live on the Hub rather than in our tree.
+    """
+    return os.path.basename(str(name_or_path).rstrip("/"))
+
+
 def _merge_mode_str(merge_mode):
     return f"-{merge_mode}" if merge_mode and merge_mode != "d" else ""
 
