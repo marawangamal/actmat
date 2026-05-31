@@ -99,18 +99,14 @@ def resolve(name_or_path):
     return snapshot_download(name_or_path)
 
 
-def fmt(inp):
-    return inp.rstrip("/").replace("/", "_")
-
-
 def parse_args():
     parser = argparse.ArgumentParser()
     # hf ids or local paths can be used
-    parser.add_argument("--base-model", required=True)
-    parser.add_argument("--chat-template", required=True)
-    parser.add_argument("--expert-models", nargs="+", required=True)
+    parser.add_argument("--base-model-name-or-path", required=True)
+    parser.add_argument("--chat-template-name-or-path", required=True)
+    parser.add_argument("--expert-model-names-or-paths", nargs="+", required=True)
     parser.add_argument("--merge-method", default="sum")
-    parser.add_argument("--save-dir", required=True)
+    parser.add_argument("--output-dir", required=True)
     parser.add_argument("--ignore-keep-pt", default=None)
     parser.add_argument("--ignore-mean", default=None)
     return parser.parse_args()
@@ -118,15 +114,14 @@ def parse_args():
 
 args = parse_args()
 
-base_model_path = resolve(args.base_model)
-chat_template_path = resolve(args.chat_template)
+base_model_path = resolve(args.base_model_name_or_path)
+chat_template_path = resolve(args.chat_template_name_or_path)
 
 base_hf_dir = HFDir(base_model_path)
-expert_hf_dirs = [HFDir(resolve(m)) for m in args.expert_models]
+expert_hf_dirs = [HFDir(resolve(m)) for m in args.expert_model_names_or_paths]
 
 layer_to_file = base_hf_dir.weight_map
-merged_model_path = osp.join(args.save_dir, fmt(args.base_model), args.merge_method)
-merged_model_hf_dir = HFDir(merged_model_path, chat_template_path, chat_template_path)
+merged_model_hf_dir = HFDir(args.output_dir, chat_template_path, chat_template_path)
 for layer_name in layer_to_file:
     shard_filename = layer_to_file[layer_name]
     w_list = []

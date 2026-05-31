@@ -16,21 +16,20 @@ export HF_HOME="$SCRATCH/huggingface"
 
 BASE_MODEL="meta-llama/Llama-2-13b-hf"
 CHAT_TEMPLATE="vanillaOVO/WizardMath-13B-V1.0"
-SAVE_DIR="artifacts/checkpoints-hf"
 METHODS=(sum mean actmat tsv)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
+MERGED_DIR="artifacts/checkpoints/WizardLM/merged/${METHOD}"
 
 # 1. Merge (chat template from the math expert)
 python src/hf/merge.py \
-  --base-model "$BASE_MODEL" \
-  --chat-template "$CHAT_TEMPLATE" \
-  --expert-models "WizardLMTeam/WizardLM-13B-V1.2" "vanillaOVO/WizardMath-13B-V1.0" "layoric/llama-2-13b-code-alpaca" \
+  --base-model-name-or-path "$BASE_MODEL" \
+  --chat-template-name-or-path "$CHAT_TEMPLATE" \
+  --expert-model-names-or-paths "WizardLMTeam/WizardLM-13B-V1.2" "vanillaOVO/WizardMath-13B-V1.0" "layoric/llama-2-13b-code-alpaca" \
   --merge-method "$METHOD" \
-  --save-dir "$SAVE_DIR" \
+  --output-dir "$MERGED_DIR" \
   --ignore-keep-pt 'embed_tokens|lm_head'
 
 # 2. Evaluate
-MERGED_DIR="$SAVE_DIR/${BASE_MODEL//\//_}/$METHOD"
 lm_eval --model hf \
   --model_args "pretrained=$MERGED_DIR" \
   --tasks gsm8k \
