@@ -17,6 +17,7 @@ uploads/
 data/
 artifacts/logs
 artifacts/checkpoints*
+artifacts/results-polyglot-sanity/
 
 wandb
 
