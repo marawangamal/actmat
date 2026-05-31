@@ -5,8 +5,11 @@ Dry-run by default; pass --apply to perform the moves. Every move is an
 ``os.rename`` (same-filesystem, cheap even for large checkpoints) and is
 recorded into an undo shell script so the migration is reversible.
 
-Touches VISION models only (ViT-B-16/32, ViT-L-14); non-vision entries that
-share the flat ``artifacts/results/`` tree (Olmo-*, t5-*, …) are left alone.
+Default (--pipeline vision) touches VISION models only (ViT-B-16/32, ViT-L-14).
+--pipeline language migrates the T5 (t5-base/t5-large) pipeline: per-dataset
+expert dirs (bare names, no Val, no head files) grouped under experts/, and the
+single bare ``results/`` bucket regrouped in place (no task-count split; `*-faulty`
+deferred). Non-matching entries (Olmo-*, the other pipeline's models) are left alone.
 
 Layout produced:
   checkpoints:  <bucket>/<model>/<dataset>Val      -> <bucket>/<model>/experts/<dataset>Val
@@ -26,6 +29,11 @@ import glob
 import os
 
 VISION_MODELS = ["ViT-B-16", "ViT-B-32", "ViT-L-14"]
+
+# Language (T5) pipeline: fixed dataset suite, no Val suffix, no head files, and a
+# single bare `results/` bucket (no task-count split).
+LANGUAGE_MODELS = ["t5-base", "t5-large"]
+T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
 # old results bucket -> new results bucket. The task-count is carried by the
 # bucket suffix: the plain benchmark splits into results-{8,14,20}tasks, while
@@ -79,6 +87,59 @@ def plan_checkpoint_moves(root, buckets=None):
                     dst = os.path.join(dirpath, "experts", leaf, "head.pt")
                     moves.append((src, dst))
     return moves
+
+
+def plan_language_checkpoint_moves(root, buckets=None):
+    """Group T5 per-dataset expert dirs under experts/ (bare names, no Val, no heads)."""
+    if buckets is None:
+        buckets = CANONICAL_CKPT_BUCKETS  # canonical `checkpoints` only; defer backups
+    moves = []
+    for bucket in [os.path.join(root, b) for b in buckets]:
+        if not os.path.isdir(bucket):
+            continue
+        for model in LANGUAGE_MODELS:
+            mroot = os.path.join(bucket, model)
+            if not os.path.isdir(mroot):
+                continue
+            for ds in T5_DATASETS:  # only the known expert datasets (skips *_faulty etc.)
+                src = os.path.join(mroot, ds)
+                if os.path.isdir(src):
+                    moves.append((src, os.path.join(mroot, "experts", ds)))
+    return moves
+
+
+def plan_language_result_moves(root):
+    """Regroup flat `results/<model>-<tail>` entries into `results/<model>/...`.
+
+    Single bare `results/` bucket (no task-count). `*-faulty` (a nested dir of its
+    own old-flat entries) is deferred.
+    """
+    moves, skipped, deferred = [], [], []
+    old_root = os.path.join(root, "results")
+    if not os.path.isdir(old_root):
+        return moves, skipped, deferred
+    for entry in sorted(os.listdir(old_root)):
+        src_dir = os.path.join(old_root, entry)
+        if not os.path.isdir(src_dir):
+            continue
+        model = next((m for m in LANGUAGE_MODELS if entry.startswith(m)), None)
+        if model is None:
+            continue  # non-language entry — leave it
+        tail = entry[len(model):].lstrip("-")
+        if not tail:
+            continue  # already-migrated nested `<model>/` dir
+        if tail == "faulty" or tail.endswith("-faulty"):
+            deferred.append(entry)
+            continue
+        dst_dir = _result_target(old_root, model, tail, src_dir)
+        if dst_dir is None:
+            skipped.append((src_dir, "could not map tail to a results category"))
+            continue
+        if os.path.exists(dst_dir):
+            skipped.append((src_dir, f"target exists: {dst_dir}"))
+            continue
+        moves.append((src_dir, dst_dir))
+    return moves, skipped, sorted(deferred)
 
 
 def _result_target(new_bucket, model, tail, src_dir):
@@ -141,6 +202,12 @@ def main():
         action="store_true",
         help="restrict to core buckets: checkpoints/ + results,results14,results20",
     )
+    ap.add_argument(
+        "--pipeline",
+        choices=["vision", "language"],
+        default="vision",
+        help="which pipeline's layout to migrate (default: vision)",
+    )
     ap.add_argument("--undo-script", default="artifacts/migrate_undo.sh")
     args = ap.parse_args()
 
@@ -152,13 +219,19 @@ def main():
 
     moves = []
     if do_ckpt:
-        ck = plan_checkpoint_moves(args.root, buckets=ckpt_buckets)
+        if args.pipeline == "language":
+            ck = plan_language_checkpoint_moves(args.root, buckets=ckpt_buckets)
+        else:
+            ck = plan_checkpoint_moves(args.root, buckets=ckpt_buckets)
         print(f"\n=== CHECKPOINTS: {len(ck)} dirs/heads -> experts/ ===")
         for s, d in ck:
             print(f"  {s}\n    -> {d}")
         moves += ck
     if do_res:
-        res, skipped, deferred = plan_result_moves(args.root, only=result_only)
+        if args.pipeline == "language":
+            res, skipped, deferred = plan_language_result_moves(args.root)
+        else:
+            res, skipped, deferred = plan_result_moves(args.root, only=result_only)
         print(f"\n=== RESULTS: {len(res)} entries regrouped ===")
         for s, d in res:
             print(f"  {s}\n    -> {d}")

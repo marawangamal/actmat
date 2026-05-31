@@ -7,7 +7,7 @@ from src.language.task_vectors import (
     LanguageLinearizedTaskVector,
     LanguageNonLinearTaskVector,
 )
-from src.utils import find_optimal_coef, resolve_run_dir
+from src.utils import expert_dir, find_optimal_coef, resolve_run_dir
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
@@ -38,7 +38,7 @@ control_dataset = "rte"
 negation_accuracies = {}
 
 for dataset in T5_DATASETS:
-    checkpoint_dir = f"{args.save}/{dataset}"
+    checkpoint_dir = expert_dir(args.save, dataset, val_suffix=False)
     if args.finetuning_mode == "linear":
         task_vector = -LanguageLinearizedTaskVector(checkpoint_dir=checkpoint_dir)
     else:

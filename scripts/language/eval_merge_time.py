@@ -10,7 +10,7 @@ from src.language.task_vectors import (
 )
 from src.merging import combine_task_vectors
 from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
@@ -77,7 +77,7 @@ task_vectors = []
 merge_name = getattr(args, "merge_func", "sum")
 
 for dataset in eval_datasets:
-    checkpoint_dir = f"{args.save}/{dataset}"
+    checkpoint_dir = expert_dir(args.save, dataset, val_suffix=False)
     if args.finetuning_mode == "linear":
         task_vectors.append(
             LanguageLinearizedTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)

@@ -88,17 +88,17 @@ A `_TaskVector` is built from a `checkpoint_dir` containing `pretrained.pt` + `{
 
 `covariance.py` / `fisher.py` in each pipeline's `scripts/` directory walk the model's linear/attention layers, accumulate (un)centered input second moments or diagonal Fisher over a few batches of training data, and write `covariance.pt` / `fisher.pt` next to the corresponding finetuned checkpoint. Knobs: `--cov-num-batches`, `--cov-batch-size`, `--cov-type {sm,cov}`, `--cov-estimator {full,sampled,avg}`, `--mha {split,packed}` (vision: replaces `nn.MultiheadAttention` with a custom module so Q/K/V cov can be collected per-head).
 
-### Artifacts layout (vision)
+### Artifacts layout (vision + language)
 
-Vision checkpoints and results follow a structured, nested convention whose path
-builders are the single source of truth in `src/utils.py` (`expert_dir`, `head_path`,
-`merged_results_path`, `experts_results_path`, `pretrained_results_path`,
+Vision and language checkpoints/results follow a structured, nested convention whose
+path builders are the single source of truth in `src/utils.py` (`expert_dir`,
+`head_path`, `merged_results_path`, `experts_results_path`, `pretrained_results_path`,
 `multitask_results_path`). `[lora_]` is the `get_prefix()` filename prefix; `{mode}`
 is `-w` for weight-space merges (omitted for the default difference merge); `{suffix}`
 is the experiment bucket, bare for the default.
 
 ```
-checkpoints[-{suffix}]/{model}/experts/{dataset}Val/  pretrained.pt, [lora_]finetuned.pt, [lora_]covariance.pt, fisher.pt, head.pt
+checkpoints[-{suffix}]/{model}/experts/{dataset}[Val]/ pretrained.pt, [lora_]finetuned.pt, [lora_]covariance.pt, fisher.pt[, head.pt]
 checkpoints[-{suffix}]/{model}/multitask/             MTL checkpoint
 
 results-{suffix}/{model}/merged/{method}[-{mode}]/[lora_]metrics.json
@@ -108,16 +108,21 @@ results-{suffix}/{model}/multitask/[lora_]metrics.json
 ```
 
 There is **no count level** in the path — the layout is uniform across pipelines.
-The vision task-count (8/14/20) is carried by the results suffix: a single
-`eval_task_addition.sh` / `eval_experts.sh` (parameterized by `NUM_TASKS`) writes to
-`results-8tasks` / `results-14tasks` / `results-20tasks`. Named experiment buckets
-(`results-wang`, `results-sgd`, `results-mixed`) imply their own count.
-Checkpoints are shared across counts (no suffix needed for the canonical bucket).
-`scripts/vision/migrate_artifacts.py` migrates the old flat layout
-(`{model}-{method}/`, `results14`/`results20`) into this tree (dry-run by default,
-`--apply`, `--canonical` to limit to core buckets, emits an undo script).
-**OLMo/language/polyglot pipelines still use the old flat layout** (`{model}-{method}/`)
-pending a follow-up migration.
+Vision-only quirks: dataset dirs carry a `Val` split suffix (`expert_dir(..., val_suffix=True)`,
+the default) and each holds a co-located `head.pt`; language passes `val_suffix=False`
+and has neither. The vision task-count (8/14/20) is carried by the results suffix: a
+single `eval_task_addition.sh` / `eval_experts.sh` (parameterized by `NUM_TASKS`) writes
+to `results-8tasks` / `results-14tasks` / `results-20tasks`. Named experiment buckets
+(`results-wang`, `results-sgd`, `results-mixed`) imply their own count. Language has a
+single fixed T5 suite, so its merged/experts/pretrained results live in the bare
+`results/{model}/…` tree (no suffix).
+
+`scripts/vision/migrate_artifacts.py` migrates the old flat layout into this tree
+(dry-run by default, `--apply`; `--pipeline {vision,language}`, `--canonical` to limit
+to core buckets, emits an undo script).
+**OLMo/polyglot pipelines still use the old flat layout** (`{model}-{method}/`)
+pending a follow-up migration. (Vision exotic buckets — sgd/wang/ilharco/mixed/analysis
+— and the `t5-*-faulty` results are also deferred.)
 
 An append-only JSON-lines DB (`src/results_db.py`) hashes `(script, args)` into a
 16-char run id so identical configurations are deduped; pass `--results-db <path>`

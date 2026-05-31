@@ -10,7 +10,7 @@ from src.language.task_vectors import (
     LanguageNonLinearTaskVector,
 )
 from src.merging import combine_task_vectors
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, merged_results_path, resolve_run_dir
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
@@ -19,9 +19,8 @@ args.save = resolve_run_dir(args)
 
 prefix = get_prefix(args.finetuning_mode)
 merge_name = getattr(args, "merge_func", "sum")
-merge_mode_str = f"-{args.merge_mode}" if args.merge_mode != "d" else ""
 results_file = Path(
-    f"{args.results_dir}/{args.model}-{merge_name}{merge_mode_str}/{prefix}metrics.json"
+    merged_results_path(args.results_dir, args.model, merge_name, args.merge_mode, prefix)
 )
 if results_file.exists() and not args.overwrite:
     print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")
@@ -35,7 +34,7 @@ eval_datasets = args.eval_datasets or list(T5_DATASETS)
 task_vectors = []
 
 for i, dataset in enumerate(eval_datasets):
-    checkpoint_dir = f"{args.save}/{dataset}"
+    checkpoint_dir = expert_dir(args.save, dataset, val_suffix=False)
     if args.finetuning_mode == "linear":
         task_vectors.append(
             LanguageLinearizedTaskVector(
@@ -67,7 +66,7 @@ hp_combos = (
 args.control_dataset = None
 
 # Use last checkpoint_dir for apply_to (all share same pretrained model)
-pretrained_dir = f"{args.save}/{eval_datasets[-1]}"
+pretrained_dir = expert_dir(args.save, eval_datasets[-1], val_suffix=False)
 
 
 def _set_eval_split(split):

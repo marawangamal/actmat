@@ -7,7 +7,7 @@ from src.language.task_vectors import (
     LanguageLinearizedTaskVector,
     LanguageNonLinearTaskVector,
 )
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import get_prefix, multitask_results_path, resolve_run_dir
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
@@ -52,7 +52,7 @@ test_scores = [
 accuracies["avg_val"] = (sum(val_scores) / len(val_scores)) if val_scores else None
 accuracies["avg_test"] = (sum(test_scores) / len(test_scores)) if test_scores else None
 
-results_file = Path(f"{args.results_dir}/{args.model}-multitask/{prefix}metrics.json")
+results_file = Path(multitask_results_path(args.results_dir, args.model, prefix))
 results_file.parent.mkdir(parents=True, exist_ok=True)
 
 tasks = [

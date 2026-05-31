@@ -44,9 +44,14 @@ def resolve_run_dir(args):
 # so the layout stays uniform across the vision/language/OLMo pipelines.
 
 
-def expert_dir(save, dataset):
-    """Per-expert checkpoint directory: <save>/experts/<dataset>Val."""
-    leaf = dataset if dataset.endswith("Val") else f"{dataset}Val"
+def expert_dir(save, dataset, val_suffix=True):
+    """Per-expert checkpoint directory: <save>/experts/<dataset>[Val].
+
+    Vision appends the "Val" split suffix to the dataset name (its checkpoints are
+    keyed by the val variant); language/OLMo pass val_suffix=False to use the bare
+    dataset name.
+    """
+    leaf = f"{dataset}Val" if val_suffix and not dataset.endswith("Val") else dataset
     return os.path.join(save, "experts", leaf)
 
 

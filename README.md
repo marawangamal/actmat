@@ -64,9 +64,13 @@ via `NUM_TASKS` in the eval scripts, which write to `results-8tasks` / `results-
 / `results-20tasks` — so a single `eval_task_addition.sh` / `eval_experts.sh` covers
 all three. Named experiment buckets (`results-wang`, `results-sgd`, `results-mixed`)
 imply their own count; checkpoints are shared across counts. Migrate an old flat tree
-with `scripts/vision/migrate_artifacts.py` (dry-run by default, `--apply`, `--canonical`).
-Language/OLMo pipelines still use the legacy flat
-`artifacts/results/{model}-{method}/metrics.json` layout.
+with `scripts/vision/migrate_artifacts.py` (dry-run by default, `--apply`, `--canonical`,
+`--pipeline {vision,language}`).
+
+The **language** (T5) pipeline uses the same nested layout via the same helpers
+(`val_suffix=False` — bare dataset dirs, no head files), in the single bare
+`artifacts/results/{model}/…` tree (one fixed task suite, no count). The **OLMo/polyglot**
+pipelines still use the legacy flat `artifacts/results/{model}-{method}/metrics.json` layout.
 
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 

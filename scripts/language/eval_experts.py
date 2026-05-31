@@ -7,7 +7,13 @@ from src.language.task_vectors import (
     LanguageLinearizedTaskVector,
     LanguageNonLinearTaskVector,
 )
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import (
+    expert_dir,
+    experts_results_path,
+    get_prefix,
+    pretrained_results_path,
+    resolve_run_dir,
+)
 
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
@@ -33,7 +39,7 @@ for dataset in eval_datasets:
     print("*" * 100)
     print(f"Evaluating on {dataset}")
 
-    checkpoint_dir = f"{args.save}/{dataset}"
+    checkpoint_dir = expert_dir(args.save, dataset, val_suffix=False)
 
     try:
         task_vector = (
@@ -75,9 +81,9 @@ accuracies["avg_test"] = (sum(test_scores) / len(test_scores)) if test_scores el
 
 # Save results (zeroshot treated as a method, parallel to eval_task_addition.py).
 if args.finetuning_mode == "none":
-    results_file = Path(f"{args.results_dir}/{args.model}-zeroshot/metrics.json")
+    results_file = Path(pretrained_results_path(args.results_dir, args.model, prefix))
 else:
-    results_file = Path(f"{args.results_dir}/{args.model}-experts/{prefix}metrics.json")
+    results_file = Path(experts_results_path(args.results_dir, args.model, prefix))
 results_file.parent.mkdir(parents=True, exist_ok=True)
 
 tasks = [

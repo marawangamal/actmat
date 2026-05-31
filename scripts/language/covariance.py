@@ -30,7 +30,7 @@ from src.language.datasets.pytorch_dataset import PytorchDataset
 from src.language.datasets.batcher import Batcher
 from src.language.datasets.dataset_readers import get_datasetReader
 from src.covariance import OnlineCovariance, register_hooks
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 
 
 def compute_covs(model, dataset_name, args, on_end=None):
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     ]
 
     for dataset in T5_DATASETS:
-        checkpoint_dir = f"{args.save}/{dataset}"
+        checkpoint_dir = expert_dir(args.save, dataset, val_suffix=False)
         cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance.pt")
 
         if os.path.exists(cov_path) and not args.overwrite:
