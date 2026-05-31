@@ -65,9 +65,7 @@ def merge_files(files):
             if v is not None: d[k]=v
     return d if files else None
 newf=glob.glob("artifacts/results-polyglot-all/base-Olmo-3-1025-7B/**/results_*.json",recursive=True)
-oldf=glob.glob("polyglot-teachers/lighteval-results/allenai___Olmo-3-1025-7B/results_*.json")
-rows.append(("base","base·new",merge_files(newf)))
-rows.append(("base","base·old",merge_files(oldf)))
+rows.append(("base","base",merge_files(newf)))
 for lg in LANGS:
     p=latest(f"artifacts/results-polyglot-all/expert-{lg}/**/results_*.json")
     rows.append(("expert",f"expert-{lg}", row_from(p) if p else None))

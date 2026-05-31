@@ -1,8 +1,9 @@
 #!/bin/bash
 # Shared lm-eval-harness runner for the Polyglot-Teachers (OLMo3-7B) experiment.
-# Source this from a script that has already activated .venv-pg (lm-eval 0.4.12
-# + transformers 4.57.6 + OLMo3 support). Pin to .venv-pg so every model is
-# scored under the SAME lm-eval version — task definitions change between
+# Source this from a script that has already activated the lm-eval venv
+# (.venv-pg-mgsm for polyglot-all; .venv-pg for the older polyglot path) —
+# lm-eval 0.4.12 + transformers 4.57.6 + OLMo3 support. Pin to one venv so every
+# model is scored under the SAME lm-eval version — task definitions change between
 # releases (e.g. mgsm_direct's few-shot target was fixed in 3.0->4.0).
 #
 # We use lm-eval-harness (a trusted, standard tool we already run) rather than

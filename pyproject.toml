@@ -41,6 +41,26 @@ gemma = [
     "numpy<2.3",
     "setuptools<81",
 ]
+# Polyglot (OLMo3-7B) experiment — two envs, mutually incompatible (numpy/datasets):
+#   .venv-pg-mgsm     : MGSM via lm-eval native CoT  (numpy>=2, datasets>=4)
+#   .venv-pg-mmlu-mrb : MMLU+MRB via the lighteval fork (vllm pins numpy<2, datasets<4)
+# polyglot-mmlu-mrb is only the PyPI BASE; after `uv sync` you must overlay the
+# ./lighteval fork submodule with `uv pip install -e ./lighteval --no-deps` (see README).
+polyglot-mgsm = [
+    "lm-eval==0.4.12",
+    "transformers==4.57.6",
+    "datasets>=4",
+    "numpy>=2",
+    "setuptools<81",
+]
+polyglot-mmlu-mrb = [
+    "lighteval>=0.10.0",
+    "vllm==0.10.1.1",
+    "inspect-ai>=0.3.140",
+    "more-itertools>=10",   # fork's vllm backend imports it; --no-deps overlay skips it otherwise
+    "transformers==4.57.6",
+    "setuptools<81",
+]
 
 [tool.uv]
 conflicts = [
@@ -48,6 +68,8 @@ conflicts = [
         { group = "vision-language" },
         { group = "olmo" },
         { group = "gemma" },
+        { group = "polyglot-mgsm" },
+        { group = "polyglot-mmlu-mrb" },
     ],
 ]
 

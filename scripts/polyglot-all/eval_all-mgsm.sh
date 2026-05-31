@@ -16,8 +16,8 @@
 # mmlu/mrb still come from the lighteval runs — this only adds the math column.
 #
 # Usage:
-#   sbatch scripts/polyglot-all/eval_mgsm_cot.sh
-#   ITEM=merge-actmat_gd bash scripts/polyglot-all/eval_mgsm_cot.sh   # single, no array
+#   sbatch scripts/polyglot-all/eval_all-mgsm.sh
+#   ITEM=merge-actmat_gd bash scripts/polyglot-all/eval_all-mgsm.sh   # single, no array
 set -euo pipefail
 
 ACTMAT="$SCRATCH/actmat"
@@ -26,7 +26,7 @@ mkdir -p artifacts/logs
 
 sleep $(( ${SLURM_ARRAY_TASK_ID:-0} * 30 ))   # stagger shared-venv cold imports
 
-source "$ACTMAT/.venv-pg/bin/activate"
+source "$ACTMAT/.venv-pg-mgsm/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export HF_HOME=$SCRATCH/huggingface
 export SSL_CERT_DIR=/etc/ssl/certs

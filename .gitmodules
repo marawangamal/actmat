@@ -1,3 +1,6 @@
 [submodule "olmes"]
 	path = olmes
 	url = https://github.com/BrownianNotion/olmes.git
+[submodule "lighteval"]
+	path = lighteval
+	url = https://github.com/ljvmiranda921/lighteval.git

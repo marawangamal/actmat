@@ -15,16 +15,30 @@ UV_PROJECT_ENVIRONMENT=.venv-vl   uv sync --group vision-language
 UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo
 ```
 
+The **polyglot** (multilingual OLMo3) experiment adds two more conflicting groups,
+each its own venv (their numpy/datasets pins are mutually incompatible):
+
+```sh
+# M-GSM (lm-eval) — plain sync
+UV_PROJECT_ENVIRONMENT=.venv-pg-mgsm uv sync --group polyglot-mgsm
+# MMLU+MRB (lighteval fork) — sync the PyPI base, then OVERLAY the ./lighteval
+# submodule with --no-deps (a managed source would fail to resolve numpy>=2/datasets>=4)
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv sync --group polyglot-mmlu-mrb
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv pip install --python .venv-pg-mmlu-mrb -e ./lighteval --no-deps
+```
+Re-running `uv sync --group polyglot-mmlu-mrb` clobbers the fork — re-run the
+overlay line. See the repo README for full details.
+
 Every shell that runs a script needs:
 
 ```sh
 export PYTHONPATH="$PYTHONPATH:$(pwd)"   # repo root is the src root
 export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
-source .venv-vl/bin/activate              # or .venv-olmo
+source .venv-vl/bin/activate              # or .venv-olmo / .venv-pg-mmlu-mrb / .venv-pg-mgsm
 ```
 
-`olmes/` is a git submodule (path-installed via `ai2-olmes`). Use `git submodule update --init --recursive` after a fresh clone.
+`olmes/` and `lighteval/` are git submodules (olmes path-installed via `ai2-olmes`; lighteval overlaid `--no-deps` into `.venv-pg-mmlu-mrb`). Use `git submodule update --init --recursive` after a fresh clone.
 
 Vision experiments expect `vit_datasets_08.zip` (symlinked from `~/scratch/actmat-2026-05-04/`) to be copied to `$SLURM_TMPDIR/datasets`; this is done by the SLURM scripts.
 
