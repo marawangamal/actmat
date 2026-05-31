@@ -48,3 +48,23 @@ lighteval vllm "model_name=${MODEL_PATH},tensor_parallel_size=1,gpu_memory_utili
     --save-details
 
 echo ">>> done: results=${RESULTS_DIR}"
+
+# mrewardbench_mcf:ar
+# "acc_norm_token": 0.4932032066922273,
+# "acc_norm_token_stderr": 0.00933555842923963,
+# "weighted_acc": 0.5028495236160122,
+# "weighted_acc_stderr": 0.00035655346438800186,
+# "weighted_acc_chat": 0.5743243243243243,
+# "weighted_acc_chat_stderr": 0.0009412660465849412,
+# "weighted_acc_chat_hard": 0.4668304668304668,
+# "weighted_acc_chat_hard_stderr": 0.0008126131593780779,
+# "weighted_acc_safety": 0.48641304347826086,
+# "weighted_acc_safety_stderr": 0.000540571811258277,
+# "weighted_acc_reasoning": 0.48383025983099714,
+# "weighted_acc_reasoning_stderr": 0.00043616330972176705
+
+# global_mmlu_lite:ar
+# |        Task         |Version|Metric|Value |   |Stderr|
+# |---------------------|-------|------|-----:|---|-----:|
+# |all                  |       |acc   |0.3175|±  |0.0233|
+# |global_mmlu_lite:ar:0|       |acc   |0.3175|±  |0.0233|
