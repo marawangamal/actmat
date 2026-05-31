@@ -3,34 +3,57 @@ import json
 import os
 import os.path as osp
 import re
+import shutil
 
+import torch
 from safetensors import safe_open
 from safetensors.torch import save_file
 
+from src import merging
+
 
 class HFDir:
-    def __init__(model_dir, chat_template_path, tokenizer_path):
+    def __init__(self, model_dir, chat_template_path=None, tokenizer_path=None):
         self.model_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
-        index_path = osp.join(self.model_dir, "model.safetensors.index.json")
+        # maps each layer name -> its shard filename (sharded or single-file)
+        index_path = osp.join(model_dir, "model.safetensors.index.json")
+        if osp.exists(index_path):
+            with open(index_path) as f:
+                self.weight_map = json.load(f)["weight_map"]
+        else:
+            self.weight_map = {}
+        self.total_size = 0
 
-        # 1. make the index if not exists
-        if not osp.exists(index_path):
-            # make the index
-            pass
+        # copy tokenizer files + config, then chat template
+        if tokenizer_path is not None:
+            tokenizer_files = (
+                "config.json",
+                "generation_config.json",
+                "tokenizer.json",
+                "tokenizer_config.json",
+                "tokenizer.model",
+                "special_tokens_map.json",
+                "added_tokens.json",
+                "vocab.json",
+                "merges.txt",
+            )
+            for name in tokenizer_files:
+                src = osp.join(tokenizer_path, name)
+                if osp.isfile(src):
+                    shutil.copy2(src, osp.join(model_dir, name))
+        if chat_template_path is not None:
+            chat_template = osp.join(chat_template_path, "chat_template.jinja")
+            if osp.exists(chat_template):
+                shutil.copy2(chat_template, osp.join(model_dir, "chat_template.jinja"))
 
-        # 2. copy over tok, chat etc. from chat_template_path, tokenizer_path
-        # ...
-
-    def load_layer_params(layer_name):
+    def load_layer_params(self, layer_name):
         # loads layer from hf dir with pottentially many shards
-        index_path = osp.join(self.model_dir, "model.safetensors.index.json")
-        with open(index_path) as f:
-            weight_map = json.load(f)["weight_map"]
-        shard_name = weight_map[layer_name]
-        # Finish this
-        # tensor = ...
-        return tensor
+        shard_name = self.weight_map[layer_name]
+        with safe_open(
+            osp.join(self.model_dir, shard_name), framework="pt", device="cpu"
+        ) as f:
+            return f.get_tensor(layer_name)
 
     def save_layer_params(self, tensor, shard_filename, layer_name):
         # saves into hf compatible safetensors layer_file at key layer_name
@@ -41,13 +64,39 @@ class HFDir:
                 tensors = {k: f.get_tensor(k) for k in f.keys()}
         tensors[layer_name] = tensor.contiguous()
         save_file(tensors, shard_path, metadata={"format": "pt"})
+        self.weight_map[layer_name] = shard_filename
+        self.total_size += tensor.numel() * tensor.element_size()
+
+    def flush(self):
+        # saves index
+        index_path = osp.join(self.model_dir, "model.safetensors.index.json")
+        with open(index_path, "w") as f:
+            json.dump(
+                {
+                    "metadata": {"total_size": self.total_size},
+                    "weight_map": self.weight_map,
+                },
+                f,
+                indent=2,
+            )
 
 
-def load_layer_index(model_dir):
-    # maps each layer name -> its shard filename (sharded or single-file)
-    index_path = osp.join(model_dir, "model.safetensors.index.json")
-    with open(index_path) as f:
-        return json.load(f)["weight_map"]
+def apply_merge(w_list, w_0, method="sum"):
+    deltas = torch.stack([w.float() - w_0.float() for w in w_list])
+    if deltas[0].ndim == 2:
+        merged_delta = getattr(merging, "merge_" + method)(deltas)
+    else:
+        merged_delta = deltas.mean(dim=0)
+    return (w_0.float() + merged_delta).to(w_0.dtype)
+
+
+def resolve(name_or_path):
+    # hf id or local path -> local dir
+    if osp.isdir(name_or_path):
+        return name_or_path
+    from huggingface_hub import snapshot_download
+
+    return snapshot_download(name_or_path)
 
 
 def fmt(inp):
@@ -69,22 +118,26 @@ def parse_args():
 
 args = parse_args()
 
-layer_to_file = load_layer_index(args.base_model)
-base_model_path = osp.join(hf_home, fmt(args.base_model))
-chat_template_path = osp.join(hf_home, fmt(args.chat_template))
+base_model_path = resolve(args.base_model)
+chat_template_path = resolve(args.chat_template)
+
+base_hf_dir = HFDir(base_model_path)
+expert_hf_dirs = [HFDir(resolve(m)) for m in args.expert_models]
+
+layer_to_file = base_hf_dir.weight_map
 merged_model_path = osp.join(args.save_dir, fmt(args.base_model), args.merge_method)
 merged_model_hf_dir = HFDir(merged_model_path, chat_template_path, chat_template_path)
 for layer_name in layer_to_file:
     shard_filename = layer_to_file[layer_name]
     w_list = []
-    w_0 = load_layer_params(args.base_model, layer_name)
+    w_0 = base_hf_dir.load_layer_params(layer_name)
 
     if args.ignore_keep_pt and re.search(args.ignore_keep_pt, layer_name):
         w_merged = w_0
     else:
-        for model_name_or_path in args.expert_models:
-            w_t = merged_model_hf_dir.load_layer_params(layer_name)
-            w_list.append(wt)
+        for expert_hf_dir in expert_hf_dirs:
+            w_t = expert_hf_dir.load_layer_params(layer_name)
+            w_list.append(w_t)
 
         if args.ignore_mean and re.search(args.ignore_mean, layer_name):
             w_merged = apply_merge(w_list, w_0, method="mean")
@@ -92,8 +145,6 @@ for layer_name in layer_to_file:
             w_merged = apply_merge(w_list, w_0, method=args.merge_method)
 
     merged_model_hf_dir.save_layer_params(w_merged, shard_filename, layer_name)
-    # add to index
-    merged_model_index[layer_name] = shard_filename
 
 # save index
 merged_model_hf_dir.flush()  # saves index
