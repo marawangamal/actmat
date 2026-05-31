@@ -16,7 +16,7 @@ from collections import OrderedDict
 
 from src.vision.task_vectors import NonLinearTaskVector
 from src.args import parse_arguments
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 from src.vision.datasets.registry import get_dataset
 
 
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         "SVHN",
     ]
 
-    ckpt_dirs = [f"artifacts/checkpoints/{model}/{ds}Val" for ds in datasets]
+    ckpt_dirs = [expert_dir(f"artifacts/checkpoints/{model}", ds) for ds in datasets]
     dataset_names = [f"{ds}Val" for ds in datasets]
 
     alpha_range = np.linspace(0.0, 1.0, 11)  # [0.0, 0.1, ..., 1.0]

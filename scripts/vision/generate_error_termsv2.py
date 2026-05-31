@@ -6,6 +6,8 @@ import pandas as pd
 from tqdm import tqdm
 import sys
 
+from src.utils import expert_dir
+
 # sys.path.append("..")
 # from src import mhap, mhas
 # from src.vision.task_vectors import NonLinearTaskVector
@@ -48,7 +50,7 @@ datasets = [
 
 rows = []
 for d in tqdm(datasets, desc="datasets"):
-    task_dir = os.path.join(ckpt_dir, d + "Val")
+    task_dir = expert_dir(ckpt_dir, d)
     if not os.path.isdir(task_dir):
         continue
     if not all(

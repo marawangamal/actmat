@@ -15,7 +15,7 @@ from src.vision.heads import get_classification_head
 from src.vision.linearize import LinearizedImageEncoder
 from src.vision.modeling import ImageClassifier, ImageEncoder, apply_lora, merge_lora
 from src.mhas import swap_mha, unswap_mha
-from src.utils import LabelSmoothing, cosine_lr, get_prefix, resolve_run_dir
+from src.utils import LabelSmoothing, cosine_lr, expert_dir, get_prefix, resolve_run_dir
 
 
 class GradCrossTermTracker:
@@ -115,7 +115,7 @@ def finetune(rank, args):
     setup_ddp(rank, args.world_size, port=args.port)
 
     train_dataset = args.train_dataset
-    ckpdir = os.path.join(args.save, train_dataset)
+    ckpdir = expert_dir(args.save, train_dataset)
 
     assert args.finetuning_mode in [
         "linear",

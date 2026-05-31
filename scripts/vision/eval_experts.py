@@ -3,7 +3,13 @@ from pathlib import Path
 
 from src.args import parse_arguments
 from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import (
+    expert_dir,
+    experts_results_path,
+    get_prefix,
+    pretrained_results_path,
+    resolve_run_dir,
+)
 from src.vision.eval import eval_single_dataset
 from src.vision.linearize import LinearizedImageEncoder
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
@@ -55,7 +61,7 @@ for dataset in eval_datasets:
     print("*" * 100)
     print(f"Evaluating on {dataset}")
 
-    checkpoint_dir = f"{args.save}/{dataset}Val"
+    checkpoint_dir = expert_dir(args.save, dataset)
 
     try:
         task_vector = (
@@ -119,11 +125,11 @@ test_scores = [
 accuracies["avg_val"] = (sum(val_scores) / len(val_scores)) if val_scores else None
 accuracies["avg_test"] = (sum(test_scores) / len(test_scores)) if test_scores else None
 
-# Save results (zeroshot treated as a method, parallel to eval_task_addition.py).
+# Save results (pretrained/zero-shot baseline parallel to eval_task_addition.py).
 if args.finetuning_mode == "none":
-    results_file = Path(f"{args.results_dir}/{args.model}-zeroshot/metrics.json")
+    results_file = Path(pretrained_results_path(args.results_dir, args.model, prefix))
 else:
-    results_file = Path(f"{args.results_dir}/{args.model}-experts/{prefix}metrics.json")
+    results_file = Path(experts_results_path(args.results_dir, args.model, prefix))
 results_file.parent.mkdir(parents=True, exist_ok=True)
 
 tasks = [

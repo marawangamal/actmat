@@ -4,6 +4,7 @@ import open_clip
 import torch
 from tqdm import tqdm
 
+from src.utils import head_path
 from src.vision.datasets.registry import get_dataset
 from src.vision.datasets.templates import get_templates
 from src.vision.modeling import ClassificationHead, ImageEncoder
@@ -51,7 +52,7 @@ def get_classification_head(args, dataset):
         # We want to load the head for the validation set always to be consistent with the one generated at training time.
         dataset += "Val"
 
-    filename = os.path.join(args.save, f"head_{dataset}.pt")
+    filename = head_path(args.save, dataset)
     if os.path.exists(filename):
         print(f"Classification head for {args.model} on {dataset} exists at {filename}")
         return ClassificationHead.load(filename)
@@ -63,6 +64,6 @@ def get_classification_head(args, dataset):
     classification_head = build_classification_head(
         model, dataset, template, args.data_location, args.device
     )
-    os.makedirs(args.save, exist_ok=True)
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     classification_head.save(filename)
     return classification_head

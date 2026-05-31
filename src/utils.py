@@ -28,6 +28,67 @@ def resolve_run_dir(args):
     return run
 
 
+# --- Structured artifacts layout -------------------------------------------
+# Single source of truth for the on-disk convention. `save` here is the
+# per-model run dir (i.e. the output of resolve_run_dir, <base>/<model>);
+# `results_dir` is the bucket base, artifacts/results[-{suffix}].
+#
+#   checkpoints:  <save>/experts/<dataset>Val/       per-expert checkpoints
+#                 <save>/multitask/                  MTL checkpoint
+#   results:      <results_dir>/<model>/merged/<method>[-<mode>]/[lora_]metrics.json
+#                 <results_dir>/<model>/experts/[lora_]metrics.json
+#                 <results_dir>/<model>/pretrained/[lora_]metrics.json
+#                 <results_dir>/<model>/multitask/[lora_]metrics.json
+# Any per-suite axis (e.g. vision 8/14/20-task) is carried by the results_dir
+# suffix (artifacts/results-8tasks/...), set by the caller — NOT a path level here,
+# so the layout stays uniform across the vision/language/OLMo pipelines.
+
+
+def expert_dir(save, dataset):
+    """Per-expert checkpoint directory: <save>/experts/<dataset>Val."""
+    leaf = dataset if dataset.endswith("Val") else f"{dataset}Val"
+    return os.path.join(save, "experts", leaf)
+
+
+def head_path(save, dataset):
+    """Classification head, co-located with its expert: <save>/experts/<dataset>Val/head.pt.
+
+    The head is a per-dataset (FT-mode-agnostic) artifact, so it lives in the same
+    dir as that dataset's expert checkpoints rather than a separate top-level dir.
+    """
+    return os.path.join(expert_dir(save, dataset), "head.pt")
+
+
+def _merge_mode_str(merge_mode):
+    return f"-{merge_mode}" if merge_mode and merge_mode != "d" else ""
+
+
+def merged_results_path(results_dir, model, method, merge_mode, prefix=""):
+    """<results_dir>/<model>/merged/<method>[-<mode>]/[prefix]metrics.json."""
+    return os.path.join(
+        results_dir,
+        model,
+        "merged",
+        f"{method}{_merge_mode_str(merge_mode)}",
+        f"{prefix}metrics.json",
+    )
+
+
+def experts_results_path(results_dir, model, prefix=""):
+    """<results_dir>/<model>/experts/[prefix]metrics.json."""
+    return os.path.join(results_dir, model, "experts", f"{prefix}metrics.json")
+
+
+def pretrained_results_path(results_dir, model, prefix=""):
+    """<results_dir>/<model>/pretrained/[prefix]metrics.json (zero-shot baseline)."""
+    return os.path.join(results_dir, model, "pretrained", f"{prefix}metrics.json")
+
+
+def multitask_results_path(results_dir, model, prefix=""):
+    """<results_dir>/<model>/multitask/[prefix]metrics.json."""
+    return os.path.join(results_dir, model, "multitask", f"{prefix}metrics.json")
+
+
 def assign_learning_rate(param_group, new_lr):
     param_group["lr"] = new_lr
 

@@ -38,7 +38,7 @@ from src.args import parse_arguments
 from src.vision.datasets.registry import get_dataset
 from src import mhap, mhas
 from src.covariance import OnlineCovariance, register_hooks
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 
 
 def compute_covs(encoder, dataset_name, args, on_end=None):
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     prefix = get_prefix(args.finetuning_mode)
 
     for task in tasks:
-        checkpoint_dir = f"{args.save}/{task}Val"
+        checkpoint_dir = expert_dir(args.save, task)
         if args.load is not None:
             ckpt_name = os.path.basename(args.load)  # e.g., 'checkpoint_100.pt'
             cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance_{ckpt_name}")

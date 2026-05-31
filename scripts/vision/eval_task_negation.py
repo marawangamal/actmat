@@ -4,7 +4,7 @@ import os
 from src.args import parse_arguments
 from src.vision.eval import evaluate_task_vector, evaluate_task_vector_at_coef
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
-from src.utils import find_optimal_coef, resolve_run_dir
+from src.utils import expert_dir, find_optimal_coef, resolve_run_dir
 
 args = parse_arguments()
 args.save = resolve_run_dir(args)
@@ -44,7 +44,7 @@ control_dataset = "ImageNet"
 negation_accuracies = {}
 
 for dataset in eval_datasets:
-    checkpoint_dir = f"{args.save}/{dataset}Val"
+    checkpoint_dir = expert_dir(args.save, dataset)
     if args.finetuning_mode == "linear":
         task_vector = -LinearizedTaskVector(checkpoint_dir=checkpoint_dir)
     else:

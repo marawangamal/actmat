@@ -38,18 +38,49 @@ mkdir -p artifacts && for f in downloads/*.tar.gz downloads/*.tgz; do [ -e "$f" 
 ```
 
 
+## Artifacts layout
+
+Vision checkpoints and per-run metrics use a structured, nested convention (path
+builders are the single source of truth in `src/utils.py`). `{suffix}` is the
+experiment bucket; `[lora_]` is the LoRA filename prefix; `{mode}` is `-w` for
+weight-space merges (omitted for the default difference merge).
+
+```
+artifacts/
+├── checkpoints[-{suffix}]/{model}/
+│   ├── experts/{dataset}Val/        pretrained.pt, [lora_]finetuned.pt,
+│   │                                [lora_]covariance.pt, fisher.pt, head.pt
+│   ├── multitask/                   MTL checkpoint
+│   └── pretrained.pt
+└── results-{suffix}/{model}/
+    ├── merged/{method}[-{mode}]/[lora_]metrics.json
+    ├── experts/[lora_]metrics.json
+    ├── pretrained/[lora_]metrics.json   # zero-shot baseline
+    └── multitask/[lora_]metrics.json
+```
+
+There is no task-count level in the path. The 8 / 14 / 20-task suites are selected
+via `NUM_TASKS` in the eval scripts, which write to `results-8tasks` / `results-14tasks`
+/ `results-20tasks` — so a single `eval_task_addition.sh` / `eval_experts.sh` covers
+all three. Named experiment buckets (`results-wang`, `results-sgd`, `results-mixed`)
+imply their own count; checkpoints are shared across counts. Migrate an old flat tree
+with `scripts/vision/migrate_artifacts.py` (dry-run by default, `--apply`, `--canonical`).
+Language/OLMo pipelines still use the legacy flat
+`artifacts/results/{model}-{method}/metrics.json` layout.
+
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 
 ```sh
 # 1. (Optional) Finetune models (ckpts can be downloaded as described in setup)
-bash scripts/vision/finetune.sh if ckpts not downloaded.
-# 2. Evaluate experts
-bash scripts/vision/eval_single_task.sh
-# 3. Evaluate merged models
+bash scripts/vision/finetune.sh   # if ckpts not downloaded
+# 2. Evaluate experts        (NUM_TASKS=8|14|20 selects the suite)
+bash scripts/vision/eval_experts.sh
+# 3. Evaluate merged models  (NUM_TASKS=8|14|20 selects the suite)
 bash scripts/vision/eval_task_addition.sh
 ```
 
-Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
+Results land under `artifacts/results-{N}tasks/{model}/merged/{method}/metrics.json`
+(see [Artifacts layout](#artifacts-layout)).
 
 ## Language Experiments (T5-Base / T5-Large)
 
