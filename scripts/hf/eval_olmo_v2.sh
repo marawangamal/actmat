@@ -24,9 +24,9 @@ BASE_MODEL="allenai/Olmo-3-1025-7B"
 MATH_EXPERT="allenai/Olmo-3-7B-RL-Zero-Math"
 CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
-METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd)
+METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/merged/${METHOD}"
+MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
 RESULTS_BASE="artifacts/results-simpler-olmo-exps/Olmo-3-7b/merged/${METHOD}"
 
 # Task groups, split by which expert's chat template they need (Code and IF

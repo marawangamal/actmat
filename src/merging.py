@@ -339,6 +339,12 @@ def merge_actmat_herm(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0), hermitian=True)
 
 
+def merge_actmat_herm_10ki(d: torch.Tensor, *args, **kwargs):
+    if d.shape[-1] > 10_000:
+        return d.mean(dim=0)
+    return merge_actmat_herm(d)
+
+
 def merge_actmat_double(d: torch.Tensor, *args, **kwargs):
     """ACTMat solved entirely in float64, result cast back to the input dtype.
 
