@@ -35,6 +35,17 @@ VISION_MODELS = ["ViT-B-16", "ViT-B-32", "ViT-L-14"]
 LANGUAGE_MODELS = ["t5-base", "t5-large"]
 T5_DATASETS = ["qasc", "wiki_qa", "quartz", "paws", "story_cloze", "winogrande", "wsc"]
 
+# OLMo pipeline: flat layout -> experts/ + merged/ (+ legacy/). Only the exact
+# Olmo-3-7b model (the polyglot variants are a separate, deferred migration).
+OLMO_MODELS = ["Olmo-3-7b"]
+OLMO_EXPERTS = ["Math", "Code", "IF"]
+# Reserved leaves at the model root that are NOT migrated: the shared base
+# (pretrained/) stays put; the others are the destination groups themselves.
+OLMO_RESERVED = {"pretrained", "experts", "merged", "legacy"}
+# Suffixes marking a dir as superseded/stale -> parked under legacy/ (the
+# regenerable per-template chat views, and the *-old snapshots).
+OLMO_LEGACY_SUFFIXES = ("-chat-code", "-chat-math", "-old")
+
 # old results bucket -> new results bucket. The task-count is carried by the
 # bucket suffix: the plain benchmark splits into results-{8,14,20}tasks, while
 # named experiment buckets imply their own count (wang=20, sgd=8, mixed=14) and
@@ -142,6 +153,74 @@ def plan_language_result_moves(root):
     return moves, skipped, sorted(deferred)
 
 
+def plan_olmo_checkpoint_moves(root):
+    """Migrate the flat Olmo-3-7b checkpoint tree into experts/ + merged/ (+
+    legacy/ for superseded/stale dirs). Nothing is deleted.
+
+      <model>/{Math,Code,IF}            -> <model>/experts/{...}
+      <model>/<method>                  -> <model>/merged/<method>
+      <model>/<*-chat-code|-chat-math>  -> <model>/legacy/<...>   (regenerable views)
+      <model>/<*-old>                   -> <model>/legacy/<...>   (stale snapshots)
+      <model>/pretrained                -> unchanged (shared base)
+
+    The view dirs are absolute-symlink farms pointing into the (now moved)
+    method/expert dirs; their links are repointed post-move (see repoint_symlinks).
+    """
+    moves = []
+    for model in OLMO_MODELS:
+        mroot = os.path.join(root, "checkpoints", model)
+        if not os.path.isdir(mroot):
+            continue
+        for name in sorted(os.listdir(mroot)):
+            if name in OLMO_RESERVED:
+                continue  # base / already-created group dirs
+            src = os.path.join(mroot, name)
+            if not (os.path.isdir(src) or os.path.islink(src)):
+                continue  # only dirs (and the wudi -> wudi-1e5 symlink)
+            if name in OLMO_EXPERTS:
+                group = "experts"
+            elif name.endswith(OLMO_LEGACY_SUFFIXES):
+                group = "legacy"
+            else:
+                group = "merged"
+            moves.append((src, os.path.join(mroot, group, name)))
+    return moves
+
+
+def repoint_symlinks(moves):
+    """Rewrite absolute symlinks that referenced a moved dir to its new path.
+
+    Called AFTER the moves are applied. Returns a list of
+    (link_path, old_target, new_target) so the undo can restore them.
+    Trailing-separator matching avoids prefix collisions (e.g. `sum` vs `sum04`).
+    """
+    prefix_map = sorted(
+        ((os.path.abspath(s), os.path.abspath(d)) for s, d in moves),
+        key=lambda sd: len(sd[0]),
+        reverse=True,
+    )
+    repoints = []
+    for _, dst in moves:
+        if not os.path.isdir(dst):
+            continue
+        for dirpath, dirnames, filenames in os.walk(dst):
+            for entry in dirnames + filenames:
+                link = os.path.join(dirpath, entry)
+                if not os.path.islink(link):
+                    continue
+                tgt = os.readlink(link)
+                if not os.path.isabs(tgt):
+                    continue
+                for s_abs, d_abs in prefix_map:
+                    if tgt == s_abs or tgt.startswith(s_abs + os.sep):
+                        new_tgt = d_abs + tgt[len(s_abs):]
+                        os.remove(link)
+                        os.symlink(new_tgt, link)
+                        repoints.append((link, tgt, new_tgt))
+                        break
+    return repoints
+
+
 def _result_target(new_bucket, model, tail, src_dir):
     """Compute the destination dir for one `<model>-<tail>` results entry."""
     if tail == "multitask":
@@ -204,7 +283,7 @@ def main():
     )
     ap.add_argument(
         "--pipeline",
-        choices=["vision", "language"],
+        choices=["vision", "language", "olmo"],
         default="vision",
         help="which pipeline's layout to migrate (default: vision)",
     )
@@ -213,17 +292,26 @@ def main():
 
     do_ckpt = args.checkpoints or not args.results
     do_res = args.results or not args.checkpoints
+    if args.pipeline == "olmo":
+        # OLMo: checkpoints-only for now (results migration is a separate pass).
+        if do_res and not args.results:
+            do_res = False
+        elif args.results:
+            print("OLMo results migration is not implemented yet — checkpoints only.")
+            return
 
     ckpt_buckets = CANONICAL_CKPT_BUCKETS if args.canonical else None
     result_only = CANONICAL_RESULT_BUCKETS if args.canonical else None
 
     moves = []
     if do_ckpt:
-        if args.pipeline == "language":
+        if args.pipeline == "olmo":
+            ck = plan_olmo_checkpoint_moves(args.root)
+        elif args.pipeline == "language":
             ck = plan_language_checkpoint_moves(args.root, buckets=ckpt_buckets)
         else:
             ck = plan_checkpoint_moves(args.root, buckets=ckpt_buckets)
-        print(f"\n=== CHECKPOINTS: {len(ck)} dirs/heads -> experts/ ===")
+        print(f"\n=== CHECKPOINTS: {len(ck)} dirs -> experts/ | merged/ | legacy/ ===")
         for s, d in ck:
             print(f"  {s}\n    -> {d}")
         moves += ck
@@ -264,8 +352,20 @@ def main():
     for src, dst in moves:
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         os.rename(src, dst)
+    # OLMo view farms hold absolute symlinks into the dirs we just moved; repoint
+    # them so nothing dangles. Undo must restore the old targets BEFORE the dirs
+    # are moved back, so prepend the restore lines to this batch's undo.
+    restore_undo = ""
+    if args.pipeline == "olmo":
+        repoints = repoint_symlinks(moves)
+        restore_undo = "".join(
+            f"ln -sfn {old!r} {link!r}\n" for link, old, _new in repoints
+        )
+        if repoints:
+            print(f"Repointed {len(repoints)} symlink(s) in moved view dirs.")
     with open(args.undo_script, "w") as undo:
-        undo.write(header + new_undo + prior)  # newest batch undone first
+        # newest batch undone first; within it, restore links before reverse-moves
+        undo.write(header + restore_undo + new_undo + prior)
     os.chmod(args.undo_script, 0o755)
     print(f"\nAPPLIED {len(moves)} moves. Undo: bash {args.undo_script}")
 
