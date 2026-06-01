@@ -24,7 +24,7 @@ BASE_MODEL="allenai/Olmo-3-1025-7B"
 MATH_EXPERT="allenai/Olmo-3-7B-RL-Zero-Math"
 CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
-METHODS=(sum mean actmat tsv)
+METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/merged/${METHOD}"
 RESULTS_BASE="artifacts/results-simpler-olmo-exps/Olmo-3-7b/merged/${METHOD}"
@@ -38,6 +38,7 @@ CODE_TASKS=(
 )
 MATH_TASKS=(
   "gsm8k::tulu"
+  "minerva_math_500::tulu"
 )
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'
 
