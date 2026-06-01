@@ -213,7 +213,8 @@ if __name__ == "__main__":
     _bs, _ga = _batch_defaults.get(args.model, (64, 16))
     args.batch_size = _bs
     args.num_grad_accumulation = _ga
-    args.num_batches = 75000
+    # --max-steps (default None) caps training for smoke tests; else full run.
+    args.num_batches = args.max_steps if getattr(args, "max_steps", None) else 75000
     args.checkpoint_every = 100
     args.print_every = 10
     args.patience = 5
@@ -228,9 +229,12 @@ if __name__ == "__main__":
         "wsc",
     ]
 
+    # --train-dataset (a comma-split list, default None) overrides the full suite.
+    datasets = args.train_dataset or T5_DATASETS
+
     args.save = resolve_run_dir(args)
 
-    for dataset in T5_DATASETS:
+    for dataset in datasets:
         args.train_dataset = dataset
 
         print("=" * 100)

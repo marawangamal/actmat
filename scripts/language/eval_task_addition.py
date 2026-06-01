@@ -20,7 +20,9 @@ args.save = resolve_run_dir(args)
 prefix = get_prefix(args.finetuning_mode)
 merge_name = getattr(args, "merge_func", "sum")
 results_file = Path(
-    merged_results_path(args.results_dir, args.model, merge_name, args.merge_mode, prefix)
+    merged_results_path(
+        args.results_dir, args.model, merge_name, args.merge_mode, prefix, group=args.group
+    )
 )
 if results_file.exists() and not args.overwrite:
     print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")

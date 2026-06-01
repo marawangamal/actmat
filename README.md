@@ -40,37 +40,43 @@ mkdir -p artifacts && for f in downloads/*.tar.gz downloads/*.tgz; do [ -e "$f" 
 
 ## Artifacts layout
 
-All pipelines share one nested convention — `{model}/experts/…` for per-expert
-artifacts and `{model}/merged/{method}/…` for merges — whose path builders are the
-single source of truth in `src/utils.py`. The *contents* of `experts/` differ by
-pipeline (local weights vs. remote-on-the-Hub), and only the vision pipeline carries
-a task-count and `Val`/`head`/`lora` extras. `{suffix}` is the experiment bucket;
-`[lora_]` is the LoRA filename prefix; `{mode}` is `-w` for weight-space merges
-(omitted for the default difference merge).
+All pipelines share one nested convention — `{model}/group-{group}/experts/…` for
+per-expert artifacts and `{model}/group-{group}/merged/{method}/…` for merges — whose
+path builders are the single source of truth in `src/utils.py`. `group-{group}` is the
+experiment-suite path level (`--group`, default `main`) that sits between `{model}` and
+the `experts|multitask|merged|pretrained` subdirs: vision uses `group-{8,14,20}` for the
+task-count suite, OLMo uses `group-{rl-zero,polyglot}`, everything else uses `group-main`.
+The *contents* of `experts/` differ by pipeline (local weights vs. remote-on-the-Hub),
+and only the vision pipeline carries `Val`/`head`/`lora` extras. `[lora_]` is the LoRA
+filename prefix; `{mode}` is `-w` for weight-space merges (omitted for the default
+difference merge).
 
 ### Vision (ViT) & language (T5)
 
 ```
 artifacts/
-├── checkpoints[-{suffix}]/{model}/
-│   ├── experts/{dataset}[Val]/      pretrained.pt, [lora_]finetuned.pt,
-│   │                                [lora_]covariance.pt, fisher.pt[, head.pt]
-│   ├── multitask/                   MTL checkpoint
-│   └── pretrained.pt
-└── results[-{suffix}]/{model}/
+├── checkpoints/{model}/
+│   ├── group-{group}/
+│   │   ├── experts/{dataset}[Val]/  pretrained.pt, [lora_]finetuned.pt,
+│   │   │                            [lora_]covariance.pt, fisher.pt[, head.pt]
+│   │   └── multitask/               MTL checkpoint
+│   └── pretrained.pt                shared base, model-level (above the group)
+└── results/{model}/group-{group}/
     ├── merged/{method}[-{mode}]/[lora_]metrics.json
     ├── experts/[lora_]metrics.json
     ├── pretrained/[lora_]metrics.json   # zero-shot baseline
     └── multitask/[lora_]metrics.json
 ```
 
-There is no task-count level in the path. Vision selects the 8 / 14 / 20-task suite
-via `NUM_TASKS` in the eval scripts, which write to `results-8tasks` / `-14tasks` /
-`-20tasks` — so a single `eval_task_addition.sh` / `eval_experts.sh` covers all three;
-named buckets (`results-wang`, `results-sgd`, `results-mixed`) imply their own count.
-**Language (T5)** uses the same helpers with `val_suffix=False` (bare dataset dirs, no
-`Val`, no `head.pt`) and a single fixed suite, so its results live in the bare
-`artifacts/results/{model}/…` tree (no count, no suffix).
+Vision selects the 8 / 14 / 20-task suite via `NUM_TASKS` in the eval scripts, which
+pass `--group=$NUM_TASKS` — so a single `eval_task_addition.sh` / `eval_experts.sh`
+covers all three (`group-8` / `group-14` / `group-20`). Expert **checkpoints** are
+shared across suites: they live physically in `group-20` (the superset), and
+`group-8` / `group-14` hold per-dataset **symlinks** into it, so finetuning runs once.
+Named buckets (`results-wang`, `results-sgd`, `results-mixed`) are exotic and still on
+`group-main` by default. **Language (T5)** uses the same helpers with `val_suffix=False`
+(bare dataset dirs, no `Val`, no `head.pt`) and a single fixed suite, so it uses
+`group-main` throughout.
 
 ### HF-merge pathway (Qwen, WizardLM, OLMo)
 
@@ -82,38 +88,46 @@ sanitized HF id (`Qwen/Qwen2.5-Math-1.5B` → `Qwen2.5-Math-1.5B`).
 
 ```
 artifacts/
-├── checkpoints[-{suffix}]/{family}/
+├── checkpoints/{family}/group-{group}/
 │   ├── experts/{expert}/            covariance.pt, fisher.pt   # stats only; weights on the Hub
 │   └── merged/{method}/             full self-contained HF model dir (safetensors + tokenizer)
-└── results[-{suffix}]/{family}/
+└── results/{family}/group-{group}/
     └── merged/{method}/             lm-eval / olmes output
 ```
 
-Covariance methods (e.g. regmean) read sidecars from `--stats-dir <dir>/<expert>/covariance.pt`
-(no default; the data-free methods never look). **OLMo** adds per-task **chat-template views**:
-since one merged model can bake in only one template, `scripts/hf/eval_olmo*.sh` materialize
-`merged/{method}-ct-code` and `merged/{method}-ct-math` (weights symlinked, tokenizer/template
-swapped) and nest results as `merged/{method}/{ct-code,ct-math}/`.
+Qwen / WizardLM use `group-main`. Covariance methods (e.g. regmean) read sidecars from
+`--stats-dir <dir>/<expert>/covariance.pt` (no default; the data-free methods never look).
+**OLMo** adds per-task **chat-template views**: since one merged model can bake in only one
+template, `scripts/hf/eval_olmo*.sh` materialize `merged/{method}-ct-code` and
+`merged/{method}-ct-math` (weights symlinked, tokenizer/template swapped) and nest results
+as `merged/{method}/{ct-code,ct-math}/`.
 
-OLMo **checkpoints** follow the same tree, with param-folder (not `.pt`) experts and a
-preserved `legacy/` for superseded dirs:
+OLMo **checkpoints** unify the RL-Zero and polyglot experiments under one `Olmo-3-7b`
+model dir, split by group (`group-rl-zero` / `group-polyglot`), with param-folder (not
+`.pt`) experts and a preserved `legacy/` for superseded dirs:
 
 ```
 artifacts/checkpoints/Olmo-3-7b/
-├── pretrained/                      shared base (param folder)
-├── experts/{Math,Code,IF}/          pretrained/ (→ ../../pretrained), finetuned/, covariance.pt
-├── merged/{method}/                 merged HF model
-└── legacy/                          parked: old *-chat-* views and *-old snapshots (nothing deleted)
+├── pretrained/                      shared base (param folder), model-level (above groups)
+├── group-rl-zero/
+│   ├── experts/{Math,Code,IF}/      pretrained/ (→ ../../../pretrained), finetuned/, covariance.pt
+│   ├── merged/{method}/             merged HF model
+│   └── legacy/                      parked: old *-chat-* views and *-old snapshots (nothing deleted)
+└── group-polyglot/
+    └── merged/{method}/             merged HF model (4 multilingual SFT experts)
 ```
 
 ### Migration
 
-`scripts/vision/migrate_artifacts.py` migrates an old flat tree into this layout
-(dry-run by default; `--apply`, `--canonical`, `--pipeline {vision,language,olmo}`). It
-emits a reversible undo script (`artifacts/migrate_undo.sh`). The OLMo pass parks
-regenerable views and stale dirs under `legacy/` and repoints their symlinks post-move.
-Still on the legacy flat `artifacts/results/{model}-{method}/` layout: **OLMo results**
-and the **polyglot** pipelines.
+Two passes, both dry-run by default with reversible, move-only undo scripts:
+- `scripts/vision/migrate_artifacts.py` — old **flat → nested** layout
+  (`--apply`, `--canonical`, `--pipeline {vision,language,olmo}`; undo `artifacts/migrate_undo.sh`).
+- `scripts/migrate_to_groups.py` — **nested → grouped** (inserts `group-{group}`;
+  `--apply`, `--pipeline {vision,language,olmo,all}`; undo `artifacts/migrate_groups_undo.sh`).
+  Vision builds the `group-8` / `group-14` expert symlink farms into `group-20`; OLMo
+  unifies `Olmo-3-7b` (rl-zero) + `Olmo-3-7b-polyglot-all` (polyglot) and repoints the
+  merged-view symlinks. Exotic vision buckets (`results-{wang,sgd,mixed}`, the dashless
+  `results14` / `results20`) and the `results-polyglot*` buckets remain deferred.
 
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 
@@ -126,7 +140,7 @@ bash scripts/vision/eval_experts.sh
 bash scripts/vision/eval_task_addition.sh
 ```
 
-Results land under `artifacts/results-{N}tasks/{model}/merged/{method}/metrics.json`
+Results land under `artifacts/results/{model}/group-{N}/merged/{method}/metrics.json`
 (see [Artifacts layout](#artifacts-layout)).
 
 ## Language Experiments (T5-Base / T5-Large)

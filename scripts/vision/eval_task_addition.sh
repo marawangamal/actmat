@@ -17,10 +17,12 @@ source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-# Bucket bases. Checkpoints are shared across task-counts; the 8/14/20 suite is
-# carried by the results suffix (RESULTS_DIR, set from NUM_TASKS below):
-#   results:  artifacts/results-{N}tasks/{model}/merged/{method}/[lora_]metrics.json
-#   ckpts:    artifacts/checkpoints/{model}/experts/{dataset}Val/
+# Bucket bases. The 8/14/20 suite is carried by the `group-{N}` path level
+# (--group=$NUM_TASKS below), uniform across checkpoints and results:
+#   results:  artifacts/results/{model}/group-{N}/merged/{method}/[lora_]metrics.json
+#   ckpts:    artifacts/checkpoints/{model}/group-{N}/experts/{dataset}Val/
+# Vision expert checkpoints physically live in group-20 (the superset); group-8
+# and group-14 experts are symlinks into it, so eval at any N reads one store.
 CKPT_ROOT="artifacts/checkpoints"
 DATA_DIR="$PWD/artifacts/data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
@@ -72,8 +74,8 @@ case "$NUM_TASKS" in
   *)  echo "Unsupported NUM_TASKS=$NUM_TASKS (expected 8|14|20)"; exit 1 ;;
 esac
 
-# Task-count lives in the results suffix (checkpoints are shared across counts).
-RESULTS_DIR="artifacts/results-${NUM_TASKS}tasks"
+# Task-count is the `group-{N}` path level (--group below); results_dir is bare.
+RESULTS_DIR="artifacts/results"
 
 MODELS=(ViT-B-32 ViT-L-14)
 FT_MODE="lora"
@@ -92,6 +94,7 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --finetuning-mode="$FT_MODE" \
       --save="$CKPT_ROOT" \
+      --group="$NUM_TASKS" \
       --data-location="$DATA_DIR" \
       --eval-datasets="$EVAL_DATASETS" \
       --mha=split
@@ -101,6 +104,7 @@ for MODEL in "${MODELS[@]}"; do
       --model="$MODEL" \
       --finetuning-mode="$FT_MODE" \
       --save="$CKPT_ROOT" \
+      --group="$NUM_TASKS" \
       --data-location="$DATA_DIR" \
       --eval-datasets="$EVAL_DATASETS" \
       --mha=split
@@ -116,6 +120,7 @@ for MODEL in "${MODELS[@]}"; do
     --merge-func="$method" \
     --merge-mode="$MERGE_MODE" \
     --results-dir="$RESULTS_DIR" \
+    --group="$NUM_TASKS" \
     --eval-datasets="$EVAL_DATASETS" \
     --mha=split \
     ${HPO:+--hpo="$HPO"}

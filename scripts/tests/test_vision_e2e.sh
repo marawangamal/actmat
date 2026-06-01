@@ -78,12 +78,12 @@ python scripts/vision/eval_task_addition.py \
     --eval-val-max-batches=1 \
     --overwrite
 
-# Structured layout (standard FT => no lora_ prefix). The task-count suffix is
-# carried by --results-dir, which the test sets explicitly, so paths nest directly.
+# Structured layout (standard FT => no lora_ prefix). No --group is passed, so
+# everything nests under the default group-main path level.
 for f in \
-    "$TEST_RESULTS_DIR/$MODEL/pretrained/metrics.json" \
-    "$TEST_RESULTS_DIR/$MODEL/experts/metrics.json" \
-    "$TEST_RESULTS_DIR/$MODEL/merged/sum/metrics.json"; do
+    "$TEST_RESULTS_DIR/$MODEL/group-main/pretrained/metrics.json" \
+    "$TEST_RESULTS_DIR/$MODEL/group-main/experts/metrics.json" \
+    "$TEST_RESULTS_DIR/$MODEL/group-main/merged/sum/metrics.json"; do
     if [[ ! -f "$f" ]]; then
         echo "FAIL: expected $f to exist"
         exit 1

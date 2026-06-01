@@ -21,7 +21,7 @@ MATH_EXPERT="Qwen/Qwen2.5-Math-1.5B"
 CODER_EXPERT="Qwen/Qwen2.5-Coder-1.5B"
 METHODS=(sum mean actmat tsv)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-MERGED_DIR="artifacts/checkpoints/Qwen2.5-1.5B/merged/${METHOD}"
+MERGED_DIR="artifacts/checkpoints/Qwen2.5-1.5B/group-main/merged/${METHOD}"
 
 # 1. Merge (chat template from the math expert)
 python src/hf/merge.py \
@@ -37,4 +37,4 @@ lm_eval --model hf \
   --tasks gsm8k,humaneval \
   --batch_size auto \
   --confirm_run_unsafe_code \
-  --output_path "artifacts/results/Qwen2.5-1.5B/merged/$METHOD"
+  --output_path "artifacts/results/Qwen2.5-1.5B/group-main/merged/$METHOD"

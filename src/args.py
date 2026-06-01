@@ -293,6 +293,16 @@ def parse_arguments():
         help="Base directory for results output.",
     )
     parser.add_argument(
+        "--group",
+        type=str,
+        default="main",
+        help=(
+            "Experiment-suite path level inserted as 'group-<group>' between "
+            "<model> and the experts/multitask/merged subdirs (vision: 8|14|20; "
+            "OLMo: rl-zero|polyglot; default: main)."
+        ),
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         default=False,

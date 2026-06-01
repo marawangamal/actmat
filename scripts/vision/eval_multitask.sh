@@ -35,6 +35,7 @@ for MODEL in "${MODELS[@]}"; do
   python scripts/vision/eval_multitask.py \
     --model="$MODEL" \
     --finetuning-mode="$FT_MODE" \
+    --group=20 \
     --cache-dir="$OPENCLIP_DIR" \
     --data-location="$DATA_DIR"
 done

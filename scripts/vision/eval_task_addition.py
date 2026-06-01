@@ -31,7 +31,9 @@ eval_datasets = args.eval_datasets or [
 ]
 
 results_file = Path(
-    merged_results_path(args.results_dir, args.model, merge_name, args.merge_mode, prefix)
+    merged_results_path(
+        args.results_dir, args.model, merge_name, args.merge_mode, prefix, group=args.group
+    )
 )
 if results_file.exists() and not args.overwrite:
     print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")

@@ -43,5 +43,6 @@ python scripts/vision/finetune_mtl.py \
   --cache-dir="$OPENCLIP_DIR" \
   --data-location="$DATA_DIR" \
   --save="$SAVE_DIR" \
+  --group=20 \
   --checkpoint-every=500 \
   --patience=10

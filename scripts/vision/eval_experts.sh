@@ -17,9 +17,9 @@ source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-# Bucket bases. Checkpoints are shared across task-counts; the 8/14/20 suite is
-# carried by the results suffix (RESULTS_DIR, set from NUM_TASKS below):
-#   results:  artifacts/results-{N}tasks/{model}/experts/[lora_]metrics.json
+# Bucket bases. The 8/14/20 suite is the `group-{N}` path level (--group=$NUM_TASKS
+# below), uniform across checkpoints and results:
+#   results:  artifacts/results/{model}/group-{N}/experts/[lora_]metrics.json
 CKPT_ROOT="artifacts/checkpoints"
 DATA_DIR="$PWD/artifacts/data/vision"
 
@@ -65,8 +65,8 @@ case "$NUM_TASKS" in
   *)  echo "Unsupported NUM_TASKS=$NUM_TASKS (expected 8|14|20)"; exit 1 ;;
 esac
 
-# Task-count lives in the results suffix (checkpoints are shared across counts).
-RESULTS_DIR="artifacts/results-${NUM_TASKS}tasks"
+# Task-count is the `group-{N}` path level (--group below); results_dir is bare.
+RESULTS_DIR="artifacts/results"
 
 # 2. Array dispatch: one task per model.
 MODELS=(ViT-B-16 ViT-B-32 ViT-L-14)
@@ -80,6 +80,7 @@ for FT_MODE in "${FT_MODES[@]}"; do
     --model="$MODEL" \
     --finetuning-mode="$FT_MODE" \
     --save="$CKPT_ROOT" \
+    --group="$NUM_TASKS" \
     --data-location="$DATA_DIR" \
     --results-dir="$RESULTS_DIR" \
     --eval-datasets="$EVAL_DATASETS"

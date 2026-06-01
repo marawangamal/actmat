@@ -18,7 +18,7 @@ BASE_MODEL="meta-llama/Llama-2-13b-hf"
 CHAT_TEMPLATE="vanillaOVO/WizardMath-13B-V1.0"
 METHODS=(sum mean actmat tsv)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-MERGED_DIR="artifacts/checkpoints/WizardLM/merged/${METHOD}"
+MERGED_DIR="artifacts/checkpoints/WizardLM/group-main/merged/${METHOD}"
 
 # 1. Merge (chat template from the math expert)
 python src/hf/merge.py \
@@ -34,4 +34,4 @@ lm_eval --model hf \
   --model_args "pretrained=$MERGED_DIR" \
   --tasks gsm8k \
   --batch_size auto \
-  --output_path "artifacts/results/WizardLM/merged/$METHOD"
+  --output_path "artifacts/results/WizardLM/group-main/merged/$METHOD"

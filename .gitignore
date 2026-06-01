@@ -18,6 +18,8 @@ data/
 artifacts/logs
 artifacts/checkpoints*
 artifacts/results-polyglot-sanity/
+artifacts/testing-results/
+artifacts/testing-checkpoints/
 
 wandb
 

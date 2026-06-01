@@ -81,9 +81,9 @@ accuracies["avg_test"] = (sum(test_scores) / len(test_scores)) if test_scores el
 
 # Save results (zeroshot treated as a method, parallel to eval_task_addition.py).
 if args.finetuning_mode == "none":
-    results_file = Path(pretrained_results_path(args.results_dir, args.model, prefix))
+    results_file = Path(pretrained_results_path(args.results_dir, args.model, prefix, group=args.group))
 else:
-    results_file = Path(experts_results_path(args.results_dir, args.model, prefix))
+    results_file = Path(experts_results_path(args.results_dir, args.model, prefix, group=args.group))
 results_file.parent.mkdir(parents=True, exist_ok=True)
 
 tasks = [

@@ -71,6 +71,7 @@ for MODEL in "${MODELS[@]}"; do
       --cache-dir="$OPENCLIP_DIR" \
       --data-location="$DATA_DIR" \
       --save="$SAVE_DIR" \
+      --group=20 \
       --train-dataset "$DATASET"
   done
 done

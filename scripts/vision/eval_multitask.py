@@ -56,7 +56,7 @@ test_scores = [
 accuracies["avg_val"] = (sum(val_scores) / len(val_scores)) if val_scores else None
 accuracies["avg_test"] = (sum(test_scores) / len(test_scores)) if test_scores else None
 
-results_file = Path(multitask_results_path(args.results_dir, args.model, prefix))
+results_file = Path(multitask_results_path(args.results_dir, args.model, prefix, group=args.group))
 results_file.parent.mkdir(parents=True, exist_ok=True)
 
 tasks = [

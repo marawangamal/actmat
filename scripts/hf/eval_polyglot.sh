@@ -28,8 +28,10 @@ METHODS=(sum mean actmat tsv isoc wudi actmat_gd)
 METHOD="${METHODS[${SLURM_ARRAY_TASK_ID:-0}]}"
 TASKS_LMEVAL="mgsm_native_cot_de,mgsm_native_cot_es"
 TASKS_LIGHTEVAL="global_mmlu_lite:ar,global_mmlu_lite:de,global_mmlu_lite:es,mrewardbench_mcf:ar,mrewardbench_mcf:cs,mrewardbench_mcf:de,mrewardbench_mcf:es"
-MERGED_PATH="artifacts/checkpoints/Olmo-3-7b-polyglot/merged/${METHOD}"
-RESULTS_PATH="artifacts/results/Olmo-3-7b-polyglot/merged/${METHOD}"
+# Polyglot experts live under group-polyglot of the shared Olmo-3-7b model dir
+# (RL-Zero is group-rl-zero).
+MERGED_PATH="artifacts/checkpoints/Olmo-3-7b/group-polyglot/merged/${METHOD}"
+RESULTS_PATH="artifacts/results/Olmo-3-7b/group-polyglot/merged/${METHOD}"
 export HF_HOME=$SCRATCH/huggingface NLTK_DATA=$SCRATCH/nltk_data SSL_CERT_DIR=/etc/ssl/certs
 
 # 1. Merge (lm-eval venv)
