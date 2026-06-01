@@ -774,8 +774,8 @@ def merge_actmat_5k(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
-merge_actmat_gd_5k = lambda d, **kwargs: (
-    merge_actmat_gd(d, **kwargs) if d.shape[-1] <= 5_000 else d.mean(0)
+merge_actmat_gd_10ki = lambda d, **kwargs: (
+    merge_actmat_gd(d, **kwargs) if d.shape[-1] <= 10_000 else d.mean(0)
 )
 
 
