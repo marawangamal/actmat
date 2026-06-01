@@ -39,10 +39,14 @@ export PYTHONPATH="$PYTHONPATH:$PWD"
   --base-model-name-or-path "$BASE" --chat-template-name-or-path "${EXPERTS[2]}" \
   --expert-model-names-or-paths "${EXPERTS[@]}" --merge-method "$METHOD" --output-dir "$MERGED_PATH"
 
-# 2. M-GSM (CoT, 5-shot) — lm-eval, same venv
+# 2. M-GSM (CoT, 5-shot) — lm-eval, same venv. lm-eval nests the json under a
+# sanitized-model-name subdir; flatten it up to lmeval/ to mirror lighteval.
 lm_eval --model hf --model_args "pretrained=$MERGED_PATH,dtype=bfloat16,max_length=4096" \
   --tasks "$TASKS_LMEVAL" --num_fewshot 5 \
   --batch_size 16 --output_path "$RESULTS_PATH/lmeval"
+for inner in "$RESULTS_PATH"/lmeval/*/; do
+  [ -d "$inner" ] && { mv "$inner"* "$RESULTS_PATH/lmeval/"; rmdir "$inner"; }
+done
 deactivate
 
 # 3. MMLU + M-RewardBench — lighteval fork venv
