@@ -1,0 +1,101 @@
+{
+    "all_primary_scores": [
+        "Cars: 0.779381",
+        "DTD: 0.553723",
+        "EuroSAT: 0.637037",
+        "GTSRB: 0.505542",
+        "MNIST: 0.763600",
+        "RESISC45: 0.713333",
+        "SUN397: 0.682368",
+        "SVHN: 0.584473"
+    ],
+    "tasks": [
+        {
+            "alias": "Cars",
+            "metrics": {
+                "top1": 0.7793806740455167,
+                "primary_score": 0.7793806740455167
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "DTD",
+            "metrics": {
+                "top1": 0.5537234042553192,
+                "primary_score": 0.5537234042553192
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "EuroSAT",
+            "metrics": {
+                "top1": 0.6370370370370371,
+                "primary_score": 0.6370370370370371
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "GTSRB",
+            "metrics": {
+                "top1": 0.5055423594615994,
+                "primary_score": 0.5055423594615994
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "MNIST",
+            "metrics": {
+                "top1": 0.7636,
+                "primary_score": 0.7636
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "RESISC45",
+            "metrics": {
+                "top1": 0.7133333333333334,
+                "primary_score": 0.7133333333333334
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "SUN397",
+            "metrics": {
+                "top1": 0.6823677581863979,
+                "primary_score": 0.6823677581863979
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        },
+        {
+            "alias": "SVHN",
+            "metrics": {
+                "top1": 0.5844729563614014,
+                "primary_score": 0.5844729563614014
+            },
+            "task_config": {
+                "primary_metric": "top1"
+            }
+        }
+    ],
+    "model_config": {
+        "model": "ViT-L-14",
+        "finetuning_mode": "none",
+        "seed": null,
+        "avg_val": 0.658613439292259,
+        "avg_test": 0.6629708657579806
+    }
+}

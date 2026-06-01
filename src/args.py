@@ -79,6 +79,19 @@ def parse_arguments():
     )
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate.")
     parser.add_argument("--wd", type=float, default=0.1, help="Weight decay.")
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        default="adamw",
+        choices=["adamw", "sgd"],
+        help="Optimizer for vision fine-tuning.",
+    )
+    parser.add_argument(
+        "--momentum",
+        type=float,
+        default=0.9,
+        help="Momentum (SGD optimizer only).",
+    )
     parser.add_argument("--ls", type=float, default=0.0, help="Label smoothing.")
     parser.add_argument("--warmup-length", type=int, default=500)
     parser.add_argument("--epochs", type=int, default=10)
@@ -100,6 +113,12 @@ def parse_arguments():
         default=None,
         help="Cap on optimizer steps for training. None means train all epochs.",
     )
+    parser.add_argument(
+        "--max-samples",
+        type=int,
+        default=None,
+        help="Cap on unique training examples per dataset. None means use the full train split.",
+    )
     parser.add_argument("--seed", type=int, default=None, help="Random seed.")
     parser.add_argument(
         "--world-size",
@@ -120,6 +139,13 @@ def parse_arguments():
         help="Checkpoint / validation evaluation every N steps. -1 disables.",
     )
     parser.add_argument(
+        "--checkpoint-step",
+        type=str,
+        default=None,
+        help="Eval-only: load intermediate `checkpoint_{step}.pt` instead of `finetuned.pt`. "
+             "Pass an integer step (e.g. '200') or 'final' for the default behavior.",
+    )
+    parser.add_argument(
         "--keep-checkpoints",
         type=int,
         default=-1,
@@ -130,6 +156,20 @@ def parse_arguments():
         type=int,
         default=5,
         help="Stop training after this many checkpoints without validation improvement.",
+    )
+    parser.add_argument(
+        "--early-stop",
+        action="store_true",
+        default=False,
+        help="Single-task FT: evaluate the val split every epoch, save the best "
+             "model (by val top1) instead of the final one, and stop after "
+             "--patience epochs without improvement.",
+    )
+    parser.add_argument(
+        "--epochs-mult",
+        type=float,
+        default=1.0,
+        help="Scale the per-dataset epoch schedule by this factor (e.g. 2.0 = 2x epochs).",
     )
 
     # ─── Finetuning mode ──────────────────────────────────────────────────────
@@ -171,10 +211,28 @@ def parse_arguments():
         help="Substrings of parameter keys to exclude from merging (averaged instead).",
     )
     parser.add_argument(
+        "--ignore-keys-file",
+        type=str,
+        default=None,
+        help="Path to a text file with one ignore-key substring per line ('#' comments and blank lines skipped). Merged with --ignore-keys.",
+    )
+    parser.add_argument(
+        "--freeze-keys",
+        nargs="+",
+        default=None,
+        help="Substrings of parameter keys to freeze at pretrained values (no delta applied).",
+    )
+    parser.add_argument(
         "--merge-kwargs",
         type=json.loads,
         default={},
         help="JSON dict of extra kwargs forwarded to the merge function.",
+    )
+    parser.add_argument(
+        "--sigma",
+        type=float,
+        default=0.0,
+        help="Std of per-task scaling coefficient α_t ~ N(1.0, sigma) applied before merging. 0.0 disables.",
     )
 
     # ─── Statistics (covariance / fisher) ─────────────────────────────────────
@@ -235,6 +293,16 @@ def parse_arguments():
         help="Base directory for results output.",
     )
     parser.add_argument(
+        "--group",
+        type=str,
+        default="main",
+        help=(
+            "Experiment-suite path level inserted as 'group-<group>' between "
+            "<model> and the experts/multitask/merged subdirs (vision: 8|14|20; "
+            "OLMo: rl-zero|polyglot; default: main)."
+        ),
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         default=False,
@@ -275,6 +343,14 @@ def parse_arguments():
         help="OLMo finetune/covariance: capability subset (math, code, if, all).",
     )
     parser.add_argument(
+        "--merge-tasks",
+        type=str,
+        nargs="+",
+        default=None,
+        help="Param-folder merge: names of the per-task subdirs under --save to "
+        "merge (e.g. ar cs de es). Defaults to the OLMo experts (Math Code IF).",
+    )
+    parser.add_argument(
         "--bf16", action="store_true", default=False, help="OLMo: use bfloat16."
     )
     parser.add_argument(
@@ -298,4 +374,14 @@ def parse_arguments():
 
     if parsed_args.load is not None and len(parsed_args.load) == 1:
         parsed_args.load = parsed_args.load[0]
+
+    if parsed_args.ignore_keys_file is not None:
+        with open(parsed_args.ignore_keys_file) as f:
+            file_keys = [
+                line.strip()
+                for line in f
+                if line.strip() and not line.lstrip().startswith("#")
+            ]
+        parsed_args.ignore_keys = (parsed_args.ignore_keys or []) + file_keys
+
     return parsed_args

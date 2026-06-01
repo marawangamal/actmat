@@ -15,25 +15,42 @@ UV_PROJECT_ENVIRONMENT=.venv-vl   uv sync --group vision-language
 UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo
 ```
 
+The **polyglot** (multilingual OLMo3) experiment adds two more conflicting groups,
+each its own venv (their numpy/datasets pins are mutually incompatible):
+
+```sh
+# M-GSM (lm-eval) — plain sync
+UV_PROJECT_ENVIRONMENT=.venv-pg-mgsm uv sync --group polyglot-mgsm
+# MMLU+MRB (lighteval fork) — sync the PyPI base, then OVERLAY the ./lighteval
+# submodule with --no-deps (a managed source would fail to resolve numpy>=2/datasets>=4)
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv sync --group polyglot-mmlu-mrb
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv pip install --python .venv-pg-mmlu-mrb -e ./lighteval --no-deps
+```
+Re-running `uv sync --group polyglot-mmlu-mrb` clobbers the fork — re-run the
+overlay line. See the repo README for full details.
+
 Every shell that runs a script needs:
 
 ```sh
 export PYTHONPATH="$PYTHONPATH:$(pwd)"   # repo root is the src root
 export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
-source .venv-vl/bin/activate              # or .venv-olmo
+source .venv-vl/bin/activate              # or .venv-olmo / .venv-pg-mmlu-mrb / .venv-pg-mgsm
 ```
 
-`olmes/` is a git submodule (path-installed via `ai2-olmes`). Use `git submodule update --init --recursive` after a fresh clone.
+`olmes/` and `lighteval/` are git submodules (olmes path-installed via `ai2-olmes`; lighteval overlaid `--no-deps` into `.venv-pg-mmlu-mrb`). Use `git submodule update --init --recursive` after a fresh clone.
 
 Vision experiments expect `vit_datasets_08.zip` (symlinked from `~/scratch/actmat-2026-05-04/`) to be copied to `$SLURM_TMPDIR/datasets`; this is done by the SLURM scripts.
 
 ## Common commands
 
-End-to-end smoke test (uses 2 training steps on MNIST+SVHN with ViT-B-32):
+End-to-end smoke tests (2 training steps, then eval + merge; verify the grouped
+`group-main` result paths). Vision uses MNIST+SVHN/ViT-B-32; language uses
+paws+wiki_qa/t5-base:
 
 ```sh
-bash scripts/tests/test_e2e.sh
+sbatch scripts/tests/test_vision_e2e.sh
+sbatch scripts/tests/test_language_e2e.sh
 ```
 
 Run a single vision merge eval directly (skip SLURM):
@@ -74,9 +91,52 @@ A `_TaskVector` is built from a `checkpoint_dir` containing `pretrained.pt` + `{
 
 `covariance.py` / `fisher.py` in each pipeline's `scripts/` directory walk the model's linear/attention layers, accumulate (un)centered input second moments or diagonal Fisher over a few batches of training data, and write `covariance.pt` / `fisher.pt` next to the corresponding finetuned checkpoint. Knobs: `--cov-num-batches`, `--cov-batch-size`, `--cov-type {sm,cov}`, `--cov-estimator {full,sampled,avg}`, `--mha {split,packed}` (vision: replaces `nn.MultiheadAttention` with a custom module so Q/K/V cov can be collected per-head).
 
-### Results layout
+### Artifacts layout (vision + language)
 
-Per-run metrics land in `artifacts/results/{model}-{method}/metrics.json` (override with `--results-dir`). An append-only JSON-lines DB (`src/results_db.py`) hashes `(script, args)` into a 16-char run id so identical configurations are deduped; pass `--results-db <path>` to use it, `--overwrite` to ignore the cache.
+All pipelines follow a structured, nested convention whose path builders are the
+single source of truth in `src/utils.py` (`group_dir`, `resolve_run_dir`, `expert_dir`,
+`head_path`, `merged_results_path`, `experts_results_path`, `pretrained_results_path`,
+`multitask_results_path`). `[lora_]` is the `get_prefix()` filename prefix; `{mode}`
+is `-w` for weight-space merges (omitted for the default difference merge). `group-{g}`
+is the **experiment-suite path level** (`--group`, default `main`) between `{model}` and
+the `experts|multitask|merged|pretrained` subdirs — vision `group-{8,14,20}`, OLMo
+`group-{rl-zero,polyglot}`, everything else `group-main`. `resolve_run_dir` injects it
+for checkpoints; the `*_results_path` builders take it as the `group=` kwarg.
+
+```
+checkpoints/{model}/group-{g}/experts/{dataset}[Val]/ pretrained.pt, [lora_]finetuned.pt, [lora_]covariance.pt, fisher.pt[, head.pt]
+checkpoints/{model}/group-{g}/multitask/             MTL checkpoint
+checkpoints/{model}/pretrained.pt                    shared base, model-level (above the group)
+
+results/{model}/group-{g}/merged/{method}[-{mode}]/[lora_]metrics.json
+results/{model}/group-{g}/experts/[lora_]metrics.json
+results/{model}/group-{g}/pretrained/[lora_]metrics.json   (zero-shot baseline)
+results/{model}/group-{g}/multitask/[lora_]metrics.json
+```
+
+Vision-only quirks: dataset dirs carry a `Val` split suffix (`expert_dir(..., val_suffix=True)`,
+the default) and each holds a co-located `head.pt`; language passes `val_suffix=False`
+and has neither. The vision task-count (8/14/20) is the `group` value, passed as
+`--group=$NUM_TASKS` by a single `eval_task_addition.sh` / `eval_experts.sh`. Vision
+expert **checkpoints are shared across suites**: they live physically in `group-20`
+(the superset), and `group-8` / `group-14` expert dirs are **symlinks** into it (so
+finetuning runs once; `finetune_array.sh` / `finetune_mtl.sh` pass `--group=20`).
+Language uses `group-main` throughout. Named experiment buckets (`results-wang`,
+`results-sgd`, `results-mixed`) are exotic and stay on `group-main` by default.
+
+Two migration passes, both dry-run by default with reversible, move-only undo scripts:
+`scripts/vision/migrate_artifacts.py` (old **flat → nested**; `--pipeline {vision,language,olmo}`,
+`--canonical`, undo `artifacts/migrate_undo.sh`) and `scripts/migrate_to_groups.py`
+(**nested → grouped**; `--pipeline {vision,language,olmo,all}`, undo
+`artifacts/migrate_groups_undo.sh`). The grouped pass builds the vision symlink farms and
+**unifies OLMo** `Olmo-3-7b` (rl-zero) + `Olmo-3-7b-polyglot-all` (polyglot) into one
+`Olmo-3-7b` model dir, repointing the merged-view symlinks. Exotic vision buckets
+(sgd/wang/ilharco/mixed/analysis, the dashless `results14`/`results20`), the `t5-*-faulty`
+results, and the `results-polyglot*` buckets are deferred (still pre-group).
+
+An append-only JSON-lines DB (`src/results_db.py`) hashes `(script, args)` into a
+16-char run id so identical configurations are deduped; pass `--results-db <path>`
+to use it, `--overwrite` to ignore the cache.
 
 ### Vision MHA quirk
 

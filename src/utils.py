@@ -9,8 +9,20 @@ def get_prefix(finetuning_mode):
     return {"linear": "linear_", "lora": "lora_"}.get(finetuning_mode, "")
 
 
+def group_dir(group):
+    """The group path level: 'group-<group>' (default 'group-main').
+
+    `group` is the experiment-suite axis carried as a real path level between
+    <model> and the {experts|multitask|merged} subdirs (vision: 8/14/20; OLMo:
+    rl-zero/polyglot; everything else: main). Single source of truth so writers
+    and readers agree.
+    """
+    return f"group-{group or 'main'}"
+
+
 def resolve_run_dir(args):
-    """Resolve the per-run checkpoint directory: <save>/<model>[/seed_X][/max_steps_Y].
+    """Resolve the per-run checkpoint directory:
+    <save>/<model>/group-<group>[/seed_X][/max_steps_Y].
 
     Defaults args.save to 'artifacts/checkpoints' when unset. Used by both
     writers (finetune scripts that create the dir) and readers
@@ -18,12 +30,92 @@ def resolve_run_dir(args):
     one place.
     """
     base = args.save if args.save is not None else "artifacts/checkpoints"
-    run = os.path.join(base, args.model)
+    run = os.path.join(base, args.model, group_dir(getattr(args, "group", "main")))
     if getattr(args, "seed", None) is not None:
         run = os.path.join(run, f"seed_{args.seed}")
     if getattr(args, "max_steps", None) is not None:
         run = os.path.join(run, f"max_steps_{args.max_steps}")
+    if getattr(args, "max_samples", None) is not None:
+        run = os.path.join(run, f"max_samples_{args.max_samples}")
     return run
+
+
+# --- Structured artifacts layout -------------------------------------------
+# Single source of truth for the on-disk convention. `save` here is the
+# per-model run dir (i.e. the output of resolve_run_dir, <base>/<model>/group-<g>);
+# `results_dir` is the bucket base, artifacts/results.
+#
+#   checkpoints:  <save>/experts/<dataset>Val/       per-expert checkpoints
+#                 <save>/multitask/                  MTL checkpoint
+#   results:      <results_dir>/<model>/group-<g>/merged/<method>[-<mode>]/[lora_]metrics.json
+#                 <results_dir>/<model>/group-<g>/experts/[lora_]metrics.json
+#                 <results_dir>/<model>/group-<g>/pretrained/[lora_]metrics.json
+#                 <results_dir>/<model>/group-<g>/multitask/[lora_]metrics.json
+# The per-suite axis (vision 8/14/20-task; OLMo rl-zero/polyglot) is the
+# `group-<g>` path level — uniform across the vision/language/OLMo pipelines.
+# resolve_run_dir injects it for checkpoints; the results builders below take
+# it as the `group` argument.
+
+
+def expert_dir(save, dataset, val_suffix=True):
+    """Per-expert checkpoint directory: <save>/experts/<dataset>[Val].
+
+    Vision appends the "Val" split suffix to the dataset name (its checkpoints are
+    keyed by the val variant); language/OLMo pass val_suffix=False to use the bare
+    dataset name.
+    """
+    leaf = f"{dataset}Val" if val_suffix and not dataset.endswith("Val") else dataset
+    return os.path.join(save, "experts", leaf)
+
+
+def head_path(save, dataset):
+    """Classification head, co-located with its expert: <save>/experts/<dataset>Val/head.pt.
+
+    The head is a per-dataset (FT-mode-agnostic) artifact, so it lives in the same
+    dir as that dataset's expert checkpoints rather than a separate top-level dir.
+    """
+    return os.path.join(expert_dir(save, dataset), "head.pt")
+
+
+def sanitize_hf_id(name_or_path):
+    """HF id / local path -> safe directory leaf (the repo/model basename).
+
+    e.g. "Qwen/Qwen2.5-Math-1.5B" -> "Qwen2.5-Math-1.5B"; a local path keeps its
+    final component. Used to key per-expert stats sidecars in the HF pathway,
+    whose weights live on the Hub rather than in our tree.
+    """
+    return os.path.basename(str(name_or_path).rstrip("/"))
+
+
+def _merge_mode_str(merge_mode):
+    return f"-{merge_mode}" if merge_mode and merge_mode != "d" else ""
+
+
+def merged_results_path(results_dir, model, method, merge_mode, prefix="", group="main"):
+    """<results_dir>/<model>/group-<group>/merged/<method>[-<mode>]/[prefix]metrics.json."""
+    return os.path.join(
+        results_dir,
+        model,
+        group_dir(group),
+        "merged",
+        f"{method}{_merge_mode_str(merge_mode)}",
+        f"{prefix}metrics.json",
+    )
+
+
+def experts_results_path(results_dir, model, prefix="", group="main"):
+    """<results_dir>/<model>/group-<group>/experts/[prefix]metrics.json."""
+    return os.path.join(results_dir, model, group_dir(group), "experts", f"{prefix}metrics.json")
+
+
+def pretrained_results_path(results_dir, model, prefix="", group="main"):
+    """<results_dir>/<model>/group-<group>/pretrained/[prefix]metrics.json (zero-shot baseline)."""
+    return os.path.join(results_dir, model, group_dir(group), "pretrained", f"{prefix}metrics.json")
+
+
+def multitask_results_path(results_dir, model, prefix="", group="main"):
+    """<results_dir>/<model>/group-<group>/multitask/[prefix]metrics.json."""
+    return os.path.join(results_dir, model, group_dir(group), "multitask", f"{prefix}metrics.json")
 
 
 def assign_learning_rate(param_group, new_lr):

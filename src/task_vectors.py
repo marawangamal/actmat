@@ -18,12 +18,15 @@ class _TaskVector(abc.ABC):
         _transform_fn=None,
         prefix="",
         save_pt=False,  # useful for RegMean on weights vs on differences
+        finetuned_filename=None,
     ):
         """Initializes the task vector from a checkpoint directory or a pre-computed vector.
 
         When checkpoint_dir is provided, loads pretrained and finetuned checkpoints
         from that directory. Pretrained is always PRETRAINED_FILENAME; finetuned
-        is {prefix}{FINETUNED_FILENAME} (e.g. "lora_finetuned.pt").
+        is {prefix}{FINETUNED_FILENAME} (e.g. "lora_finetuned.pt"), unless
+        finetuned_filename overrides it (used for trajectory analysis to load
+        intermediate `checkpoint_{step}.pt` snapshots).
         Also auto-discovers covariance.pt and fisher.pt in the directory.
 
         When vector is provided, uses the pre-computed task vector dict directly
@@ -45,23 +48,40 @@ class _TaskVector(abc.ABC):
             self._pretrained_checkpoint = os.path.join(
                 checkpoint_dir, self.PRETRAINED_FILENAME
             )
+            ft_name = finetuned_filename if finetuned_filename is not None else self.FINETUNED_FILENAME
             self._finetuned_checkpoint = os.path.join(
-                checkpoint_dir, f"{prefix}{self.FINETUNED_FILENAME}"
+                checkpoint_dir, f"{prefix}{ft_name}"
             )
         else:
             self._pretrained_checkpoint = None
             self._finetuned_checkpoint = None
 
-        # Auto-discover statistics files
+        # Auto-discover statistics files. Prefer prefix-aware names so that
+        # standard vs lora covariances don't collide; fall back to unprefixed
+        # for pipelines (vision, OLMo) whose writers don't yet use the prefix.
+        # When finetuned_filename overrides the default (trajectory analysis),
+        # prefer the matching per-checkpoint cov (e.g. `covariance_checkpoint_200.pt`).
         self.covariance_path = None
         self.fisher_path = None
         if checkpoint_dir is not None:
-            cov_file = os.path.join(checkpoint_dir, "covariance.pt")
-            cov_dir = os.path.join(checkpoint_dir, "covariance")
-            if os.path.exists(cov_file):
-                self.covariance_path = cov_file
-            elif os.path.isdir(cov_dir):
-                self.covariance_path = cov_dir
+            cov_candidates = []
+            if finetuned_filename is not None:
+                stem = os.path.splitext(finetuned_filename)[0]  # e.g. "checkpoint_200"
+                cov_candidates.extend(
+                    [f"{prefix}covariance_{stem}.pt", f"covariance_{stem}.pt"]
+                )
+            cov_candidates.extend([f"{prefix}covariance.pt", "covariance.pt"])
+            for name in cov_candidates:
+                cov_file = os.path.join(checkpoint_dir, name)
+                if os.path.exists(cov_file):
+                    self.covariance_path = cov_file
+                    break
+            else:
+                for name in (f"{prefix}covariance", "covariance"):
+                    cov_dir = os.path.join(checkpoint_dir, name)
+                    if os.path.isdir(cov_dir):
+                        self.covariance_path = cov_dir
+                        break
 
             fisher_file = os.path.join(checkpoint_dir, "fisher.pt")
             fisher_dir = os.path.join(checkpoint_dir, "fisher")

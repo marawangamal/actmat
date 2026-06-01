@@ -3,12 +3,14 @@ import json
 import os
 from pathlib import Path
 
+import torch
+
 # from mha import copy_from_pytorch_state_dict, copy_to_pytorch_state_dict
 from src import mhap, mhas
 from src.args import parse_arguments
 from src.vision.eval import evaluate_task_vector_at_coef
 from src.merging import combine_task_vectors
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, merged_results_path, resolve_run_dir
 from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
 
 args = parse_arguments()
@@ -16,17 +18,6 @@ args.save = resolve_run_dir(args)
 
 prefix = get_prefix(args.finetuning_mode)
 merge_name = getattr(args, "merge_func", "sum")
-merge_mode_str = f"-{args.merge_mode}" if args.merge_mode != "d" else ""
-results_file = Path(
-    f"{args.results_dir}/{args.model}-{merge_name}{merge_mode_str}/{prefix}metrics.json"
-)
-if results_file.exists() and not args.overwrite:
-    print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")
-    exit(0)
-
-print("*" * 100)
-print(f"Evaluating {args.finetuning_mode} FT models. ({args.merge_func})")
-print("*" * 100)
 
 eval_datasets = args.eval_datasets or [
     "SUN397",
@@ -39,16 +30,39 @@ eval_datasets = args.eval_datasets or [
     "SVHN",
 ]
 
+results_file = Path(
+    merged_results_path(
+        args.results_dir, args.model, merge_name, args.merge_mode, prefix, group=args.group
+    )
+)
+if results_file.exists() and not args.overwrite:
+    print(f"Skipping: {results_file} already exists (use --overwrite to rerun)")
+    exit(0)
+
+print("*" * 100)
+print(f"Evaluating {args.finetuning_mode} FT models. ({args.merge_func})")
+print("*" * 100)
+
 task_vectors = []
 
+# Trajectory analysis: optionally load an intermediate `checkpoint_{step}.pt`
+# instead of `finetuned.pt`. "final" (or unset) means use the default.
+ckpt_step = getattr(args, "checkpoint_step", None)
+finetuned_filename = (
+    f"checkpoint_{ckpt_step}.pt"
+    if ckpt_step is not None and ckpt_step != "final"
+    else None
+)
+
 for i, dataset in enumerate(eval_datasets):
-    checkpoint_dir = f"{args.save}/{dataset}Val"
+    checkpoint_dir = expert_dir(args.save, dataset)
     if args.finetuning_mode == "linear":
         task_vectors.append(
             LinearizedTaskVector(
                 checkpoint_dir=checkpoint_dir,
                 prefix=prefix,
                 save_pt=args.merge_mode == "w" and i == 0,
+                finetuned_filename=finetuned_filename,
             )
         )
     else:
@@ -57,9 +71,17 @@ for i, dataset in enumerate(eval_datasets):
                 checkpoint_dir=checkpoint_dir,
                 prefix=prefix,
                 save_pt=args.merge_mode == "w" and i == 0,
+                finetuned_filename=finetuned_filename,
             )
         )
     print(f"Task vector {dataset} loaded")
+
+# Optional per-task coefficient perturbation: α_t ~ N(1.0, sigma).
+sigma = float(getattr(args, "sigma", 0.0) or 0.0)
+if sigma > 0.0:
+    alphas = (1.0 + sigma * torch.randn(len(task_vectors))).tolist()
+    print(f"[sigma={sigma}] α_t = {[f'{a:.4f}' for a in alphas]}")
+    task_vectors = [tv * a for a, tv in zip(alphas, task_vectors)]
 
 # For use with RegMean and Projected RegMean.
 #   i)  for projected regmean, mhap will package together orthgonally invariant matrices.
@@ -85,7 +107,7 @@ hp_combos = (
 args.control_dataset = None
 
 # Use last checkpoint_dir for apply_to (all share same pretrained model)
-pretrained_dir = f"{args.save}/{eval_datasets[-1]}Val"
+pretrained_dir = expert_dir(args.save, eval_datasets[-1])
 
 
 def _set_eval_split(split):

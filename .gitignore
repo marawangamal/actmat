@@ -8,6 +8,7 @@
 *predictions.jsonl
 *inputs.jsonl
 *requests.jsonl
+*.parquet
 
 .claude/
 .vscode/
@@ -16,5 +17,9 @@ uploads/
 data/
 artifacts/logs
 artifacts/checkpoints*
+artifacts/results-polyglot-sanity/
+artifacts/testing-results/
+artifacts/testing-checkpoints/
 
+wandb
 

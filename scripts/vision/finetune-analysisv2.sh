@@ -1,0 +1,51 @@
+#!/bin/bash
+#SBATCH --job-name=finetune_vision_analysisv2
+#SBATCH --partition=long
+#SBATCH --gres=gpu:rtx8000:1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=08:00:00
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
+
+set -euo pipefail
+mkdir -p artifacts/logs
+
+# 1. Setup environment (NOTE: change this to your environment)
+source ".venv-vl/bin/activate"
+export PYTHONPATH="$PYTHONPATH:$PWD"
+export SSL_CERT_DIR=/etc/ssl/certs
+DATA_DIR="data/vision"
+OPENCLIP_DIR="$SCRATCH/openclip"
+
+
+# 2. Download datasets (NOTE: change this to your environment)
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
+fi
+ln -sfn "$SLURM_TMPDIR/data" data
+
+# 3. Finetune models (using FFT & LoRA) — uses finetunev2 tracker
+MODELS=("${MODEL:-ViT-B-16}")
+FT_MODES=(standard)
+SAVE_DIR="artifacts/checkpoints-analysisv2-epochs1"
+
+for MODEL in "${MODELS[@]}"; do
+  for FT_MODE in "${FT_MODES[@]}"; do
+
+    echo "[BASH] Running finetunev2.py | model: $MODEL | ft mode: $FT_MODE | save dir: $SAVE_DIR"
+    python scripts/vision/finetunev2.py \
+      --finetuning-mode="$FT_MODE" \
+      --model="$MODEL" \
+      --world-size=1 \
+      --num-workers=1 \
+      --cache-dir="$OPENCLIP_DIR" \
+      --data-location="$DATA_DIR" \
+      --save="$SAVE_DIR" \
+      --epochs=1 \
+      --train-dataset=Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN \
+      --grad-cross-matrix
+
+  done
+done

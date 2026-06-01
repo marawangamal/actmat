@@ -1,0 +1,167 @@
+{
+  "all_primary_scores": [
+    "qasc: 0.980000",
+    "qascVal: 1.000000",
+    "wiki_qa: 0.956000",
+    "wiki_qaVal: 0.954000",
+    "quartz: 0.800000",
+    "quartzVal: 0.839000",
+    "paws: 0.939000",
+    "pawsVal: 0.941000",
+    "story_cloze: 0.818000",
+    "story_clozeVal: 0.812000",
+    "winogrande: 0.558000",
+    "winograndeVal: 0.719000",
+    "wsc: 0.569000",
+    "wscVal: 0.625000"
+  ],
+  "tasks": [
+    {
+      "alias": "qasc",
+      "metrics": {
+        "top1": 0.98,
+        "primary_score": 0.98
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "qascVal",
+      "metrics": {
+        "top1": 1.0,
+        "primary_score": 1.0
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wiki_qa",
+      "metrics": {
+        "top1": 0.956,
+        "primary_score": 0.956
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wiki_qaVal",
+      "metrics": {
+        "top1": 0.954,
+        "primary_score": 0.954
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "quartz",
+      "metrics": {
+        "top1": 0.8,
+        "primary_score": 0.8
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "quartzVal",
+      "metrics": {
+        "top1": 0.839,
+        "primary_score": 0.839
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "paws",
+      "metrics": {
+        "top1": 0.939,
+        "primary_score": 0.939
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "pawsVal",
+      "metrics": {
+        "top1": 0.941,
+        "primary_score": 0.941
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "story_cloze",
+      "metrics": {
+        "top1": 0.818,
+        "primary_score": 0.818
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "story_clozeVal",
+      "metrics": {
+        "top1": 0.812,
+        "primary_score": 0.812
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "winogrande",
+      "metrics": {
+        "top1": 0.558,
+        "primary_score": 0.558
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "winograndeVal",
+      "metrics": {
+        "top1": 0.719,
+        "primary_score": 0.719
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wsc",
+      "metrics": {
+        "top1": 0.569,
+        "primary_score": 0.569
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wscVal",
+      "metrics": {
+        "top1": 0.625,
+        "primary_score": 0.625
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "t5-base",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "avg_val": 0.8414285714285715,
+    "avg_test": 0.8028571428571427
+  }
+}

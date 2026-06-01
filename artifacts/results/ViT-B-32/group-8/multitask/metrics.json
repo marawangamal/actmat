@@ -1,0 +1,189 @@
+{
+  "all_primary_scores": [
+    "Cars: 0.762094",
+    "CarsVal: 0.742015",
+    "DTD: 0.768085",
+    "DTDVal: 0.800532",
+    "EuroSAT: 0.987407",
+    "EuroSATVal: 0.989259",
+    "GTSRB: 0.983927",
+    "GTSRBVal: 0.997748",
+    "MNIST: 0.997200",
+    "MNISTVal: 0.996200",
+    "RESISC45: 0.951111",
+    "RESISC45Val: 0.961376",
+    "SUN397: 0.746700",
+    "SUN397Val: 0.742569",
+    "SVHN: 0.972495",
+    "SVHNVal: 0.964600"
+  ],
+  "tasks": [
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.7620942668822286,
+        "primary_score": 0.7620942668822286
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "CarsVal",
+      "metrics": {
+        "top1": 0.742014742014742,
+        "primary_score": 0.742014742014742
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.7680851063829788,
+        "primary_score": 0.7680851063829788
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTDVal",
+      "metrics": {
+        "top1": 0.800531914893617,
+        "primary_score": 0.800531914893617
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.9874074074074074,
+        "primary_score": 0.9874074074074074
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSATVal",
+      "metrics": {
+        "top1": 0.9892592592592593,
+        "primary_score": 0.9892592592592593
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.9839271575613618,
+        "primary_score": 0.9839271575613618
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRBVal",
+      "metrics": {
+        "top1": 0.9977477477477478,
+        "primary_score": 0.9977477477477478
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9972,
+        "primary_score": 0.9972
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNISTVal",
+      "metrics": {
+        "top1": 0.9962,
+        "primary_score": 0.9962
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.9511111111111111,
+        "primary_score": 0.9511111111111111
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45Val",
+      "metrics": {
+        "top1": 0.9613756613756613,
+        "primary_score": 0.9613756613756613
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.7467002518891688,
+        "primary_score": 0.7467002518891688
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SUN397Val",
+      "metrics": {
+        "top1": 0.7425692695214106,
+        "primary_score": 0.7425692695214106
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.9724953902888752,
+        "primary_score": 0.9724953902888752
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHNVal",
+      "metrics": {
+        "top1": 0.9646,
+        "primary_score": 0.9646
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-32",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "avg_val": 0.8992873243515548,
+    "avg_test": 0.8961275864403915
+  }
+}

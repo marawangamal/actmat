@@ -1,7 +1,7 @@
 """Collects per-layer ||dL/dy||² and sampled entries of yy^T per sample.
 
 For each task, saves a single file at:
-  artifacts/checkpoints/{model}/{task}Val/correlation.pt
+  artifacts/checkpoints/{model}/experts/{task}Val/correlation.pt
 
 with keys:
   - g_sq/<layer>:         (N,) tensor of ||dL/dy||²
@@ -25,7 +25,7 @@ from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
 from src.vision.heads import get_classification_head
 from src.vision.modeling import ImageClassifier
 from src.args import parse_arguments
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 from src.vision.datasets.registry import get_dataset
 
 # K_SAMPLES = 32
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
 
     for task in tasks:
-        checkpoint_dir = f"{args.save}/{task}Val"
+        checkpoint_dir = expert_dir(args.save, task)
         corr_path = os.path.join(checkpoint_dir, "correlation.pt")
 
         if os.path.exists(corr_path) and not args.overwrite:

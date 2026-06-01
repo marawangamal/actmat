@@ -30,7 +30,7 @@ from src.language.datasets.pytorch_dataset import PytorchDataset
 from src.language.datasets.batcher import Batcher
 from src.language.datasets.dataset_readers import get_datasetReader
 from src.covariance import OnlineCovariance, register_hooks
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 
 
 def compute_covs(model, dataset_name, args, on_end=None):
@@ -61,9 +61,10 @@ def compute_covs(model, dataset_name, args, on_end=None):
 
     split = args.cov_split
     max_num_batches = args.cov_num_batches
-    data_iter = batcher.get_splitOfBatches(
-        split, template_idx=0, is_evaluation=(split != "train")
-    )
+    # is_evaluation=False forces train-style batches (target_ids/target_mask)
+    # regardless of split. T5Wrapper.forward requires target_ids; eval-mode
+    # batches emit all_choices_ids instead. Hooks only need a clean forward.
+    data_iter = batcher.get_splitOfBatches(split, template_idx=0, is_evaluation=False)
 
     mask_ref = [None, None]
     cobjs, handles = register_hooks(
@@ -127,8 +128,8 @@ if __name__ == "__main__":
     ]
 
     for dataset in T5_DATASETS:
-        checkpoint_dir = f"{args.save}/{dataset}"
-        cov_path = os.path.join(checkpoint_dir, "covariance.pt")
+        checkpoint_dir = expert_dir(args.save, dataset, val_suffix=False)
+        cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance.pt")
 
         if os.path.exists(cov_path) and not args.overwrite:
             print(f"Skipping {dataset} (cached: {cov_path})")

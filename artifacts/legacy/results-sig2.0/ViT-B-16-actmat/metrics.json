@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.002569",
+    "Cars: 0.005596",
+    "DTD: 0.039894",
+    "EuroSAT: 0.101481",
+    "GTSRB: 0.050356",
+    "MNIST: 0.098000",
+    "RESISC45: 0.025873",
+    "SVHN: 0.066994"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.0025692695214105795,
+        "primary_score": 0.0025692695214105795
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.00559631886581271,
+        "primary_score": 0.00559631886581271
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.0398936170212766,
+        "primary_score": 0.0398936170212766
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.10148148148148148,
+        "primary_score": 0.10148148148148148
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.0503562945368171,
+        "primary_score": 0.0503562945368171
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.098,
+        "primary_score": 0.098
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.025873015873015874,
+        "primary_score": 0.025873015873015874
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.06699446834665028,
+        "primary_score": 0.06699446834665028
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-16",
+    "merge_func": "actmat",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

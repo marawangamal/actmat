@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.545793",
+    "Cars: 0.585499",
+    "DTD: 0.882447",
+    "EuroSAT: 0.184815",
+    "GTSRB: 0.045606",
+    "MNIST: 0.990900",
+    "RESISC45: 0.890952",
+    "SVHN: 0.071873"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.5457934508816121,
+        "primary_score": 0.5457934508816121
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.585499316005472,
+        "primary_score": 0.585499316005472
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.8824468085106383,
+        "primary_score": 0.8824468085106383
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.18481481481481482,
+        "primary_score": 0.18481481481481482
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.04560570071258908,
+        "primary_score": 0.04560570071258908
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9909,
+        "primary_score": 0.9909
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.8909523809523809,
+        "primary_score": 0.8909523809523809
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.07187307928703135,
+        "primary_score": 0.07187307928703135
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-16",
+    "merge_func": "ace",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

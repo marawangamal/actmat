@@ -201,17 +201,64 @@ svhn_template = [
 ]
 
 
+flowers102_template = [
+    lambda c: f'a photo of a {c}, a type of flower.',
+]
+
+fer2013_template = [
+    lambda c: f'a photo of a {c} looking face.',
+    lambda c: f'a photo of a face showing the emotion: {c}.',
+    lambda c: f'a photo of a face looking {c}.',
+    lambda c: f'a face that looks {c}.',
+    lambda c: f'they look {c}.',
+    lambda c: f'look at how {c} they are.',
+]
+
+pcam_template = [
+    lambda c: f'this is a photo of {c}',
+]
+
+oxfordpets_template = [
+    lambda c: f'a photo of a {c}, a type of pet.',
+]
+
+emnist_template = [
+    lambda c: f'a photo of the digit character: "{c}".',
+]
+
+fashionmnist_template = [
+    lambda c: f'a photo of a {c}.',
+    lambda c: f'a photo of the {c}.',
+]
+
+sst2_template = [
+    lambda c: f'a {c} review of a movie.',
+]
+
+kmnist_template = [
+    lambda c: f'a photo of the character {c}.',
+]
+
+
 dataset_to_template = {
     'Cars': cars_template,
     'CIFAR10': cifar10_template,
     'CIFAR100': cifar100_template,
     'DTD': dtd_template,
+    'EMNIST': emnist_template,
     'EuroSAT': eurosat_template,
+    'FashionMNIST': fashionmnist_template,
+    'FER2013': fer2013_template,
+    'Flowers102': flowers102_template,
     'Food101': food101_template,
     'GTSRB': gtsrb_template,
+    'KMNIST': kmnist_template,
     'MNIST': mnist_template,
     'ImageNet': imagenet_template,
+    'OxfordIIITPet': oxfordpets_template,
+    'PCAM': pcam_template,
     'RESISC45': resisc45_template,
+    'RenderedSST2': sst2_template,
     'STL10': stl10_template,
     'SUN397': sun397_template,
     'SVHN': svhn_template,

@@ -3,6 +3,8 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
+from src.utils import expert_dir
+
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return torch.dot(a.flatten(), b.flatten()) / (a.norm() * b.norm())
@@ -26,7 +28,7 @@ datasets = [
 
 rows = []
 for d in tqdm(datasets, desc="datasets"):
-    task_dir = os.path.join(checkpoints_dir, d + "Val")
+    task_dir = expert_dir(checkpoints_dir, d)
     covariance_filenames = sorted(
         [f for f in os.listdir(task_dir) if "covariance_" in f],
         key=lambda f: int(f.split("_")[-1].replace(".pt", "")),

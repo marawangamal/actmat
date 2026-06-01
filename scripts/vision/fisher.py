@@ -29,7 +29,7 @@ from src.vision.modeling import ImageClassifier
 from src.args import parse_arguments
 from src.vision.datasets.registry import get_dataset
 from src import mhap, mhas
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 
 
 def compute_fisher(encoder, dataset_name, args, on_end=None):
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     ]
 
     for task in tasks:
-        checkpoint_dir = f"{args.save}/{task}Val"
+        checkpoint_dir = expert_dir(args.save, task)
         fisher_path = os.path.join(checkpoint_dir, "fisher.pt")
 
         if os.path.exists(fisher_path) and not args.overwrite:

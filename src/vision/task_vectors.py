@@ -3,6 +3,19 @@ import torch
 from src.task_vectors import _TaskVector
 from src.vision.linearize import LinearizedImageEncoder
 
+# Compat shim: Ilharco's released checkpoints were pickled with an older
+# open_clip where transformer classes (`Transformer`, `VisionTransformer` —
+# then named `VisualTransformer` — etc.) lived directly under
+# `open_clip.model`; in current open_clip they live in `open_clip.transformer`.
+# Mirror missing names so legacy pickles can unpickle.
+import open_clip.model as _open_clip_model
+import open_clip.transformer as _open_clip_transformer
+for _name in dir(_open_clip_transformer):
+    if not _name.startswith("_") and not hasattr(_open_clip_model, _name):
+        setattr(_open_clip_model, _name, getattr(_open_clip_transformer, _name))
+if not hasattr(_open_clip_model, "VisualTransformer") and hasattr(_open_clip_transformer, "VisionTransformer"):
+    _open_clip_model.VisualTransformer = _open_clip_transformer.VisionTransformer
+
 
 class NonLinearTaskVector(_TaskVector):
     """A task vector for nonlinear models."""

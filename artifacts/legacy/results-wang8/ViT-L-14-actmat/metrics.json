@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "SUN397: 0.752191",
+    "Cars: 0.867429",
+    "DTD: 0.760106",
+    "EuroSAT: 0.980000",
+    "GTSRB: 0.967854",
+    "MNIST: 0.995200",
+    "RESISC45: 0.918254",
+    "SVHN: 0.950638"
+  ],
+  "tasks": [
+    {
+      "alias": "SUN397",
+      "metrics": {
+        "top1": 0.752191435768262,
+        "primary_score": 0.752191435768262
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "Cars",
+      "metrics": {
+        "top1": 0.86742942420097,
+        "primary_score": 0.86742942420097
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD",
+      "metrics": {
+        "top1": 0.7601063829787233,
+        "primary_score": 0.7601063829787233
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT",
+      "metrics": {
+        "top1": 0.98,
+        "primary_score": 0.98
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB",
+      "metrics": {
+        "top1": 0.9678543151227237,
+        "primary_score": 0.9678543151227237
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST",
+      "metrics": {
+        "top1": 0.9952,
+        "primary_score": 0.9952
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45",
+      "metrics": {
+        "top1": 0.9182539682539682,
+        "primary_score": 0.9182539682539682
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN",
+      "metrics": {
+        "top1": 0.9506376767055931,
+        "primary_score": 0.9506376767055931
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-L-14",
+    "merge_func": "actmat",
+    "finetuning_mode": "standard",
+    "seed": null,
+    "mha": "split",
+    "optimal_merge_hp": {}
+  }
+}

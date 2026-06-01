@@ -5,6 +5,12 @@ from typing import Dict, Optional
 
 import torch
 
+# Experiment logging via wandb (replaces trackio, which hung on concurrent
+# NFS-backed SQLite writes). Disable with USE_WANDB=0; set WANDB_MODE=offline
+# on nodes without internet (then `wandb sync` the run dirs later).
+USE_WANDB = os.environ.get("USE_WANDB", "1") == "1"
+if USE_WANDB:
+    import wandb
 
 # --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=data/vision   --save=$SCRATCH/actmat/checkpoints/vision
 from src.args import parse_arguments
@@ -16,7 +22,13 @@ from src.vision.heads import get_classification_head
 from src.vision.linearize import LinearizedImageEncoder
 from src.vision.modeling import ImageClassifier, ImageEncoder, apply_lora, merge_lora
 from src.mhas import swap_mha, unswap_mha
-from src.utils import LabelSmoothing, cosine_lr, get_prefix, resolve_run_dir
+from src.utils import (
+    LabelSmoothing,
+    cosine_lr,
+    expert_dir,
+    get_prefix,
+    resolve_run_dir,
+)
 
 
 class GradCrossTermTracker:
@@ -256,6 +268,178 @@ class GradCrossTermTracker:
         self._hooks.clear()
 
 
+class GradCrossTermTrackerV2:
+    def __init__(self, model, max_layers=8):
+        linear_layers = [
+            (name, module)
+            for name, module in model.named_modules()
+            if isinstance(module, torch.nn.Linear)
+        ]
+        n = len(linear_layers)
+        num_tracked = min(max_layers, n)
+        indices = (
+            [round(i * (n - 1) / (num_tracked - 1)) for i in range(num_tracked)]
+            if num_tracked > 1
+            else [0]
+        )
+        self.layers = {linear_layers[i][0]: linear_layers[i][1] for i in indices}
+
+        # V2:
+        self.gbar = dict()
+        self.sbar = dict()
+        self.stilde = dict()
+        self.stilde_zzT = dict()
+        self.stilde_gtg = dict()
+
+        self.num_batches = 0
+
+        # Hook storage
+        self._activations = {}
+        self._output_grads = {}
+        self._hooks = []
+
+        for name, module in self.layers.items():
+            self._hooks.append(module.register_forward_hook(self._make_fwd_hook(name)))
+            self._hooks.append(
+                module.register_full_backward_hook(self._make_bwd_hook(name))
+            )
+
+        print(f"\n=== Tracking {len(self.layers)} layers for grad cross-terms ===")
+        for name, module in self.layers.items():
+            print(f"  {name}: weight {tuple(module.weight.shape)}")
+        print()
+
+    def _make_fwd_hook(self, name):
+        def hook(module, input, output):
+            self._activations[name] = input[0].detach()
+
+        return hook
+
+    def _make_bwd_hook(self, name):
+        def hook(module, grad_input, grad_output):
+            self._output_grads[name] = grad_output[0].detach()
+
+        return hook
+
+    def step(self, model, inputs, labels, loss_fn):
+        """Compute per-sample gradients for one batch and accumulate statistics."""
+        B, T, D = inputs.shape  # NOTE: verify this is the actual shape
+
+        for name, module in self.layers.items():
+            gw_bar = module.weight.grad.detach().float()  # (d_out, d_in)
+            gy = self._output_grads[name]  # (T, B, d_out)
+            self.gbar[name] += (1 / B * T) * gw.cpu()
+
+        # OLD
+
+        # Create accumulators for the iteration.
+        stilde_zzT = dict()
+        stilde_gtg = dict()
+
+        for b in range(B):
+            model.zero_grad()
+            logits = model(inputs[b : b + 1])
+            loss = loss_fn(logits, labels[b : b + 1])
+            loss.backward()
+
+            for name, module in self.layers.items():
+                gw = module.weight.grad.detach().float()  # (d_out, d_in)
+                d_out, d_in = gw.shape
+                if name not in self.sbar:  # init
+                    self.sbar[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    self.gbar[name] = torch.zeros(d_out, d_in, dtype=torch.float32)
+                    self.stilde[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    self.stilde_zzT[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    self.stilde_gtg[name] = torch.tensor(0.0, dtype=torch.float32)
+                if name not in stilde_zzT:  # init per-batch local accumulators
+                    stilde_zzT[name] = torch.zeros(d_in, d_in, dtype=torch.float32)
+                    stilde_gtg[name] = torch.tensor(0.0, dtype=torch.float32)
+
+                z = self._activations[name]  # (T, B, d_in)
+                gy = self._output_grads[name]  # (T, B, d_out)
+                # print(f"z.shape: {z.shape}, gy.shape: {gy.shape}")
+
+                # NOTE: B dim is equal to 1 here because we loop over samples in the batch.
+                # Shapes: (Di, Di) and (,)
+                stilde_zzT_k = torch.einsum("tbi,tbj->tbij", z, z).mean(dim=(0, 1))
+                stilde_gtg_k = torch.einsum("tbi,tbj->tb", gy, gy).mean(dim=(0, 1))
+
+                self.gbar[name] += (1 / B) * gw.cpu()
+                self.sbar[name] += (1 / B) * (gw.T @ gw).cpu()
+
+                # NOTE: self.stilde_zzT tracks across iterations and samples, but
+                # stilde_zzT only tracks across samples for single iteration.
+                self.stilde_zzT[name] += (1 / B) * stilde_zzT_k.cpu()
+                self.stilde_gtg[name] += (1 / B) * stilde_gtg_k.cpu()
+                stilde_zzT[name] += (1 / B) * stilde_zzT_k.cpu()
+                stilde_gtg[name] += (1 / B) * stilde_gtg_k.cpu()
+
+        # S_tilde_k = E[zz^T] * E[||gy||^2]
+        for name in self.layers:
+            if name in stilde_zzT and name in stilde_gtg:
+                self.stilde[name] += stilde_zzT[name] * stilde_gtg[name]
+
+        self.num_batches += 1
+        model.zero_grad()
+
+    def save(self, ckpdir):
+        """Print summary and save per-layer results to disk."""
+        if self.num_batches <= 1:
+            return
+        K = self.num_batches
+        print(f"\n=== Per-layer gradient cross-term error [K={K}] ===")
+        os.makedirs(ckpdir, exist_ok=True)
+        for name in self.layers:
+            gbar = self.gbar[name]
+            sbar = self.sbar[name]
+            stilde = self.stilde[name]
+            stilde_zzT = self.stilde_zzT[name]
+            stilde_gtg = self.stilde_gtg[name]
+            gbar_T_gbar = gbar.T @ gbar
+
+            # cross-term error: cos_dist(gbar^T gbar, sbar)
+            a, b = gbar_T_gbar.flatten(), sbar.flatten()
+            cos_dist_cross = 1 - torch.dot(a, b).abs() / (a.norm() * b.norm())
+
+            # correlation error: cos_dist(sbar, stilde)
+            a2, b2 = sbar.flatten(), stilde.flatten()
+            cos_dist_corr = 1 - torch.dot(a2, b2).abs() / (a2.norm() * b2.norm())
+
+            # arcsin bound: ||sbar - stilde|| / ||sbar||
+            corr_diff_ratio = (sbar - stilde).norm() / sbar.norm()
+
+            print(f"  {name}:")
+            print(f"    ||gbar^T gbar||_F = {gbar_T_gbar.norm().item():.6e}")
+            print(f"    ||sbar||_F        = {sbar.norm().item():.6e}")
+            print(f"    ||stilde||_F      = {stilde.norm().item():.6e}")
+            print(f"    ||stilde_zzT||_F  = {stilde_zzT.norm().item():.6e}")
+            print(f"    cos_dist(cross)   = {cos_dist_cross.item():.6e}")
+            print(f"    cos_dist(corr)    = {cos_dist_corr.item():.6e}")
+            print(f"    ||S-St||/||S||    = {corr_diff_ratio.item():.6e}")
+            fname = f"grad_cross_matrix_{name.replace('.', '_')}.pt"
+            torch.save(
+                {
+                    "K": K,
+                    "gbar": gbar,
+                    "sbar": sbar,
+                    "stilde_zzT": stilde_zzT,
+                    "stilde_gtg": stilde_gtg,
+                    "stilde": stilde,
+                    "gbar_T_gbar": gbar_T_gbar,
+                    "cos_dist_cross": cos_dist_cross.item(),
+                    "cos_dist_corr": cos_dist_corr.item(),
+                    "corr_diff_ratio": corr_diff_ratio.item(),
+                },
+                os.path.join(ckpdir, fname),
+            )
+        print()
+
+    def remove_hooks(self):
+        for h in self._hooks:
+            h.remove()
+        self._hooks.clear()
+
+
 def _format_duration(seconds: float) -> str:
     seconds_int = max(0, int(seconds))
     hours = seconds_int // 3600
@@ -270,13 +454,20 @@ def finetune(rank, args):
     setup_ddp(rank, args.world_size, port=args.port)
 
     train_dataset = args.train_dataset
-    ckpdir = os.path.join(args.save, train_dataset)
+    ckpdir = expert_dir(args.save, train_dataset)
 
     assert args.finetuning_mode in [
         "linear",
         "standard",
         "lora",
     ], "Only linear, standard, and lora fine-tuning are supported."
+
+    # GradCrossTermTracker calls model.zero_grad() internally, which would wipe
+    # accumulated grads from prior iterations of the same window.
+    assert not (args.grad_cross_matrix and args.num_grad_accumulation > 1), (
+        "--grad-cross-matrix is incompatible with gradient accumulation > 1 "
+        "(tracker zero_grads internally, breaking accumulation)."
+    )
 
     linearized_finetuning = args.finetuning_mode == "linear"
     lora_finetuning = args.finetuning_mode == "lora"
@@ -356,7 +547,7 @@ def finetune(rank, args):
         print(f"  rank: {args.lora_rank}")
         print(f"  alpha: {args.lora_alpha}")
         print(f"  dropout: {args.lora_dropout}")
-        print(f"  target_modules: {target_modules}")
+        print(f"  target_modules: all-linear")
         print("=== LoRA Model Architecture ===")
         print(image_encoder)
         print("===============================\n")
@@ -371,6 +562,18 @@ def finetune(rank, args):
         batch_size=args.batch_size,
         num_workers=args.num_workers,
     )
+    if args.max_samples is not None and args.max_samples < len(dataset.train_dataset):
+        g = torch.Generator().manual_seed(args.seed if args.seed is not None else 0)
+        idx = torch.randperm(len(dataset.train_dataset), generator=g)[
+            : args.max_samples
+        ].tolist()
+        dataset.train_dataset = torch.utils.data.Subset(dataset.train_dataset, idx)
+        dataset.train_loader = torch.utils.data.DataLoader(
+            dataset.train_dataset,
+            shuffle=True,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+        )
     data_loader = get_dataloader(dataset, is_train=True, args=args, image_encoder=None)
     num_batches = len(dataset.train_loader)
 
@@ -389,7 +592,14 @@ def finetune(rank, args):
         loss_fn = torch.nn.CrossEntropyLoss()
 
     params = [p for p in ddp_model.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.wd)
+    if args.optimizer == "sgd":
+        optimizer = torch.optim.SGD(
+            params, lr=args.lr, momentum=args.momentum, weight_decay=args.wd
+        )
+    else:
+        optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.wd)
+    if is_main_process():
+        print(f"Using optimizer: {args.optimizer}")
 
     scheduler = cosine_lr(
         optimizer,
@@ -401,9 +611,56 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {args.epochs * num_batches // args.num_grad_accumulation}")
 
+    log_wandb = USE_WANDB and is_main_process()
+    if log_wandb:
+        run_name = (
+            f"{args.model}_{train_dataset}_{args.finetuning_mode}"
+            f"_{args.optimizer}_lr{args.lr:g}_wd{args.wd:g}"
+        )
+        if args.epochs_mult != 1.0:
+            run_name += f"_x{args.epochs_mult:g}"
+        if args.early_stop:
+            run_name += "_es"
+        try:
+            wandb.init(
+                project="actmat-vision",
+                name=run_name,
+                config={
+                    "model": args.model,
+                    "dataset": train_dataset,
+                    "finetuning_mode": args.finetuning_mode,
+                    "optimizer": args.optimizer,
+                    "momentum": args.momentum,
+                    "lr": args.lr,
+                    "wd": args.wd,
+                    "ls": args.ls,
+                    "batch_size": args.batch_size,
+                    "num_grad_accumulation": args.num_grad_accumulation,
+                    "epochs": args.epochs,
+                    "epochs_mult": args.epochs_mult,
+                    "early_stop": args.early_stop,
+                    "warmup_length": args.warmup_length,
+                },
+                settings=wandb.Settings(init_timeout=120),
+            )
+        except Exception as e:
+            print(f"[wandb] init failed ({e}); continuing without logging.", flush=True)
+            log_wandb = False
+
     grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
         grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
+
+    # Early stopping: track the best val-split model across epochs and save it
+    # instead of the final one (the SGD loss oscillates, so the last epoch is
+    # often not the best). Incompatible with grad-cross-matrix (mid-train save
+    # would not unswap MHA).
+    assert not (args.early_stop and args.grad_cross_matrix), (
+        "--early-stop is incompatible with --grad-cross-matrix."
+    )
+    best_val_acc = -1.0
+    bad_evals = 0
+    saved_best = False
 
     run_start_time = time.perf_counter()
     for epoch in range(args.epochs):
@@ -472,12 +729,69 @@ def finetune(rank, args):
                     f"Elapsed {_format_duration(run_elapsed)}",  # noqa: E501
                     flush=True,
                 )
+                if log_wandb:
+                    wandb.log(
+                        {
+                            "train/loss": loss.item(),
+                            "train/epoch": epoch,
+                            "train/lr": optimizer.param_groups[0]["lr"],
+                            "train/elapsed_sec": run_elapsed,
+                        },
+                        step=step,
+                    )
 
         if args.max_steps is not None and step >= args.max_steps:
             break
 
+        # End-of-epoch validation + best-checkpoint save (single-GPU only).
+        if args.early_stop and is_main_process():
+            ddp_model.eval()
+            enc = ddp_model.module.image_encoder
+            val_acc = eval_single_dataset(enc, train_dataset, args)["top1"]
+            improved = val_acc > best_val_acc
+            print(
+                f"[Early-stop @ epoch {epoch}] val top1: {100 * val_acc:.2f}%  "
+                f"(best {100 * max(best_val_acc, val_acc):.2f}%)"
+                + (
+                    "  -> new best, saved"
+                    if improved and not lora_finetuning
+                    else ""
+                ),
+                flush=True,
+            )
+            if log_wandb:
+                wandb.log(
+                    {"val/top1": val_acc, "val/best_top1": max(best_val_acc, val_acc)},
+                    step=step,
+                )
+            if improved:
+                best_val_acc = val_acc
+                bad_evals = 0
+                # LoRA can't be merged mid-training (destructive); its best is
+                # saved at the end. Standard FT saves the best encoder now.
+                if args.save is not None and not lora_finetuning:
+                    ddp_model.module.image_encoder.save(
+                        os.path.join(ckpdir, f"{prefix}finetuned.pt")
+                    )
+                    saved_best = True
+            else:
+                bad_evals += 1
+            ddp_model.train()
+            if bad_evals >= args.patience:
+                print(
+                    f"Early stopping at epoch {epoch} "
+                    f"(no val improvement for {args.patience} epochs).",
+                    flush=True,
+                )
+                break
+
     if grad_cross_tracker is not None:
         grad_cross_tracker.save(ckpdir)
+
+    # Standard FT with early stopping already saved the best model during
+    # training; skip the final eval/save so we don't overwrite it with the
+    # (possibly worse) last-epoch model.
+    best_already_saved = args.early_stop and saved_best and not lora_finetuning
 
     # FIXME: Make this work with DDP.
     if is_main_process():
@@ -488,26 +802,42 @@ def finetune(rank, args):
         if lora_finetuning:
             image_encoder = merge_lora(image_encoder)
 
-        eval_single_dataset(image_encoder, train_dataset, args)
+        if best_already_saved:
+            print(
+                f"Best val top1: {100 * best_val_acc:.2f}% "
+                f"(saved to {prefix}finetuned.pt); skipping final-model save.",
+                flush=True,
+            )
+        else:
+            eval_metrics = eval_single_dataset(image_encoder, train_dataset, args)
+            if log_wandb:
+                wandb.log({"val/top1": eval_metrics["top1"]}, step=step)
 
     if args.save is not None and is_main_process():
         zs_path = os.path.join(ckpdir, "pretrained.pt")
         ft_path = os.path.join(ckpdir, f"{prefix}finetuned.pt")
-        enc_to_save = image_encoder
-        if args.grad_cross_matrix:
-            enc_to_save = copy.deepcopy(image_encoder).cpu()
-            for m in enc_to_save.modules():
-                m._forward_hooks.clear()
-                m._backward_hooks.clear()
-            unswap_mha(enc_to_save)
-        enc_to_save.save(ft_path)
+        if not best_already_saved:
+            enc_to_save = image_encoder
+            if args.grad_cross_matrix:
+                enc_to_save = copy.deepcopy(image_encoder).cpu()
+                for m in enc_to_save.modules():
+                    m._forward_hooks.clear()
+                    m._backward_hooks.clear()
+                unswap_mha(enc_to_save)
+            enc_to_save.save(ft_path)
+        if log_wandb:
+            wandb.finish()
         cleanup_ddp()
         return zs_path, ft_path
 
+    if log_wandb:
+        wandb.finish()
     cleanup_ddp()
 
 
 if __name__ == "__main__":
+    # 20-dataset suite from Wang et al. (nik-dim/tall_masks). The first 8 match
+    # the standard task-arithmetic benchmark (Ilharco et al.).
     train_datasets = [
         "Cars",
         "DTD",
@@ -517,6 +847,18 @@ if __name__ == "__main__":
         "RESISC45",
         "SUN397",
         "SVHN",
+        "CIFAR10",
+        "CIFAR100",
+        "STL10",
+        "Food101",
+        "Flowers102",
+        "FER2013",
+        "PCAM",
+        "OxfordIIITPet",
+        "RenderedSST2",
+        "EMNIST",
+        "FashionMNIST",
+        "KMNIST",
     ]
     epochs = {
         "Cars": 35,
@@ -527,6 +869,18 @@ if __name__ == "__main__":
         "RESISC45": 15,
         "SUN397": 14,
         "SVHN": 4,
+        "CIFAR10": 6,
+        "CIFAR100": 6,
+        "STL10": 60,
+        "Food101": 4,
+        "Flowers102": 147,
+        "FER2013": 10,
+        "PCAM": 1,
+        "OxfordIIITPet": 82,
+        "RenderedSST2": 39,
+        "EMNIST": 2,
+        "FashionMNIST": 5,
+        "KMNIST": 5,
     }
 
     args = parse_arguments()
@@ -538,14 +892,29 @@ if __name__ == "__main__":
 
     for dataset in train_datasets:
         # HACK: Some command line arguments are overwritten by defaults here.
-        args.lr = 1e-5
-        if not args.grad_cross_matrix:
-            args.epochs = epochs[dataset]
+        # AdamW uses the fixed paper LR (1e-5). SGD honors the CLI --lr so it can
+        # be swept (AdamW normalizes by grad RMS, SGD steps by lr*raw_grad, so SGD
+        # needs a larger LR; 1e-4 under-trains Cars/DTD, 1e-3 diverged on Cars).
+        if args.optimizer == "adamw":
+            args.lr = 1e-5
+        if not args.grad_cross_matrix and args.max_samples is None:
+            args.epochs = max(1, round(args.epochs_mult * epochs[dataset]))
         args.train_dataset = dataset + "Val"
 
         # We use gradient accumulation to simulate larger batch sizes if the model does not fit in memory.
-        args.batch_size = 64 if args.model == "ViT-L-14" else 128
-        args.num_grad_accumulation = 2 if args.model == "ViT-L-14" else 1
+        if args.model == "ViT-L-14":
+            # grad_cross_matrix: B per-sample backwards OOM at B=64 on 48GB cards;
+            # tracker is also incompatible with grad accumulation (see assertion in finetune()),
+            # so shrink B and run with grad_accum=1.
+            if args.grad_cross_matrix:
+                args.batch_size = 16
+                args.num_grad_accumulation = 1
+            else:
+                args.batch_size = 64
+                args.num_grad_accumulation = 2
+        else:
+            args.batch_size = 128
+            args.num_grad_accumulation = 1
 
         print("=" * 100)
         print(f"Fine-tuning {args.model} on {dataset} ({args.finetuning_mode})")

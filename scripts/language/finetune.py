@@ -18,7 +18,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from src.args import parse_arguments
-from src.utils import get_prefix, resolve_run_dir
+from src.utils import expert_dir, get_prefix, resolve_run_dir
 from src.language.modeling import T5Wrapper
 from src.language.linearize import LinearizedT5Wrapper
 from src.language.datasets.pytorch_dataset import PytorchDataset
@@ -31,10 +31,10 @@ def finetune(args):
     """Fine-tune a T5 model (standard, linearized, or LoRA) on a single dataset.
 
     Saves ``pretrained.pt`` and ``{prefix}finetuned.pt`` inside
-    ``{args.save}/{args.train_dataset}/``.
+    ``{args.save}/experts/{args.train_dataset}/``.
     """
     train_dataset = args.train_dataset
-    ckpdir = os.path.join(args.save, train_dataset)
+    ckpdir = expert_dir(args.save, train_dataset, val_suffix=False)
 
     assert args.finetuning_mode in [
         "linear",
@@ -213,7 +213,8 @@ if __name__ == "__main__":
     _bs, _ga = _batch_defaults.get(args.model, (64, 16))
     args.batch_size = _bs
     args.num_grad_accumulation = _ga
-    args.num_batches = 75000
+    # --max-steps (default None) caps training for smoke tests; else full run.
+    args.num_batches = args.max_steps if getattr(args, "max_steps", None) else 75000
     args.checkpoint_every = 100
     args.print_every = 10
     args.patience = 5
@@ -228,9 +229,12 @@ if __name__ == "__main__":
         "wsc",
     ]
 
+    # --train-dataset (a comma-split list, default None) overrides the full suite.
+    datasets = args.train_dataset or T5_DATASETS
+
     args.save = resolve_run_dir(args)
 
-    for dataset in T5_DATASETS:
+    for dataset in datasets:
         args.train_dataset = dataset
 
         print("=" * 100)
