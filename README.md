@@ -40,37 +40,80 @@ mkdir -p artifacts && for f in downloads/*.tar.gz downloads/*.tgz; do [ -e "$f" 
 
 ## Artifacts layout
 
-Vision checkpoints and per-run metrics use a structured, nested convention (path
-builders are the single source of truth in `src/utils.py`). `{suffix}` is the
-experiment bucket; `[lora_]` is the LoRA filename prefix; `{mode}` is `-w` for
-weight-space merges (omitted for the default difference merge).
+All pipelines share one nested convention — `{model}/experts/…` for per-expert
+artifacts and `{model}/merged/{method}/…` for merges — whose path builders are the
+single source of truth in `src/utils.py`. The *contents* of `experts/` differ by
+pipeline (local weights vs. remote-on-the-Hub), and only the vision pipeline carries
+a task-count and `Val`/`head`/`lora` extras. `{suffix}` is the experiment bucket;
+`[lora_]` is the LoRA filename prefix; `{mode}` is `-w` for weight-space merges
+(omitted for the default difference merge).
+
+### Vision (ViT) & language (T5)
 
 ```
 artifacts/
 ├── checkpoints[-{suffix}]/{model}/
-│   ├── experts/{dataset}Val/        pretrained.pt, [lora_]finetuned.pt,
-│   │                                [lora_]covariance.pt, fisher.pt, head.pt
+│   ├── experts/{dataset}[Val]/      pretrained.pt, [lora_]finetuned.pt,
+│   │                                [lora_]covariance.pt, fisher.pt[, head.pt]
 │   ├── multitask/                   MTL checkpoint
 │   └── pretrained.pt
-└── results-{suffix}/{model}/
+└── results[-{suffix}]/{model}/
     ├── merged/{method}[-{mode}]/[lora_]metrics.json
     ├── experts/[lora_]metrics.json
     ├── pretrained/[lora_]metrics.json   # zero-shot baseline
     └── multitask/[lora_]metrics.json
 ```
 
-There is no task-count level in the path. The 8 / 14 / 20-task suites are selected
-via `NUM_TASKS` in the eval scripts, which write to `results-8tasks` / `results-14tasks`
-/ `results-20tasks` — so a single `eval_task_addition.sh` / `eval_experts.sh` covers
-all three. Named experiment buckets (`results-wang`, `results-sgd`, `results-mixed`)
-imply their own count; checkpoints are shared across counts. Migrate an old flat tree
-with `scripts/vision/migrate_artifacts.py` (dry-run by default, `--apply`, `--canonical`,
-`--pipeline {vision,language}`).
+There is no task-count level in the path. Vision selects the 8 / 14 / 20-task suite
+via `NUM_TASKS` in the eval scripts, which write to `results-8tasks` / `-14tasks` /
+`-20tasks` — so a single `eval_task_addition.sh` / `eval_experts.sh` covers all three;
+named buckets (`results-wang`, `results-sgd`, `results-mixed`) imply their own count.
+**Language (T5)** uses the same helpers with `val_suffix=False` (bare dataset dirs, no
+`Val`, no `head.pt`) and a single fixed suite, so its results live in the bare
+`artifacts/results/{model}/…` tree (no count, no suffix).
 
-The **language** (T5) pipeline uses the same nested layout via the same helpers
-(`val_suffix=False` — bare dataset dirs, no head files), in the single bare
-`artifacts/results/{model}/…` tree (one fixed task suite, no count). The **OLMo/polyglot**
-pipelines still use the legacy flat `artifacts/results/{model}-{method}/metrics.json` layout.
+### HF-merge pathway (Qwen, WizardLM, OLMo)
+
+`src/hf/merge.py` merges models **directly from the HuggingFace Hub** (`scripts/hf/eval_*.sh`).
+Here `{model}` is the merge *family* (base model); the experts are remote HF repos, so we
+never store their weights — `experts/{expert}/` holds **only** stats sidecars we compute
+(absent entirely for the data-free methods sum / mean / tsv / actmat). `{expert}` is the
+sanitized HF id (`Qwen/Qwen2.5-Math-1.5B` → `Qwen2.5-Math-1.5B`).
+
+```
+artifacts/
+├── checkpoints[-{suffix}]/{family}/
+│   ├── experts/{expert}/            covariance.pt, fisher.pt   # stats only; weights on the Hub
+│   └── merged/{method}/             full self-contained HF model dir (safetensors + tokenizer)
+└── results[-{suffix}]/{family}/
+    └── merged/{method}/             lm-eval / olmes output
+```
+
+Covariance methods (e.g. regmean) read sidecars from `--stats-dir <dir>/<expert>/covariance.pt`
+(no default; the data-free methods never look). **OLMo** adds per-task **chat-template views**:
+since one merged model can bake in only one template, `scripts/hf/eval_olmo*.sh` materialize
+`merged/{method}-ct-code` and `merged/{method}-ct-math` (weights symlinked, tokenizer/template
+swapped) and nest results as `merged/{method}/{ct-code,ct-math}/`.
+
+OLMo **checkpoints** follow the same tree, with param-folder (not `.pt`) experts and a
+preserved `legacy/` for superseded dirs:
+
+```
+artifacts/checkpoints/Olmo-3-7b/
+├── pretrained/                      shared base (param folder)
+├── experts/{Math,Code,IF}/          pretrained/ (→ ../../pretrained), finetuned/, covariance.pt
+├── merged/{method}/                 merged HF model
+└── legacy/                          parked: old *-chat-* views and *-old snapshots (nothing deleted)
+```
+
+### Migration
+
+`scripts/vision/migrate_artifacts.py` migrates an old flat tree into this layout
+(dry-run by default; `--apply`, `--canonical`, `--pipeline {vision,language,olmo}`). It
+emits a reversible undo script (`artifacts/migrate_undo.sh`). The OLMo pass parks
+regenerable views and stale dirs under `legacy/` and repoints their symlinks post-move.
+Still on the legacy flat `artifacts/results/{model}-{method}/` layout: **OLMo results**
+and the **polyglot** pipelines.
 
 ## Vision Experiments (ViT-B-16 / ViT-B-32 / ViT-L-14)
 
@@ -109,6 +152,35 @@ bash scripts/olmo/eval_single_task.sh
 # 3. Evaluate merged models
 bash scripts/olmo/eval_task_addition.sh # (default gpus: 4)
 ```
+
+### HF-merge eval (`scripts/hf/eval_olmo*.sh`)
+
+The going-forward pathway merges the RL-Zero experts straight from the Hub via
+`src/hf/merge.py` and evaluates with olmes (one array task per merge method):
+
+```sh
+sbatch --array=0-3 scripts/hf/eval_olmo.sh      # AIME (pass@32) + code/IF
+sbatch --array=0-3 scripts/hf/eval_olmo_v2.sh   # faster: gsm8k instead of AIME, max_length 4096
+```
+
+**Eval runtime — single L40S GPU, `eval_olmo_v2.sh` (one method):** olmes is invoked
+twice (once per chat-template view: `ct-code`, then `ct-math`), so the model is loaded
+twice. Measured below for the `mean` merge (job 9711661); excludes the SLURM queue wait,
+and the merge step was skipped (`merged/mean/` already present).
+
+| Phase / task                  | View    | Generations            | Time (L40S) | Score (mean)      |
+|-------------------------------|---------|------------------------|-------------|-------------------|
+| model load + build both views | —       | merge-skip + 2× vllm   | ~1 + 2.4 + 2.7 min | —          |
+| `codex_humaneval::tulu`       | ct-code | 164 × 20 (pass@10)     | 11.2 min    | pass@10 0.858     |
+| `codex_humanevalplus::tulu`   | ct-code | 164 × 20 (pass@10)     | 11.5 min    | pass@10 0.819     |
+| `ifeval::tulu`                | ct-code | 541 × 1 (greedy ≤2048) | 8.7 min     | loose 0.673       |
+| `gsm8k::tulu`                 | ct-math | 1319 × 1 (CoT ≤512)    | 3.0 min     | exact_match 0.795 |
+
+End-to-end **~41 min/method** (`00:40:52` here). The code tasks dominate (20 samples
+each); `ifeval`'s greedy ≤2048-token generations also run long. `max_length=4096` caps
+each generation at `4096 − prompt`. `eval_olmo.sh` is substantially slower — AIME uses
+`pass@32` with effectively unbounded generation, so its `ct-math` task alone can exceed
+this entire v2 run.
 
 
 ## Polyglot Experiments (Olmo-3-7b, multilingual)
