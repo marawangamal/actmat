@@ -11,7 +11,7 @@ weight, but attention vs. MLP layers may have different merge geometries.
 ### Grid
 
 - **rows** `i` = transformer linear layer type
-- **cols** `j` = merge method (`isoc`, `tsv`, `regmean`, `actmat_herm_10ki`, …; `mean` is the background, not a column)
+- **cols** `j` = merge method (`isoc`, `tsv`, `regmean`, `actmat_herm`, …; `mean` is the background, not a column)
 
 Layer types under test (Olmo-3-7B): `q_proj`, `k_proj`, `v_proj`, `o_proj`,
 `gate_proj`, `up_proj`, `down_proj`. **`lm_head` and `embed_tokens` are always
@@ -89,10 +89,10 @@ Layer type of a key = its second-to-last dotted component
 
 ### Scope
 
-Methods (columns): `isoc`, `tsv`, `actmat_herm_10ki`, with `mean` as the
+Methods (columns): `isoc`, `tsv`, `actmat_herm`, with `mean` as the
 background/floor. Layer types (rows): the 7 transformer projections. Each cell is
 one `minerva_math_500::tulu` eval of its assembled hybrid dir.
 
-Scripts: `scripts/hybrid/split_expert.py` (full merge → `experts/{method}/`),
-`scripts/hybrid/assemble_cell.py` (`(layer, method)` → a cell dir of symlinks +
+Scripts: `scripts/analysis/split_expert.py` (full merge → `experts/{method}/`),
+`scripts/analysis/assemble_cell.py` (`(layer, method)` → a cell dir of symlinks +
 index + config).
