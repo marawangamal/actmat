@@ -63,11 +63,11 @@ open they load **every** tensor in it ([weight_utils.py](../.venv-olmo/lib/pytho
 loads each shared key twice — last file wins — and the hybrid collapses to
 all-one-method. The index is **not** consulted per-tensor.
 
-**Fix — one file per layer (`group-hybrid/`).** Split each full merge into
+**Fix — one file per layer (`group-rl-zero-hybrid/`).** Split each full merge into
 single-key files so no two files ever share a key:
 
 ```
-group-hybrid/
+group-rl-zero-hybrid/
 ├── experts/{method}/<key>.safetensors      # COPIES: one tensor per file (split_expert.py)
 │     e.g. mean/model.layers.0.self_attn.q_proj.weight.safetensors, …  (all 355 keys, every method)
 └── merged/{layer}_{method}-ct-math/         # one dir per cell — SYMLINKS only (assemble_cell.py)
@@ -93,6 +93,6 @@ Methods (columns): `isoc`, `tsv`, `actmat_herm`, with `mean` as the
 background/floor. Layer types (rows): the 7 transformer projections. Each cell is
 one `minerva_math_500::tulu` eval of its assembled hybrid dir.
 
-Scripts: `scripts/analysis/split_expert.py` (full merge → `experts/{method}/`),
-`scripts/analysis/assemble_cell.py` (`(layer, method)` → a cell dir of symlinks +
+Scripts: `scripts/hybrid/split_expert.py` (full merge → `experts/{method}/`),
+`scripts/hybrid/assemble_cell.py` (`(layer, method)` → a cell dir of symlinks +
 index + config).

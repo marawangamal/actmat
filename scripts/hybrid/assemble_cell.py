@@ -13,11 +13,11 @@ Layer type of a key = its second-to-last dotted component, e.g.
   lm_head.weight                         -> lm_head
 
 Usage:
-  python scripts/analysis/assemble_cell.py \
-    --experts-root artifacts/checkpoints/Olmo-3-7b/group-hybrid/experts \
+  python scripts/hybrid/assemble_cell.py \
+    --experts-root artifacts/checkpoints/Olmo-3-7b/group-rl-zero-hybrid/experts \
     --layer-type q_proj --method tsv --background mean \
     --ref-merge artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/mean \
-    --out-dir artifacts/checkpoints/Olmo-3-7b/group-hybrid/merged/q_proj_tsv-ct-math
+    --out-dir artifacts/checkpoints/Olmo-3-7b/group-rl-zero-hybrid/merged/q_proj_tsv-ct-math
 """
 
 import argparse
@@ -49,7 +49,7 @@ def layer_type_of(key):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--experts-root", required=True, help="group-hybrid/experts")
+    ap.add_argument("--experts-root", required=True, help="group-rl-zero-hybrid/experts")
     ap.add_argument("--layer-type", required=True, help="e.g. q_proj")
     ap.add_argument("--method", required=True, help="method for the chosen layer type")
     ap.add_argument("--background", default="mean", help="method for all other layers")

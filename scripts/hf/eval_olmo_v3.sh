@@ -32,10 +32,10 @@ CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
 METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-# Separate merged-checkpoint dir so v3 builds fresh head-mean merges instead of
-# reusing v2's full-method ones.
-MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged-headmean/${METHOD}"
-RESULTS_BASE="artifacts/results-simpler-olmo-exps-headmean/Olmo-3-7b/merged/${METHOD}"
+# Own group (group-rl-zero-headmean) so v3 builds fresh head-mean merges instead
+# of reusing v2's full-method ones (group-rl-zero).
+MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero-headmean/merged/${METHOD}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero-headmean/merged/${METHOD}"
 
 # Layers to mean-merge instead of method-merge (vocab head + input embeddings).
 IGNORE_MEAN_RE='lm_head|embed_tokens'

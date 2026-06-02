@@ -17,7 +17,7 @@ ROOT = osp.abspath(osp.join(osp.dirname(__file__), "..", ".."))
 
 task_to_metric = {
     "gsm8k::tulu": "exact_match",
-    "minerva_math_500::tulu": "math_verify",   # not in metrics.json; mean over predictions
+    "minerva_math_500::tulu": "math_verify",  # not in metrics.json; mean over predictions
     "codex_humaneval::tulu": "pass_at_1",
     "codex_humanevalplus::tulu": "pass_at_1",
     "ifeval::tulu": "prompt_level_loose_acc",
@@ -39,7 +39,28 @@ task_to_chat_templ = {
     "ifeval::tulu": "code",
 }
 
-layer_types = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+layer_types = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+]
+
+# weight shape (Do, Di) per linear layer type (Olmo-3-7B: hidden 4096, mlp 11008)
+layer_to_layer_shape = {
+    "q_proj": "(4096, 4096)",
+    "k_proj": "(4096, 4096)",
+    "v_proj": "(4096, 4096)",
+    "o_proj": "(4096, 4096)",
+    "gate_proj": "(11008, 4096)",
+    "up_proj": "(11008, 4096)",
+    "down_proj": "(4096, 11008)",
+}
+# x-axis tick = layer type + its shape, in the same order as layer_types
+layer_labels = [l + "\n" + layer_to_layer_shape[l] for l in layer_types]
 
 method_to_method = {
     "isoc": "Iso-C",
@@ -54,7 +75,9 @@ def read_score(results_dir, alias, metric):
         fs = glob.glob(osp.join(results_dir, "*minerva*predictions.jsonl"))
         if not fs:
             return None
-        vals = [json.loads(line)["metrics"].get("math_verify", 0) for line in open(fs[0])]
+        vals = [
+            json.loads(line)["metrics"].get("math_verify", 0) for line in open(fs[0])
+        ]
         return 100 * sum(vals) / len(vals) if vals else None
     for f in glob.glob(osp.join(results_dir, "task-*-metrics.json")):
         d = json.load(open(f))
@@ -64,8 +87,8 @@ def read_score(results_dir, alias, metric):
 
 
 rows = []
-grid_dir = f"{ROOT}/artifacts/results-simpler-olmo-exps/Olmo-3-7b/group-hybrid/merged"
-mean_dir = f"{ROOT}/artifacts/results-simpler-olmo-exps/Olmo-3-7b/merged/mean"
+grid_dir = f"{ROOT}/artifacts/results/Olmo-3-7b/group-rl-zero-hybrid/merged"
+mean_dir = f"{ROOT}/artifacts/results/Olmo-3-7b/group-rl-zero-quick/merged/mean"
 for layer in layer_types:
     for method in method_to_method:
         for alias, metric in task_to_metric.items():
@@ -74,7 +97,7 @@ for layer in layer_types:
             floor = read_score(f"{mean_dir}/ct-{chat}", alias, metric)
             rows.append(
                 {
-                    "layer": layer,
+                    "layer": layer + "\n" + layer_to_layer_shape[layer],
                     "method": method_to_method[method],
                     "task": task_to_task[alias],
                     "score": score,
@@ -86,27 +109,40 @@ df = pd.DataFrame(rows)
 # transforms on the frame
 plot_tasks = ["MATH", "IF"]  # the two benchmarks with real per-layer signal
 df = df[df["task"].isin(plot_tasks)]
-df["layer"] = pd.Categorical(df["layer"], categories=layer_types, ordered=True)
+df["layer"] = pd.Categorical(df["layer"], categories=layer_labels, ordered=True)
 task_order = plot_tasks
 method_order = list(method_to_method.values())
 floor = df.groupby("task")["floor"].first()
 
 sns.set_theme(style="whitegrid")
 g = sns.catplot(
-    df, kind="bar", x="layer", y="score", hue="method",
-    col="task", col_order=task_order, order=layer_types, hue_order=method_order,
-    col_wrap=2, height=4, aspect=1.5, palette="Set2", sharey=False,
+    df,
+    kind="bar",
+    x="layer",
+    y="score",
+    hue="method",
+    col="task",
+    col_order=task_order,
+    order=layer_labels,
+    hue_order=method_order,
+    col_wrap=2,
+    height=4,
+    aspect=1.5,
+    palette="Set2",
+    sharey=False,
 )
 g.set_xticklabels(rotation=45, ha="right")
 g.set_axis_labels("layer type", "performance")
 for task, ax in g.axes_dict.items():
     if pd.notna(floor.get(task)):
-        ax.axhline(floor[task], color="black", lw=1.5, label=f"all-mean ({floor[task]:.1f})")
+        ax.axhline(
+            floor[task], color="black", lw=1.5, label=f"all-mean ({floor[task]:.1f})"
+        )
         ax.legend(loc="lower right", fontsize=7)
     ax.set_title(task, fontweight="bold")
-g.figure.suptitle("Layer × method hybrid grid (one layer merged by method, rest by mean)",
-                  y=1.02, fontweight="bold")
+# g.figure.suptitle("Layer × method hybrid grid (one layer merged by method, rest by mean)",
+#                   y=1.02, fontweight="bold")
 
-out = f"{ROOT}/artifacts/results-simpler-olmo-exps/Olmo-3-7b/group-hybrid/grid.png"
+out = f"{ROOT}/artifacts/results/Olmo-3-7b/group-rl-zero-hybrid/grid.png"
 g.savefig(out, dpi=150, bbox_inches="tight")
 print(f">>> wrote {out}  ({len(df)} rows)")

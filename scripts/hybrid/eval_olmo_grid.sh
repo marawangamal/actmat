@@ -10,7 +10,7 @@
 # Layer x method hybrid grid (docs/experiments.md). Each array task = one cell:
 # merge one layer type with one method, everything else with mean, then eval.
 # Cells are assembled on the fly from the per-layer expert splits
-# (scripts/analysis/split_expert.py must have been run for mean + every METHOD first).
+# (scripts/hybrid/split_expert.py must have been run for mean + every METHOD first).
 #
 # Tasks split by chat template, exactly like eval_olmo_v2.sh:
 #   ct-code view (Code/IF template) -> codex_humaneval(+), ifeval
@@ -39,7 +39,7 @@ MI=$(( SLURM_ARRAY_TASK_ID % N_METHODS ))
 LAYER="${LAYER_TYPES[$LI]}"
 METHOD="${METHODS[$MI]}"
 
-HYBRID_ROOT="artifacts/checkpoints/Olmo-3-7b/group-hybrid"
+HYBRID_ROOT="artifacts/checkpoints/Olmo-3-7b/group-rl-zero-hybrid"
 EXPERTS_ROOT="$HYBRID_ROOT/experts"
 MERGED_ROOT="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged"
 # Reference merges = source of the key list + the per-template tokenizer/chat
@@ -48,7 +48,7 @@ REF_MATH="$MERGED_ROOT/$BACKGROUND"
 REF_CODE="$MERGED_ROOT/${BACKGROUND}-ct-code"
 CELL_MATH="$HYBRID_ROOT/merged/${LAYER}_${METHOD}-ct-math"
 CELL_CODE="$HYBRID_ROOT/merged/${LAYER}_${METHOD}-ct-code"
-RESULTS_BASE="artifacts/results-simpler-olmo-exps/Olmo-3-7b/group-hybrid/merged/${LAYER}_${METHOD}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero-hybrid/merged/${LAYER}_${METHOD}"
 
 OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'
 CODE_TASKS=("codex_humaneval::tulu" "codex_humanevalplus::tulu" "ifeval::tulu")
@@ -57,7 +57,7 @@ MATH_TASKS=("minerva_math_500::tulu" "gsm8k::tulu")
 echo ">>> cell: layer=$LAYER method=$METHOD (bg=$BACKGROUND)"
 
 assemble() {  # $1=ref-merge  $2=out-dir
-  python scripts/analysis/assemble_cell.py \
+  python scripts/hybrid/assemble_cell.py \
     --experts-root "$EXPERTS_ROOT" \
     --layer-type "$LAYER" --method "$METHOD" --background "$BACKGROUND" \
     --ref-merge "$1" --out-dir "$2"

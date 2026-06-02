@@ -27,7 +27,7 @@ IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
 METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
-RESULTS_BASE="artifacts/results-simpler-olmo-exps/Olmo-3-7b/merged/${METHOD}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero-quick/merged/${METHOD}"
 
 # Task groups, split by which expert's chat template they need (Code and IF
 # share a template; gsm8k uses the Math one).

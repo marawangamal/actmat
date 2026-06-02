@@ -8,9 +8,9 @@ picking each key from one method's split. One file = one layer => no two
 symlinked files ever share a key, so vLLM/HF load them as a clean union.
 
 Usage:
-  python scripts/analysis/split_expert.py \
+  python scripts/hybrid/split_expert.py \
     --merge-dir artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/tsv \
-    --out-dir   artifacts/checkpoints/Olmo-3-7b/group-hybrid/experts/tsv
+    --out-dir   artifacts/checkpoints/Olmo-3-7b/group-rl-zero-hybrid/experts/tsv
 """
 
 import argparse
