@@ -7,7 +7,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-# Submit with: sbatch --array=0-$((N-1)) scripts/hf/eval_wizardlm.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/wizardlm/eval_wizardlm.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"

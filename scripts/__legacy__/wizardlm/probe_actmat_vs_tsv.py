@@ -49,7 +49,7 @@ def main():
     ap.add_argument("--merges", nargs="+", default=["actmat", "tsv"])
     ap.add_argument("--limit", type=int, default=None,
                     help="optional limit on number of 2D layers to probe")
-    ap.add_argument("--out", default="artifacts/results-analysis/wizardlm_actmat_vs_tsv.json")
+    ap.add_argument("--out", default="artifacts/analysis/wizardlm/wizardlm_actmat_vs_tsv.json")
     args = ap.parse_args()
     root = Path(args.root)
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_olmo_v2
+#SBATCH --job-name=hf_eval_olmo_v3
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
@@ -7,12 +7,18 @@
 #SBATCH --time=04:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-# Faster variant of eval_olmo.sh: swaps the slow AIME pass@32 math eval for
-# gsm8k (max_gen_toks=512, single pass) and drops max_length 16384 -> 4096, so
-# it runs much faster. Same merge + two-view (Code/IF vs Math chat template)
-# structure. Tasks otherwise mirror scripts/olmo/eval_task_addition.sh.
+# Variant of eval_olmo_v2.sh that does NOT merge the vocab layers with the chosen
+# method: lm_head.weight and model.embed_tokens.weight are instead averaged
+# (--ignore-mean 'lm_head|embed_tokens'). Everything else (experts, tasks,
+# two-view chat-template structure, gsm8k+minerva / code+ifeval) is identical to
+# v2. Writes to its OWN merged-checkpoint and results dirs so it never reuses the
+# v2 full-method merges (the merge-skip below keys off MERGED_DIR existing).
 #
-# Submit with: sbatch --array=0-$((N-1)) scripts/hf/eval_olmo_v2.sh
+# To confirm the override fired, grep the merge logs for the marker that
+# src/hf/merge.py prints per affected layer:
+#   grep "\[IGNORE-MEAN\]" artifacts/logs/hf_eval_olmo_v3_*.out
+#
+# Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_olmo_rl_zero_v3.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"
@@ -26,8 +32,13 @@ CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
 METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
-RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero-quick/merged/${METHOD}"
+# Own group (group-rl-zero-headmean) so v3 builds fresh head-mean merges instead
+# of reusing v2's full-method ones (group-rl-zero).
+MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero-headmean/merged/${METHOD}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero-headmean/merged/${METHOD}"
+
+# Layers to mean-merge instead of method-merge (vocab head + input embeddings).
+IGNORE_MEAN_RE='lm_head|embed_tokens'
 
 # Task groups, split by which expert's chat template they need (Code and IF
 # share a template; gsm8k uses the Math one).
@@ -65,8 +76,9 @@ AutoTokenizer.from_pretrained(sys.argv[1]).save_pretrained(sys.argv[2])
 PY
 }
 
-# 1. Merge (skip if the merged checkpoint already exists — e.g. from a prior run
-# or the migrated scripts/olmo outputs; rm -rf "$MERGED_DIR" to force a re-merge)
+# 1. Merge (skip if the merged checkpoint already exists — rm -rf "$MERGED_DIR"
+# to force a re-merge). The vocab layers are forced to a plain mean via
+# --ignore-mean; merge.py prints a [IGNORE-MEAN] line for each affected layer.
 if [[ -d "$MERGED_DIR" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
@@ -75,6 +87,7 @@ else
     --chat-template-name-or-path "$MATH_EXPERT" \
     --expert-model-names-or-paths "$MATH_EXPERT" "$CODE_EXPERT" "$IF_EXPERT" \
     --merge-method "$METHOD" \
+    --ignore-mean "$IGNORE_MEAN_RE" \
     --output-dir "$MERGED_DIR"
 fi
 

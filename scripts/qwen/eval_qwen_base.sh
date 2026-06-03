@@ -14,7 +14,7 @@
 # against, and confirms the no-chat recipe gives sane scores (vs the garbage the
 # ::tulu chat template produced on these base models).
 #
-# Submit with: sbatch scripts/hf/eval_qwen_base.sh
+# Submit with: sbatch scripts/qwen/eval_qwen_base.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"

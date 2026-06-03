@@ -43,7 +43,7 @@ def main():
     ap.add_argument("--tag", required=True)
     ap.add_argument("--pipeline", choices=["vision", "language"], default="vision")
     ap.add_argument("--dim", type=int, default=1024)
-    ap.add_argument("--out-dir", default="artifacts/results-analysis/cov-layer-sim")
+    ap.add_argument("--out-dir", default="artifacts/analysis/cov-layer-sim")
     args = ap.parse_args()
 
     cov = torch.load(args.cov, map_location="cpu", weights_only=False)

@@ -66,11 +66,11 @@ Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
 # 0. Setup env
 uv sync --group olmo
 # 2. Evaluate base model
-bash scripts/hf/eval_olmo_base.sh 
+bash scripts/olmo_rl_zero/eval_olmo_base.sh 
 # 3. Evaluate expert models
-bash scripts/hf/eval_olmo_experts.sh
+bash scripts/olmo_rl_zero/eval_olmo_experts.sh
 # 4. Evaluate merged models
-bash scripts/hf/eval_olmo.sh
+bash scripts/olmo_rl_zero/eval_olmo_rl_zero.sh
 ```
 
 ## Clinical experiments (Phi-3.5 / MediPhi)

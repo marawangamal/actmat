@@ -1,25 +1,18 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_olmo
+#SBATCH --job-name=hf_eval_olmo_v2
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
-#SBATCH --time=08:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-# Merge Olmo-3-7B RL-Zero experts (Math + Code + IF) onto the base, then eval
-# with olmes. Tasks mirror scripts/olmo/eval_task_addition.sh (HumanEval(+),
-# IFEval, AIME). Experts share the base's vocab, so no embed/lm_head masking.
+# Faster variant of eval_olmo.sh: swaps the slow AIME pass@32 math eval for
+# gsm8k (max_gen_toks=512, single pass) and drops max_length 16384 -> 4096, so
+# it runs much faster. Same merge + two-view (Code/IF vs Math chat template)
+# structure. Tasks otherwise mirror scripts/olmo/eval_task_addition.sh.
 #
-# Chat template: the merge bakes in ONE template, but each olmes task group needs
-# its matching expert's (Code/IF prompts differ from Math). So after merging once
-# we materialize two lightweight VIEW dirs that symlink the merged weights and
-# only override chat_template.jinja:
-#   merged/${METHOD}-ct-code  -> Code/IF tasks
-#   merged/${METHOD}-ct-math  -> AIME (math) tasks
-# Weights are never duplicated; only chat_template.jinja differs per view.
-#
-# Submit with: sbatch --array=0-$((N-1)) scripts/hf/eval_olmo.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_olmo_rl_zero_v2.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"
@@ -31,24 +24,23 @@ BASE_MODEL="allenai/Olmo-3-1025-7B"
 MATH_EXPERT="allenai/Olmo-3-7B-RL-Zero-Math"
 CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
-METHODS=(sum mean actmat tsv)
+METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-# RL-Zero experts live under the group-rl-zero path level (polyglot is group-polyglot).
 MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
-RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero-quick/merged/${METHOD}"
 
 # Task groups, split by which expert's chat template they need (Code and IF
-# share a template; AIME uses the Math one).
+# share a template; gsm8k uses the Math one).
 CODE_TASKS=(
   "codex_humaneval::tulu"
   "codex_humanevalplus::tulu"
   "ifeval::tulu"
 )
 MATH_TASKS=(
-  "aime:zs_cot_r1::pass_at_32_2024_deepseek"
-  "aime:zs_cot_r1::pass_at_32_2025_deepseek"
+  "gsm8k::tulu"
+  "minerva_math_500::tulu"
 )
-OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
+OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'
 
 # Materialize a view of MERGED_DIR that uses the given expert's tokenizer (chat
 # template included). Big weight files are symlinked (read-only, never written);

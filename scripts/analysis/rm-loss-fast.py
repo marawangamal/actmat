@@ -93,7 +93,7 @@ print(df)
 
 g = sns.relplot(data=df, x="layer", y="metric", hue="method")
 g.set_xticklabels(rotation=90)
-out = REPO_ROOT / "artifacts" / "results-analysis" / "rm_loss.png"
+out = REPO_ROOT / "artifacts" / "analysis" / "rm-loss" / "rm_loss.png"
 out.parent.mkdir(parents=True, exist_ok=True)
 g.savefig(out, bbox_inches="tight")
 print(f"saved plot -> {out}")

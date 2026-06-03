@@ -19,7 +19,7 @@
 # Note: we use lm_eval mgsm_native_cot, where the few-shot examples are reasoning
 # chains rather than a single number.
 #
-# Submit with: sbatch --array=0-6 scripts/hf/eval_polyglot.sh
+# Submit with: sbatch --array=0-6 scripts/olmo_polyglot/eval_polyglot.sh
 set -euo pipefail
 
 BASE="allenai/Olmo-3-1025-7B"

@@ -1,6 +1,6 @@
 """Whole-model task-vector magnitudes across vision / language / OLMo experts.
 
-Writes one row per (model, dataset) to artifacts/csvs/magnitudes_combined.csv.
+Writes one row per (model, dataset) to artifacts/analysis/magnitudes/magnitudes_combined.csv.
 The combined magnitude is the global Frobenius norm of all 2-D layer deltas:
 sqrt(sum_l ||delta_l||_F^2). CPU-only; lazy task-vector loading keeps peak
 RSS bounded to a single parameter at a time.
@@ -19,7 +19,7 @@ from src.vision.task_vectors import NonLinearTaskVector
 
 
 ROOT = "artifacts/checkpoints"
-OUT = "artifacts/csvs/magnitudes_sgd_compare.csv"
+OUT = "artifacts/analysis/magnitudes/magnitudes_sgd_compare.csv"
 SKIP_SUBSTRINGS = ("lm_head", "embed")
 
 # ViT-B-16 task-vector magnitude comparison across optimizer/LR/WD recipes.

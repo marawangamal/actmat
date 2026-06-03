@@ -17,7 +17,7 @@
 # models produces garbage, so no per-template views are needed — we eval the
 # merged checkpoint directly.
 #
-# Submit with: sbatch --array=0-$((N-1)) scripts/hf/eval_qwen.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/qwen/eval_qwen.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"

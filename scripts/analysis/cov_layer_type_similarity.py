@@ -15,7 +15,7 @@ A "layer type" is the key with its *block index* abstracted away. For ViT,
 attn / attn.q / attn.k / attn.v are bit-identical in self-attention (shared
 residual input) so they are collapsed into a single type ``attn_in``.
 
-Outputs (to --out-dir, default artifacts/results-analysis/cov-layer-sim/):
+Outputs (to --out-dir, default artifacts/analysis/cov-layer-sim/):
   - <tag>_heatmap.png   : pairwise fcos, layers ordered by (type, block)
   - <tag>_summary.csv   : per-type within-type mean, vs between-type mean
 
@@ -91,7 +91,7 @@ def main():
     ap.add_argument("--cov", required=True, help="path to covariance.pt")
     ap.add_argument("--pipeline", choices=["vision", "language"], required=True)
     ap.add_argument("--tag", required=True)
-    ap.add_argument("--out-dir", default="artifacts/results-analysis/cov-layer-sim")
+    ap.add_argument("--out-dir", default="artifacts/analysis/cov-layer-sim")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)

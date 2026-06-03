@@ -1,24 +1,25 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_olmo_v3
+#SBATCH --job-name=hf_eval_olmo
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-# Variant of eval_olmo_v2.sh that does NOT merge the vocab layers with the chosen
-# method: lm_head.weight and model.embed_tokens.weight are instead averaged
-# (--ignore-mean 'lm_head|embed_tokens'). Everything else (experts, tasks,
-# two-view chat-template structure, gsm8k+minerva / code+ifeval) is identical to
-# v2. Writes to its OWN merged-checkpoint and results dirs so it never reuses the
-# v2 full-method merges (the merge-skip below keys off MERGED_DIR existing).
+# Merge Olmo-3-7B RL-Zero experts (Math + Code + IF) onto the base, then eval
+# with olmes. Tasks mirror scripts/olmo/eval_task_addition.sh (HumanEval(+),
+# IFEval, AIME). Experts share the base's vocab, so no embed/lm_head masking.
 #
-# To confirm the override fired, grep the merge logs for the marker that
-# src/hf/merge.py prints per affected layer:
-#   grep "\[IGNORE-MEAN\]" artifacts/logs/hf_eval_olmo_v3_*.out
+# Chat template: the merge bakes in ONE template, but each olmes task group needs
+# its matching expert's (Code/IF prompts differ from Math). So after merging once
+# we materialize two lightweight VIEW dirs that symlink the merged weights and
+# only override chat_template.jinja:
+#   merged/${METHOD}-ct-code  -> Code/IF tasks
+#   merged/${METHOD}-ct-math  -> AIME (math) tasks
+# Weights are never duplicated; only chat_template.jinja differs per view.
 #
-# Submit with: sbatch --array=0-$((N-1)) scripts/hf/eval_olmo_v3.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_olmo_rl_zero.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"
@@ -30,28 +31,24 @@ BASE_MODEL="allenai/Olmo-3-1025-7B"
 MATH_EXPERT="allenai/Olmo-3-7B-RL-Zero-Math"
 CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
-METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki)
+METHODS=(sum mean actmat tsv)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-# Own group (group-rl-zero-headmean) so v3 builds fresh head-mean merges instead
-# of reusing v2's full-method ones (group-rl-zero).
-MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero-headmean/merged/${METHOD}"
-RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero-headmean/merged/${METHOD}"
-
-# Layers to mean-merge instead of method-merge (vocab head + input embeddings).
-IGNORE_MEAN_RE='lm_head|embed_tokens'
+# RL-Zero experts live under the group-rl-zero path level (polyglot is group-polyglot).
+MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
 
 # Task groups, split by which expert's chat template they need (Code and IF
-# share a template; gsm8k uses the Math one).
+# share a template; AIME uses the Math one).
 CODE_TASKS=(
   "codex_humaneval::tulu"
   "codex_humanevalplus::tulu"
   "ifeval::tulu"
 )
 MATH_TASKS=(
-  "gsm8k::tulu"
-  "minerva_math_500::tulu"
+  "aime:zs_cot_r1::pass_at_32_2024_deepseek"
+  "aime:zs_cot_r1::pass_at_32_2025_deepseek"
 )
-OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 4096}'
+OLMES_MODEL_ARGS='{"gpu_memory_utilization": 0.8, "trust_remote_code": false, "max_length": 16384}'
 
 # Materialize a view of MERGED_DIR that uses the given expert's tokenizer (chat
 # template included). Big weight files are symlinked (read-only, never written);
@@ -76,9 +73,8 @@ AutoTokenizer.from_pretrained(sys.argv[1]).save_pretrained(sys.argv[2])
 PY
 }
 
-# 1. Merge (skip if the merged checkpoint already exists — rm -rf "$MERGED_DIR"
-# to force a re-merge). The vocab layers are forced to a plain mean via
-# --ignore-mean; merge.py prints a [IGNORE-MEAN] line for each affected layer.
+# 1. Merge (skip if the merged checkpoint already exists — e.g. from a prior run
+# or the migrated scripts/olmo outputs; rm -rf "$MERGED_DIR" to force a re-merge)
 if [[ -d "$MERGED_DIR" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
@@ -87,7 +83,6 @@ else
     --chat-template-name-or-path "$MATH_EXPERT" \
     --expert-model-names-or-paths "$MATH_EXPERT" "$CODE_EXPERT" "$IF_EXPERT" \
     --merge-method "$METHOD" \
-    --ignore-mean "$IGNORE_MEAN_RE" \
     --output-dir "$MERGED_DIR"
 fi
 
