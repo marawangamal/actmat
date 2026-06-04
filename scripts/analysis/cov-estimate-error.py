@@ -36,8 +36,11 @@ from src.mhas import copy_from_pytorch_state_dict  # noqa: E402  (needs rootdir 
 # --------------------------------------------------------------------------- #
 # Covariace estimation methods                                                #
 # --------------------------------------------------------------------------- #
-def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-    return torch.dot(a.flatten(), b.flatten()) / (a.norm() * b.norm())
+def cosine_similarity_batch(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    # mean over experts of the per-expert cosine (each expert weighted equally,
+    # not dominated by the largest-norm one). a, b: (T, Di, Di)
+    a, b = a.flatten(1), b.flatten(1)
+    return ((a * b).sum(1) / (a.norm(dim=1) * b.norm(dim=1))).mean()
 
 
 def cov_estimate_actmat(w0, d, c=None, **kwargs):
@@ -282,7 +285,7 @@ for cfg in configs:
         c = torch.stack(c_list)  # (T, Di, Di)
         for cov_estimate_method, cov_estimate_func in cov_estimate_configs:
             c_star = cov_estimate_func(w_0, d, c)
-            cosim = cosine_similarity(c_star, c)
+            cosim = cosine_similarity_batch(c_star, c)
             rows.append(
                 {
                     "model": model,
