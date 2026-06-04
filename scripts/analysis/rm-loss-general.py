@@ -27,8 +27,8 @@ import torch
 from safetensors import safe_open
 from tqdm import tqdm
 
-REPO_ROOT = osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__))))
-sys.path.append(REPO_ROOT)
+rootdir = osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__))))
+sys.path.append(rootdir)
 
 tr_abt = lambda a, b: (a * b).sum()
 pinv = lambda c: torch.linalg.pinv(c, hermitian=True)  # c is symmetric PSD
@@ -202,6 +202,11 @@ configs = [
         "type": "hf",
         "base": "allenai/Olmo-3-1025-7B",
         "experts-path": "artifacts/checkpoints/Olmo-3-7b/group-rl-zero/experts",
+        "expert_to_model_name_or_path": {  # expert dir name -> HF model_name_or_path (weights); cov stays local
+            "Code": "allenai/Olmo-3-7B-RL-Zero-Code",
+            "IF": "allenai/Olmo-3-7B-RL-Zero-IF",
+            "Math": "allenai/Olmo-3-7B-RL-Zero-Math",
+        },
     },
 ]
 
@@ -210,7 +215,7 @@ print(f"device={dev}")
 
 for cfg in configs:
     model = cfg["model"]
-    edir = osp.join(REPO_ROOT, cfg["experts-path"])
+    edir = osp.join(rootdir, cfg["experts-path"])
     expert_dirs = sorted(
         osp.join(edir, n)
         for n in os.listdir(edir)
@@ -218,7 +223,7 @@ for cfg in configs:
     )
 
     if cfg["type"] == "basic":
-        base = BasicExpert(osp.join(REPO_ROOT, cfg["base"]))
+        base = BasicExpert(osp.join(rootdir, cfg["base"]))
         experts = [
             BasicExpert(osp.join(d, "finetuned.pt"), osp.join(d, "covariance.pt"))
             for d in expert_dirs
@@ -226,7 +231,10 @@ for cfg in configs:
     else:
         base = HFExpert(cfg["base"])
         experts = [
-            HFExpert(osp.join(d, "finetuned"), osp.join(d, "covariance.pt"))
+            HFExpert(
+                cfg["expert_to_model_name_or_path"][osp.basename(d)],
+                osp.join(d, "covariance.pt"),
+            )
             for d in expert_dirs
         ]
 
@@ -267,7 +275,7 @@ for cfg in configs:
             )
         del w_0, d, c
 
-out = osp.join(REPO_ROOT, "artifacts/analysis/rm-loss/rm_loss_general.csv")
+out = osp.join(rootdir, "artifacts/analysis/rm-loss/rm_loss_general.csv")
 os.makedirs(osp.dirname(out), exist_ok=True)
 df = pd.DataFrame(rows)
 df.to_csv(out, index=False)
