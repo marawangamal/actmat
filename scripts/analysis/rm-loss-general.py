@@ -6,14 +6,14 @@ layer's weights *efficiently* (no full-model instantiation, no per-call rescans)
   * BasicExpert -- pickled `.pt` checkpoint (vision/language). The `.pt` is read
                    ONCE into its state_dict and indexed per layer; `covariance.pt`
                    is a plain {layer: C} dict.
-  * HFExpert    -- safetensors, per-layer lazy reads. Works over an OLMo param-folder
-                   (one file per weight) or a bare HF repo id (cache-snapshot shards,
-                   used for the base). `covariance.pt` is one big pickle, mmap'd.
+  * HFExpert    -- HF safetensors model (local HF dir or repo id). Weights are read
+                   one layer at a time from the sharded safetensors via the index's
+                   weight-map; `covariance.pt` is one big pickle, mmap'd.
 
 The base model is just an Expert with no covariance. For every cov-tracked square
 layer we form deltas d = w_t - w_0, build each method's merged weight w*, and score
 the RegMean loss of (w* - w_0) against the REAL covariance. Writes per-(model,
-layer, method) rows to artifacts/analysis/rm-loss/rm_loss_general.json.
+layer, method) rows to artifacts/analysis/rm-loss/rm_loss_general.csv.
 """
 
 import glob
@@ -22,6 +22,7 @@ import os
 import os.path as osp
 import sys
 
+import pandas as pd
 import torch
 from safetensors import safe_open
 from tqdm import tqdm
@@ -124,35 +125,45 @@ class BasicExpert(Expert):
         return self.sd[layer]
 
     def get_layer_cov(self, layer):
-        return self.cov[layer]
+        return self.cov.get(self._param_key_to_cov_key(layer))
 
 
 class HFExpert(Expert):
-    """safetensors weights, read one layer at a time (+ optional mmap'd covariance.pt)."""
+    """HF safetensors model -- local HF dir or repo id (newest cache snapshot).
+
+    Weights are read one layer at a time from the sharded safetensors; `layer` keys
+    are exactly the model.safetensors.index.json weight-map keys. Optional mmap'd
+    covariance.pt is indexed by the cov key (param key minus ".weight").
+    """
 
     def __init__(self, model_name_or_path, covariance_path=None):
         self.covariance_path = covariance_path
         self._cov = None
-        self.rootdir = None
-        self.model_index = {}  # real_key -> (file_path, internal_key)
 
-        # bare HF repo id -> newest cache snapshot
-        hub = osp.join(os.environ.get("HF_HOME"), "hub")
-        snaps = sorted(
-            glob.glob(
-                osp.join(
-                    hub,
-                    "models--" + weights_src.replace("/", "--"),
-                    "snapshots",
-                    "*",
+        if osp.isdir(model_name_or_path):  # local HF dir
+            self.rootdir = model_name_or_path
+        else:  # bare HF repo id -> newest cache snapshot
+            hub = osp.join(
+                os.environ.get("HF_HOME", osp.expanduser("~/.cache/huggingface")), "hub"
+            )
+            snaps = sorted(
+                glob.glob(
+                    osp.join(
+                        hub,
+                        "models--" + model_name_or_path.replace("/", "--"),
+                        "snapshots",
+                        "*",
+                    )
                 )
             )
-        )
-        if not snaps:
-            raise FileNotFoundError(f"No HF snapshot for {weights_src} under {hub}")
+            if not snaps:
+                raise FileNotFoundError(
+                    f"No HF snapshot for {model_name_or_path} under {hub}"
+                )
+            self.rootdir = snaps[-1]
 
-        self.rootdir = open(osp.join(snaps[-1], "model.safetensors.index.json"))
-        self.weight_map = json.load(self.rootdir)
+        index = json.load(open(osp.join(self.rootdir, "model.safetensors.index.json")))
+        self.weight_map = index["weight_map"]  # param_key -> shard filename
 
     @property
     def cov(self):
@@ -166,15 +177,15 @@ class HFExpert(Expert):
         return layer.replace(".weight", "")
 
     def get_layers(self):
-        return self.sd.keys()
+        return self.weight_map.keys()
 
     def get_layer_params(self, layer):
-        path = osp.join(self.rootdir, self.weight_map, layer)
-        res = safe_open(path, framework="pt", device="cpu")
-        return res.get_tensor(internal_key)
+        path = osp.join(self.rootdir, self.weight_map[layer])
+        with safe_open(path, framework="pt", device="cpu") as f:
+            return f.get_tensor(layer)
 
     def get_layer_cov(self, layer):
-        return self.cov[_param_key_to_cov_key(layer)]
+        return self.cov.get(self._param_key_to_cov_key(layer))
 
 
 # --------------------------------------------------------------------------- #
@@ -229,7 +240,7 @@ for cfg in configs:
 
     for l in tqdm(layers, desc=model):
         w_0 = base.get_layer_params(l).float().to(dev)  # (Do, Di)
-        if not w_0.ndim == 2:
+        if not w_0.ndim == 2 or experts[0].get_layer_cov(l) is None:
             continue
         w_list = []
         c_list = []
@@ -256,8 +267,8 @@ for cfg in configs:
             )
         del w_0, d, c
 
-out = osp.join(REPO_ROOT, "artifacts/analysis/rm-loss/rm_loss_general.json")
+out = osp.join(REPO_ROOT, "artifacts/analysis/rm-loss/rm_loss_general.csv")
 os.makedirs(osp.dirname(out), exist_ok=True)
-with open(out, "w") as f:
-    json.dump(rows, f, indent=2)
-print(f"\nwrote {len(rows)} rows -> {out}")
+df = pd.DataFrame(rows)
+df.to_csv(out, index=False)
+print(f"\nwrote {len(df)} rows -> {out}")
