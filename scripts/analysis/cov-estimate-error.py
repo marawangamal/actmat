@@ -1,4 +1,4 @@
-"""Unified RegMean-loss analysis across checkpoint formats (compute only).
+"""Unified covariance estimation analysis across checkpoint formats (compute only).
 
 Two `Expert` classes over the two on-disk layouts in this repo, both loading a
 layer's weights *efficiently* (no full-model instantiation, no per-call rescans):
@@ -32,64 +32,32 @@ sys.path.append(rootdir)
 
 from src.mhas import copy_from_pytorch_state_dict  # noqa: E402  (needs rootdir on path)
 
-tr_abt = lambda a, b: (a * b).sum()
-pinv = lambda c: torch.linalg.pinv(c, hermitian=True)  # c is symmetric PSD
-
 
 # --------------------------------------------------------------------------- #
-# loss + merge methods                                                        #
+# Covariace estimation methods                                                #
 # --------------------------------------------------------------------------- #
-def compute_rm_loss(w_test, w_t, c_t):
-    """Compute the RegMean loss for linear layer at a given w
-
-    Args:
-        w_test: (Do, Di)      merged delta (w* - w_0)
-        w_t:    (T, Do, Di)   per-expert deltas
-        c_t:    (T, Di, Di)   per-expert (real) covariances
-    """
-    w_test = w_test.unsqueeze(0)
-    loss_1 = tr_abt(w_test @ c_t, w_test)
-    loss_2 = tr_abt(w_t @ c_t, w_t)
-    loss_3 = tr_abt(w_t @ c_t, w_test)
-    return loss_1 + loss_2 - 2 * loss_3
+def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    return torch.dot(a.flatten(), b.flatten()) / (a.norm() * b.norm())
 
 
-def merge_actmat(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
-    c = d.transpose(-2, -1) @ d
-    return w0 + (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+def cov_estimate_actmat(d: torch.Tensor, **kwargs):
+    return d.transpose(-2, -1) @ d
 
 
-def merge_regmean(w0: torch.Tensor, d: torch.Tensor, c: torch.Tensor, **kwargs):
-    return w0 + (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+def cov_estimate_identity(c: torch.Tensor, **kwargs):
+    T, _, Di = c.shape
+    return torch.stack([torch.eye(Di, Di) for _ in range(len(T))])
 
 
-def merge_regmean_random_psd(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
-    # ablation: RegMean with a RANDOM PSD per expert (same shape as the real cov) --
-    # tests whether the *specific* covariance matters or any PSD weighting would do.
-    T, _, Di = d.shape
-    a = torch.randn(T, Di, Di, device=d.device, dtype=d.dtype)
-    c = a @ a.transpose(-2, -1)  # (T, Di, Di), symmetric PSD
-    return w0 + (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
-
-
-def merge_mean(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
-    return w0 + d.mean(0)
-
-
-merge_configs = [
-    ("actmat", merge_actmat),
-    ("regmean", merge_regmean),
-    ("identity", merge_mean),
+cov_estimate_configs = [
+    ("actmat", cov_estimate_actmat),
+    ("identity", cov_estimate_identity),
 ]
 
 
 # --------------------------------------------------------------------------- #
 # Experts                                                                     #
 # --------------------------------------------------------------------------- #
-def _is_square(v):
-    return torch.is_tensor(v) and v.ndim == 2 and v.size(0) == v.size(1)
-
-
 class Expert:
     def get_layers(self):
         raise NotImplementedError
@@ -312,17 +280,17 @@ for cfg in configs:
             c_list.append(c_t)
         d = torch.stack(w_list) - w_0  # (T, Do, Di)
         c = torch.stack(c_list)  # (T, Di, Di)
-        for merge_method, merge_func in merge_configs:
-            w_star = merge_func(w_0, d, c)
-            loss = compute_rm_loss(w_star - w_0, d, c)
+        for cov_estimate_method, cov_estimate_func in cov_estimate_configs:
+            c_star = cov_estimate_func(w_0, d, c)
+            cosim = cosine_similarity(c_star, c)
             rows.append(
                 {
                     "model": model,
-                    "method": merge_method,
+                    "method": cov_estimate_method,
                     "layer": l,
                     "layer_idx": layer_idx,
-                    "metric_type": "rm_loss",
-                    "metric": loss.item(),
+                    "metric_type": "cosine_similarity",
+                    "metric": cosim.item(),
                     "Di": w_0.shape[-1],
                     "Do": w_0.shape[-2],
                 }
@@ -330,7 +298,7 @@ for cfg in configs:
         layer_idx += 1
         del w_0, d, c
 
-out = osp.join(rootdir, "artifacts/analysis/rm-loss/rm_loss_general.csv")
+out = osp.join(rootdir, "artifacts/analysis/cov-estimate-error/cov-estimate-error.csv")
 os.makedirs(osp.dirname(out), exist_ok=True)
 df = pd.DataFrame(rows)
 df.to_csv(out, index=False)
