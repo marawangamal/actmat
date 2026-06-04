@@ -11,9 +11,9 @@ layer's weights *efficiently* (no full-model instantiation, no per-call rescans)
                    weight-map; `covariance.pt` is one big pickle, mmap'd.
 
 The base model is just an Expert with no covariance. For every cov-tracked square
-layer we form deltas d = w_t - w_0, build each method's merged weight w*, and score
-the RegMean loss of (w* - w_0) against the REAL covariance. Writes per-(model,
-layer, method) rows to artifacts/analysis/rm-loss/rm_loss_general.csv.
+layer we form deltas d = w_t - w_0, build each method's estimated covariance ĉ, and
+score its cosine similarity to the REAL covariance. Writes per-(model, layer, method)
+rows to artifacts/analysis/cov-estimate-error/cov-estimate-error.csv.
 """
 
 import glob
@@ -40,13 +40,13 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return torch.dot(a.flatten(), b.flatten()) / (a.norm() * b.norm())
 
 
-def cov_estimate_actmat(d: torch.Tensor, **kwargs):
+def cov_estimate_actmat(w0, d, c=None, **kwargs):
     return d.transpose(-2, -1) @ d
 
 
-def cov_estimate_identity(c: torch.Tensor, **kwargs):
+def cov_estimate_identity(w0, d, c, **kwargs):
     T, _, Di = c.shape
-    return torch.stack([torch.eye(Di, Di) for _ in range(len(T))])
+    return torch.eye(Di, device=c.device, dtype=c.dtype).expand(T, Di, Di)
 
 
 cov_estimate_configs = [
