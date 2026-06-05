@@ -54,6 +54,23 @@ def compute_rm_loss(w_test, w_t, c_t):
     return loss_1 + loss_2 - 2 * loss_3
 
 
+def angular_rm_loss(w_test, w_t, c_t):
+    """Angular RegMean loss: mean over experts of (1 - cos_{c_i}(Δ, d_i)).
+
+    Scale-invariant in Δ -- penalizes direction in the c_i-metric, not magnitude,
+    so an overshooting merge (right direction, wrong scale) is NOT punished the way
+    the L2 RegMean loss punishes it.
+
+    Args mirror compute_rm_loss: w_test (Do,Di) merged delta; w_t (T,Do,Di) deltas;
+    c_t (T,Di,Di) real covariances.
+    """
+    w_test = w_test.unsqueeze(0)  # (1, Do, Di)
+    num = (w_test @ c_t * w_t).sum(dim=(-2, -1))  # <Δ, d_i>_{c_i}  -> (T,)
+    n_t = (w_test @ c_t * w_test).sum(dim=(-2, -1)).sqrt()
+    n_i = (w_t @ c_t * w_t).sum(dim=(-2, -1)).sqrt()
+    return (1 - num / (n_t * n_i)).mean()
+
+
 def cosine_similarity_batch(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     # mean over experts of the per-expert cosine (each expert weighted equally,
     # not dominated by the largest-norm one). a, b: (T, Di, Di)
@@ -126,6 +143,12 @@ merge_configs = [
                 ),
             },
             {
+                "metric_type": "angular_rm_loss",
+                "metric_func": lambda w0, d, c: angular_rm_loss(
+                    merge_actmat(w0, d, c) - w0, d, c
+                ),
+            },
+            {
                 "metric_type": "cosine_similarity",
                 "metric_func": lambda w0, d, c: cosine_similarity_batch(
                     d.transpose(-2, -1) @ d, c
@@ -165,6 +188,12 @@ merge_configs = [
             {
                 "metric_type": "rm_loss",
                 "metric_func": lambda w0, d, c: compute_rm_loss(
+                    merge_actmat_identity_inv(w0, d, c) - w0, d, c
+                ),
+            },
+            {
+                "metric_type": "angular_rm_loss",
+                "metric_func": lambda w0, d, c: angular_rm_loss(
                     merge_actmat_identity_inv(w0, d, c) - w0, d, c
                 ),
             },
@@ -211,6 +240,12 @@ merge_configs = [
                     merge_regmean(w0, d, c) - w0, d, c
                 ),
             },
+            {
+                "metric_type": "angular_rm_loss",
+                "metric_func": lambda w0, d, c: angular_rm_loss(
+                    merge_regmean(w0, d, c) - w0, d, c
+                ),
+            },
             {  # estimate IS the true cov -> both ceilings == 1 (sanity reference)
                 "metric_type": "cosine_similarity",
                 "metric_func": lambda w0, d, c: cosine_similarity_batch(c, c),
@@ -245,6 +280,12 @@ merge_configs = [
             {
                 "metric_type": "rm_loss",
                 "metric_func": lambda w0, d, c: compute_rm_loss(
+                    merge_mean(w0, d, c) - w0, d, c
+                ),
+            },
+            {
+                "metric_type": "angular_rm_loss",
+                "metric_func": lambda w0, d, c: angular_rm_loss(
                     merge_mean(w0, d, c) - w0, d, c
                 ),
             },

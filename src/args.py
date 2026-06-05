@@ -223,6 +223,13 @@ def parse_arguments():
         help="Substrings of parameter keys to freeze at pretrained values (no delta applied).",
     )
     parser.add_argument(
+        "--mean-keys",
+        nargs="+",
+        default=None,
+        help="Substrings of parameter keys to force a plain mean merge, overriding "
+        "--merge-func for those layers (e.g. 'DenseReluDense.wo' for the t5 head-mean group).",
+    )
+    parser.add_argument(
         "--merge-kwargs",
         type=json.loads,
         default={},
