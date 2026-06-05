@@ -54,6 +54,39 @@ def compute_rm_loss(w_test, w_t, c_t):
     return loss_1 + loss_2 - 2 * loss_3
 
 
+def cosine_similarity_batch(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    # mean over experts of the per-expert cosine (each expert weighted equally,
+    # not dominated by the largest-norm one). a, b: (T, Di, Di)
+    a, b = a.flatten(1), b.flatten(1)
+    return ((a * b).sum(1) / (a.norm(dim=1) * b.norm(dim=1))).mean()
+
+
+def cosine_similarity_full(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    # cosine over the whole flattened matrices (one scalar). a, b: (Di, Di)
+    return (a.flatten() @ b.flatten()) / (a.norm() * b.norm())
+
+
+def l2_error_batch(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    # mean over experts of the Frobenius distance ||a_i - b_i||_F. a, b: (T, Di, Di)
+    return (a - b).flatten(1).norm(dim=1).mean()
+
+
+def l2_error_full(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    # Frobenius distance ||a - b||_F over the whole matrices. a, b: (Di, Di)
+    return (a - b).norm()
+
+
+def rel_l2_error_batch(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    # mean over experts of ||a_i - b_i||_F / ||b_i||_F. a, b: (T, Di, Di)
+    a, b = a.flatten(1), b.flatten(1)
+    return ((a - b).norm(dim=1) / b.norm(dim=1)).mean()
+
+
+def rel_l2_error_full(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    # ||a - b||_F / ||b||_F over the whole matrices. a, b: (Di, Di)
+    return (a - b).norm() / b.norm()
+
+
 def merge_actmat(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
     c = d.transpose(-2, -1) @ d
     return w0 + (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
@@ -83,10 +116,177 @@ def merge_mean(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
 
 
 merge_configs = [
-    ("actmat", merge_actmat),
-    ("actmat-identity-inv", merge_actmat_identity_inv),
-    ("regmean", merge_regmean),
-    ("identity", merge_mean),
+    {
+        "method_name": "actmat",
+        "metrics": [
+            {
+                "metric_type": "rm_loss",
+                "metric_func": lambda w0, d, c: compute_rm_loss(
+                    merge_actmat(w0, d, c) - w0, d, c
+                ),
+            },
+            {
+                "metric_type": "cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_batch(
+                    d.transpose(-2, -1) @ d, c
+                ),
+            },
+            {  # cosine of the inverse-sums: (Σ ĉ)^+  vs  (Σ c)^+  -- what the merge actually inverts
+                "metric_type": "inv_cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_full(
+                    pinv((d.transpose(-2, -1) @ d).sum(0)), pinv(c.sum(0))
+                ),
+            },
+            {  # raw Frobenius distances: ||ĉ - c||  and  ||(Σ ĉ)^+ - (Σ c)^+||
+                "metric_type": "l2_error",
+                "metric_func": lambda w0, d, c: l2_error_batch(d.transpose(-2, -1) @ d, c),
+            },
+            {
+                "metric_type": "inv_l2_error",
+                "metric_func": lambda w0, d, c: l2_error_full(
+                    pinv((d.transpose(-2, -1) @ d).sum(0)), pinv(c.sum(0))
+                ),
+            },
+            {  # relative Frobenius: ||ĉ - c|| / ||c||  and  ||(Σĉ)^+ - (Σc)^+|| / ||(Σc)^+||
+                "metric_type": "rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_batch(d.transpose(-2, -1) @ d, c),
+            },
+            {
+                "metric_type": "inv_rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_full(
+                    pinv((d.transpose(-2, -1) @ d).sum(0)), pinv(c.sum(0))
+                ),
+            },
+        ],
+    },
+    {
+        "method_name": "actmat-identity-inv",
+        "metrics": [
+            {
+                "metric_type": "rm_loss",
+                "metric_func": lambda w0, d, c: compute_rm_loss(
+                    merge_actmat_identity_inv(w0, d, c) - w0, d, c
+                ),
+            },
+            {  # estimate = dᵀd (== actmat)
+                "metric_type": "cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_batch(
+                    d.transpose(-2, -1) @ d, c
+                ),
+            },
+            {  # inverse it actually applies = (1/T) I (== identity); cosine is scale-free
+                "metric_type": "inv_cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_full(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype), pinv(c.sum(0))
+                ),
+            },
+            {  # estimate = dᵀd (== actmat); inverse it applies = (1/T) I
+                "metric_type": "l2_error",
+                "metric_func": lambda w0, d, c: l2_error_batch(d.transpose(-2, -1) @ d, c),
+            },
+            {
+                "metric_type": "inv_l2_error",
+                "metric_func": lambda w0, d, c: l2_error_full(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype) / c.size(0), pinv(c.sum(0))
+                ),
+            },
+            {
+                "metric_type": "rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_batch(d.transpose(-2, -1) @ d, c),
+            },
+            {
+                "metric_type": "inv_rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_full(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype) / c.size(0), pinv(c.sum(0))
+                ),
+            },
+        ],
+    },
+    {
+        "method_name": "regmean",
+        "metrics": [
+            {
+                "metric_type": "rm_loss",
+                "metric_func": lambda w0, d, c: compute_rm_loss(
+                    merge_regmean(w0, d, c) - w0, d, c
+                ),
+            },
+            {  # estimate IS the true cov -> both ceilings == 1 (sanity reference)
+                "metric_type": "cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_batch(c, c),
+            },
+            {
+                "metric_type": "inv_cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_full(
+                    pinv(c.sum(0)), pinv(c.sum(0))
+                ),
+            },
+            {  # estimate IS the true cov -> both floors == 0
+                "metric_type": "l2_error",
+                "metric_func": lambda w0, d, c: l2_error_batch(c, c),
+            },
+            {
+                "metric_type": "inv_l2_error",
+                "metric_func": lambda w0, d, c: l2_error_full(pinv(c.sum(0)), pinv(c.sum(0))),
+            },
+            {
+                "metric_type": "rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_batch(c, c),
+            },
+            {
+                "metric_type": "inv_rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_full(pinv(c.sum(0)), pinv(c.sum(0))),
+            },
+        ],
+    },
+    {
+        "method_name": "identity",
+        "metrics": [
+            {
+                "metric_type": "rm_loss",
+                "metric_func": lambda w0, d, c: compute_rm_loss(
+                    merge_mean(w0, d, c) - w0, d, c
+                ),
+            },
+            {
+                "metric_type": "cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_batch(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype).expand(c.size(0), -1, -1),
+                    c,
+                ),
+            },
+            {  # (Σ ĉ)^+ = (1/T) I; cosine is scale-free, so compare I vs (Σ c)^+
+                "metric_type": "inv_cosine_similarity",
+                "metric_func": lambda w0, d, c: cosine_similarity_full(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype), pinv(c.sum(0))
+                ),
+            },
+            {
+                "metric_type": "l2_error",
+                "metric_func": lambda w0, d, c: l2_error_batch(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype).expand(c.size(0), -1, -1), c
+                ),
+            },
+            {  # inverse = (1/T) I
+                "metric_type": "inv_l2_error",
+                "metric_func": lambda w0, d, c: l2_error_full(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype) / c.size(0), pinv(c.sum(0))
+                ),
+            },
+            {
+                "metric_type": "rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_batch(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype).expand(c.size(0), -1, -1), c
+                ),
+            },
+            {
+                "metric_type": "inv_rel_l2_error",
+                "metric_func": lambda w0, d, c: rel_l2_error_full(
+                    torch.eye(c.size(-1), device=c.device, dtype=c.dtype) / c.size(0), pinv(c.sum(0))
+                ),
+            },
+        ],
+    },
 ]
 
 
@@ -319,21 +519,20 @@ for cfg in configs:
             c_list.append(c_t)
         d = torch.stack(w_list) - w_0  # (T, Do, Di)
         c = torch.stack(c_list)  # (T, Di, Di)
-        for merge_method, merge_func in merge_configs:
-            w_star = merge_func(w_0, d, c)
-            loss = compute_rm_loss(w_star - w_0, d, c)
-            rows.append(
-                {
-                    "model": model,
-                    "method": merge_method,
-                    "layer": l,
-                    "layer_idx": layer_idx,
-                    "metric_type": "rm_loss",
-                    "metric": loss.item(),
-                    "Di": w_0.shape[-1],
-                    "Do": w_0.shape[-2],
-                }
-            )
+        for cfg_m in merge_configs:
+            for metric in cfg_m["metrics"]:
+                rows.append(
+                    {
+                        "model": model,
+                        "method": cfg_m["method_name"],
+                        "layer": l,
+                        "layer_idx": layer_idx,
+                        "metric_type": metric["metric_type"],
+                        "metric": metric["metric_func"](w_0, d, c).item(),
+                        "Di": w_0.shape[-1],
+                        "Do": w_0.shape[-2],
+                    }
+                )
         layer_idx += 1
         del w_0, d, c
 
