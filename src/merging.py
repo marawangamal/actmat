@@ -334,6 +334,17 @@ def merge_actmat(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_actmat_identity_inv(d: torch.Tensor, *args, **kwargs):
+    """ACTMat numerator with the identity in place of pinv(Σ_t C_t).
+
+    Vanilla ACTMat returns (Σ_t d_t C_t) @ pinv(Σ_t C_t); this ablation drops the
+    inverse (using identity, scaled by 1/T) to isolate the effect of the pinv
+    normalization. The merged delta is just (1/T)·Σ_t d_t (d_tᵀ d_t).
+    """
+    c = d.transpose(1, 2) @ d
+    return (d @ c).sum(dim=0) / d.shape[0]
+
+
 def merge_actmat_herm(d: torch.Tensor, *args, **kwargs):
     c = d.transpose(1, 2) @ d
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0), hermitian=True)

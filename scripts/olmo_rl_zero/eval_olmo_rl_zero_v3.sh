@@ -30,7 +30,7 @@ BASE_MODEL="allenai/Olmo-3-1025-7B"
 MATH_EXPERT="allenai/Olmo-3-7B-RL-Zero-Math"
 CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
-METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki)
+METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki actmat_identity_inv)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 # Own group (group-rl-zero-headmean) so v3 builds fresh head-mean merges instead
 # of reusing v2's full-method ones (group-rl-zero).
