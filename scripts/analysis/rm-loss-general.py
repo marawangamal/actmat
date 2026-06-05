@@ -59,6 +59,12 @@ def merge_actmat(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
     return w0 + (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_actmat_identity_inv(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
+    T, _, _ = d.shape
+    c = d.transpose(-2, -1) @ d
+    return w0 + (((d @ c).sum(dim=0)) * 1 / T)
+
+
 def merge_regmean(w0: torch.Tensor, d: torch.Tensor, c: torch.Tensor, **kwargs):
     return w0 + (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
@@ -78,6 +84,7 @@ def merge_mean(w0: torch.Tensor, d: torch.Tensor, c=None, **kwargs):
 
 merge_configs = [
     ("actmat", merge_actmat),
+    ("actmat-identity-inv", merge_actmat_identity_inv),
     ("regmean", merge_regmean),
     ("identity", merge_mean),
 ]
