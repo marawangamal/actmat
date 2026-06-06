@@ -119,7 +119,7 @@ def parse_arguments():
         default=None,
         help="Cap on unique training examples per dataset. None means use the full train split.",
     )
-    parser.add_argument("--seed", type=int, default=None, help="Random seed.")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed.")
     parser.add_argument(
         "--world-size",
         type=int,

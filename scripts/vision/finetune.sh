@@ -58,7 +58,7 @@ DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 # DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN CIFAR10 CIFAR100 STL10 Food101 Flowers102 FER2013 PCAM OxfordIIITPet RenderedSST2 EMNIST FashionMNIST KMNIST)
 DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
 
-MODELS=(ViT-B-32 ViT-B-16 ViT-L-14)
+MODELS=(ViT-B-16)
 FT_MODE="standard"
 SAVE_DIR="artifacts/checkpoints"
 
@@ -76,7 +76,6 @@ for MODEL in "${MODELS[@]}"; do
     --cache-dir="$OPENCLIP_DIR" \
     --data-location="$DATA_DIR" \
     --save="$SAVE_DIR" \
-    --epochs=1 \
     --train-dataset="$DATASET" \
     --grad-cross-matrix \
     --checkpoint-every=200
