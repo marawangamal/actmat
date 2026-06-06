@@ -13,8 +13,14 @@ from src import merging
 from src.utils import sanitize_hf_id
 
 
-class HFDir:
-    def __init__(self, model_dir, chat_template_path=None, tokenizer_path=None):
+class HFExpert:
+    def __init__(
+        self,
+        model_dir,
+        chat_template_path=None,
+        tokenizer_path=None,
+        covariance_path=None,
+    ):
         self.model_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
         # maps each layer name -> its shard filename (sharded or single-file)
@@ -52,6 +58,9 @@ class HFDir:
             if osp.exists(chat_template):
                 shutil.copy2(chat_template, osp.join(model_dir, "chat_template.jinja"))
 
+    def _param_key_to_cov_key(self, layer):
+        return layer.replace(".weight", "")
+
     def get_layer_params(self, layer_name):
         # loads layer from hf dir with pottentially many shards
         shard_name = self.weight_map[layer_name]
@@ -59,6 +68,12 @@ class HFDir:
             osp.join(self.model_dir, shard_name), framework="pt", device="cpu"
         ) as f:
             return f.get_tensor(layer_name)
+
+    def get_layers(self):
+        return self.weight_map.keys()
+
+    def get_layer_cov(self, layer):
+        return self.cov.get(self._param_key_to_cov_key(layer))
 
     def save_layer_params(self, tensor, shard_filename, layer_name):
         # saves into hf compatible safetensors layer_file at key layer_name
@@ -152,8 +167,8 @@ args = parse_args()
 base_model_path = resolve(args.base_model_name_or_path)
 chat_template_path = resolve(args.chat_template_name_or_path)
 
-base_hf_dir = HFDir(base_model_path)
-expert_hf_dirs = [HFDir(resolve(m)) for m in args.expert_model_names_or_paths]
+base_hf_dir = HFExpert(base_model_path)
+expert_hf_dirs = [HFExpert(resolve(m)) for m in args.expert_model_names_or_paths]
 
 # Per-expert stats sidecars (covariance.pt / fisher.pt) for covariance-based
 # merges. Weights stay on the Hub, so stats live in our tree keyed by expert id:
@@ -177,7 +192,7 @@ for m in args.expert_model_names_or_paths:
     )
 
 layer_to_file = base_hf_dir.weight_map
-merged_model_hf_dir = HFDir(args.output_dir, chat_template_path, chat_template_path)
+merged_model_hf_dir = HFExpert(args.output_dir, chat_template_path, chat_template_path)
 for layer_name in layer_to_file:
     shard_filename = layer_to_file[layer_name]
     w_list = []
