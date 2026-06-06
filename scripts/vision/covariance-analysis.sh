@@ -8,7 +8,7 @@
 #SBATCH --output=artifacts/logs/%x_%j.out
 #SBATCH --error=artifacts/logs/%x_%j.err
 # Compute per-layer covariances for every task under a checkpoints-analysis
-# run dir (the layout produced by finetune-analysis-samples.sh).
+# run dir (the layout produced by finetune.sh).
 #
 # Required env vars (override at sbatch time):
 #   MODEL         e.g. ViT-B-16

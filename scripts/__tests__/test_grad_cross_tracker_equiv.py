@@ -1,5 +1,5 @@
 """Equivalence test: memory-efficient sbar/stilde update vs. the
-materializing einsum currently in finetunev2.GradCrossTermTracker.step.
+materializing einsum currently in finetune.GradCrossTermTracker.step.
 
 Run:
     python scripts/tests/test_grad_cross_tracker_equiv.py
@@ -9,7 +9,7 @@ import torch
 
 
 def einsum_version(z, gy):
-    """Current finetunev2 implementation (OOMs for realistic shapes)."""
+    """Current finetune.py implementation (OOMs for realistic shapes)."""
     B, T, Di = z.shape
     gynorm2 = gy.pow(2).sum(-1)  # (B, T)
     sbar = torch.einsum("bti,btj,bt->ij", z, z, gynorm2) / (B * T)
