@@ -124,7 +124,7 @@ def seed_everything(seed, rank=0):
 
 def save_args(args, ckpdir):
     os.makedirs(ckpdir, exist_ok=True)
-    with open(os.path.join(ckpdir, "finetune_args.json"), "w") as f:
+    with open(os.path.join(ckpdir, "args.json"), "w") as f:
         json.dump(vars(args), f, indent=2, sort_keys=True, default=str)
 
 
@@ -439,11 +439,14 @@ if __name__ == "__main__":
     if args.train_dataset is not None:
         train_datasets = [ds.strip() for ds in args.train_dataset]
 
+    requested_epochs = args.epochs
     for dataset in train_datasets:
         # HACK: Some command line arguments are overwritten by defaults here.
         args.lr = 1e-5
-        if not args.grad_cross_matrix and args.max_samples is None:
+        if requested_epochs is None:
             args.epochs = epochs[dataset]
+        else:
+            args.epochs = requested_epochs
         args.train_dataset = dataset + "Val"
 
         # We use gradient accumulation to simulate larger batch sizes if the model does not fit in memory.
