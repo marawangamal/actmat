@@ -1,48 +1,145 @@
-"""Collects per-layer ||dL/dy||² and sampled entries of yy^T per sample.
+"""Collect activation covariance statistics for one vision checkpoint."""
 
-For each layer, saves:
-  - g_sq/<layer>:         (N,) array of ||dL/dy||²
-  - aat_samples/<layer>:  (N, K) array of sampled entries of yy^T
-  - index_pairs/<layer>:  (K, 2) array of which (i,j) pairs were sampled
-
-Activations are flattened (seq_len * D) so aa^T captures the full structure.
-K = 32 (i,j) pairs, randomly sampled with a fixed seed for reproducibility.
-
-Example usage:
-export PYTHONPATH="$PYTHONPATH:$PWD"
-python scripts/vision/covariance.py --model=ViT-B-16 --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision
-python scripts/vision/covariance.py --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split ...
-
-# Generate covariance matrices
-python scripts/vision/covariance.py --openclip-cachedir=$SCRATCH/openclip --data-location=data/vision \
---model=ViT-B-16 --cov-split train --cov-num-batches 100 --cov-batch-size 32 --mha=split
-
-"""
-
+import argparse
 import gc
 import os
 import sys
 from pathlib import Path
-from typing import Dict
-import torch
 from tqdm import tqdm
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.vision.task_vectors import LinearizedTaskVector, NonLinearTaskVector
-from src.vision.heads import get_classification_head
-from src.vision.modeling import ImageClassifier
-from src.args import parse_arguments
-from src.vision.datasets.registry import get_dataset
-from src import mhap, mhas
-from src.covariance import OnlineCovariance, register_hooks
-from src.utils import expert_dir, get_prefix, resolve_run_dir
+torch = None
+build_classification_head = None
+ClassificationHead = None
+ImageClassifier = None
+ImageEncoder = None
+get_dataset = None
+mhap = None
+mhas = None
+OnlineCovariance = None
+register_hooks = None
+
+
+def load_project_imports():
+    global torch
+    global build_classification_head
+    global ClassificationHead
+    global ImageClassifier
+    global ImageEncoder
+    global get_dataset
+    global mhap
+    global mhas
+    global OnlineCovariance
+    global register_hooks
+
+    import torch as torch_module
+    from src.vision.heads import build_classification_head as build_head
+    from src.vision.modeling import (
+        ClassificationHead as Head,
+        ImageClassifier as Classifier,
+        ImageEncoder as Encoder,
+    )
+    from src.vision.datasets.registry import get_dataset as get_vision_dataset
+    from src import mhap as mhap_module, mhas as mhas_module
+    from src.covariance import OnlineCovariance as OnlineCovarianceClass
+    from src.covariance import register_hooks as register_cov_hooks
+
+    torch = torch_module
+    build_classification_head = build_head
+    ClassificationHead = Head
+    ImageClassifier = Classifier
+    ImageEncoder = Encoder
+    get_dataset = get_vision_dataset
+    mhap = mhap_module
+    mhas = mhas_module
+    OnlineCovariance = OnlineCovarianceClass
+    register_hooks = register_cov_hooks
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Collect covariance statistics for a single vision checkpoint."
+    )
+    parser.add_argument("--model", required=True, help="OpenCLIP model name.")
+    parser.add_argument(
+        "--finetuned-path",
+        required=True,
+        help="Path to finetuned.pt or checkpoint_<step>.pt.",
+    )
+    parser.add_argument(
+        "--output-path",
+        required=True,
+        help="Exact output path for the covariance .pt file.",
+    )
+    parser.add_argument(
+        "--data-location",
+        default="data/vision",
+        help="Root directory for vision datasets.",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        default=os.path.join(
+            os.environ.get("SCRATCH", os.path.expanduser("~/.cache")), "models"
+        ),
+        help="OpenCLIP cache directory.",
+    )
+    parser.add_argument("--feature-cache-dir", default=None)
+    parser.add_argument("--num-workers", type=int, default=1)
+    parser.add_argument("--cov-split", default="train", choices=["train", "test"])
+    parser.add_argument(
+        "--cov-num-batches",
+        type=lambda x: [int(v) for v in x.split(",")],
+        default=[10],
+    )
+    parser.add_argument("--cov-batch-size", type=int, default=32)
+    parser.add_argument("--cov-type", choices=["cov", "sm"], default="sm")
+    parser.add_argument(
+        "--cov-estimator", choices=["sampled", "full", "avg"], default="full"
+    )
+    parser.add_argument("--mha", choices=["packed", "split"], default=None)
+    parser.add_argument("--overwrite", action="store_true", default=False)
+    return parser.parse_args()
+
+
+def dataset_from_checkpoint(path):
+    dataset = Path(path).parent.name
+    if not dataset.endswith("Val"):
+        dataset = f"{dataset}Val"
+    return dataset
+
+
+def get_direct_classification_head(args, dataset_name):
+    checkpoint_dir = Path(args.finetuned_path).parent
+    candidates = [
+        checkpoint_dir / "head.pt",
+        checkpoint_dir.parent / f"head_{dataset_name}.pt",
+    ]
+    for filename in candidates:
+        if filename.exists():
+            return ClassificationHead.load(str(filename))
+
+    print(
+        f"Did not find classification head for {args.model} on {dataset_name}; "
+        f"building and saving {candidates[0]}."
+    )
+    model = ImageEncoder(args, keep_lang=True).model
+    classification_head = build_classification_head(
+        model,
+        dataset_name,
+        None,
+        args.data_location,
+        args.device,
+    )
+    os.makedirs(candidates[0].parent, exist_ok=True)
+    classification_head.save(str(candidates[0]))
+    return classification_head
 
 
 def compute_covs(encoder, dataset_name, args, on_end=None):
-    classification_head = get_classification_head(args, dataset_name)
+    classification_head = get_direct_classification_head(args, dataset_name)
     model = ImageClassifier(encoder, classification_head)
     model.freeze_head()
     model.eval()
@@ -97,81 +194,44 @@ def compute_covs(encoder, dataset_name, args, on_end=None):
 
 
 if __name__ == "__main__":
-    args = parse_arguments()
-    args.save = resolve_run_dir(args)
+    args = parse_args()
+    if os.path.exists(args.output_path) and not args.overwrite:
+        print(f"Skipping cached covariance: {args.output_path}")
+        sys.exit(0)
+
+    load_project_imports()
+
+    dataset_name = dataset_from_checkpoint(args.finetuned_path)
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.cov_device = torch.device("cpu")
+    args.device = args.model_device
 
-    all_tasks = [
-        "Cars",
-        "DTD",
-        "EuroSAT",
-        "GTSRB",
-        "MNIST",
-        "RESISC45",
-        "SUN397",
-        "SVHN",
-    ]
-    # ignore = ["zeroshot"]
-    tasks = args.eval_datasets if args.eval_datasets is not None else all_tasks
-    prefix = get_prefix(args.finetuning_mode)
+    print(f"\nCollecting covariance for {dataset_name}")
+    print(f"  checkpoint: {args.finetuned_path}")
+    print(f"  output:     {args.output_path}")
+    encoder = torch.load(args.finetuned_path, map_location="cpu", weights_only=False)
 
-    for task in tasks:
-        checkpoint_dir = expert_dir(args.save, task)
-        if args.load is not None:
-            ckpt_name = os.path.basename(args.load)  # e.g., 'checkpoint_100.pt'
-            cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance_{ckpt_name}")
-        else:
-            cov_path = os.path.join(checkpoint_dir, f"{prefix}covariance.pt")
+    if args.mha is not None:
+        swap_fn = {
+            "packed": mhap.swap_mha,
+            "split": mhas.swap_mha,
+        }[args.mha]
+        encoder = swap_fn(encoder)
 
-        if os.path.exists(cov_path) and not args.overwrite:
-            print(f"Skipping {task} (cached: {cov_path})")
-            continue
+    def on_end(cobjs):
+        saveable = {}
+        for lname in list(cobjs):
+            if isinstance(cobjs[lname], OnlineCovariance):
+                saveable[lname] = cobjs[lname].cov.cpu()
+                saveable[f"{lname}_n"] = cobjs[lname].n
+            else:
+                saveable[lname] = cobjs[lname]
+        output_dir = os.path.dirname(args.output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+        torch.save(saveable, args.output_path)
+        print(f"  Saved to {args.output_path}")
 
-        print(f"\nCollecting covariance for {task}")
-        if args.load is not None:
-            # Direct checkpoint path supplied via --load; skip task-vector construction.
-            encoder = torch.load(args.load, map_location="cpu", weights_only=False)
-        elif args.finetuning_mode == "linear":
-            zeroshot_path = os.path.join(checkpoint_dir, "pretrained.pt")
-
-            # Get param names from nonlinear model
-            nonlinear_encoder = torch.load(
-                zeroshot_path, map_location="cpu", weights_only=False
-            )
-            param_names = [n for n, _ in nonlinear_encoder.named_parameters()]
-            del nonlinear_encoder
-
-            tv = LinearizedTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
-            encoder = tv.apply_to_nonlinear(
-                checkpoint_dir, param_names, scaling_coef=1.0
-            )
-            del tv
-        else:
-            tv = NonLinearTaskVector(checkpoint_dir=checkpoint_dir, prefix=prefix)
-            encoder = tv.apply_to(checkpoint_dir, scaling_coef=1.0)
-            del tv
-
-        # swap mha
-        if args.mha is not None:
-            swap_fn = {
-                "packed": mhap.swap_mha,
-                "split": mhas.swap_mha,
-            }[args.mha]
-            encoder = swap_fn(encoder)
-
-        def on_end(cobjs, _cov_path=cov_path):
-            # Convert OnlineCovariance objects to tensors
-            saveable = {}
-            for lname in list(cobjs):
-                if isinstance(cobjs[lname], OnlineCovariance):
-                    saveable[lname] = cobjs[lname].cov.cpu()
-                    saveable[f"{lname}_n"] = cobjs[lname].n
-                else:
-                    saveable[lname] = cobjs[lname]
-            torch.save(saveable, _cov_path)
-            print(f"  Saved to {_cov_path}")
-
-        compute_covs(encoder, f"{task}Val", args, on_end=on_end)
-        del encoder
-        gc.collect()
+    compute_covs(encoder, dataset_name, args, on_end=on_end)
+    del encoder
+    gc.collect()

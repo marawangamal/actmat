@@ -47,30 +47,20 @@ DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 STEPS=(0 200 400 600 800 1000 1200 1400 1600 1800 final)
 step="${STEPS[$SLURM_ARRAY_TASK_ID]}"
 
-# regmean is the only method in this repo that reads covariance_path (merge_actmat
-# computes its own c = dᵀd from the deltas). Per-step covariances
-# (covariance_checkpoint_S.pt) are already produced by covariance-drifts.sh for
-# S in {0,200,...,1800}; at step "final" we need a matching covariance.pt —
-# compute it on demand if missing.
+# regmean reads covariance_path. The final step needs covariance.pt sidecars.
 if [[ " ${METHODS[*]} " =~ " regmean " ]] && [ "$step" = "final" ]; then
   for DATASET in "${DATASETS[@]}"; do
-    cov_file="$CKPT_ROOT/$MODEL/${DATASET}Val/covariance.pt"
-    if [ ! -f "$cov_file" ]; then
-      echo "[BASH] covariance.py (final) | $MODEL | $DATASET"
-      python scripts/vision/covariance.py \
-        --model="$MODEL" \
-        --finetuning-mode="$FT_MODE" \
-        --save="$CKPT_ROOT" \
-        --eval-datasets="$DATASET" \
-        --data-location="$DATA_DIR" \
-        --cache-dir="$OPENCLIP_DIR" \
-        --mha="$MHA" \
-        --cov-split=train \
-        --cov-num-batches=10 \
-        --cov-batch-size=32 \
-        --cov-type=sm \
-        --cov-estimator=full
-    fi
+    CKPT_DIR="$CKPT_ROOT/$MODEL/${DATASET}Val"
+    echo "[BASH] covariance.py | model: $MODEL | dataset: $DATASET | final"
+    python scripts/vision/covariance.py \
+      --model="$MODEL" \
+      --finetuned-path="$CKPT_DIR/finetuned.pt" \
+      --output-path="$CKPT_DIR/covariance.pt" \
+      --data-location="$DATA_DIR" \
+      --cache-dir="$OPENCLIP_DIR" \
+      --mha="$MHA" \
+      --cov-num-batches=10 \
+      --cov-batch-size=32
   done
 fi
 
