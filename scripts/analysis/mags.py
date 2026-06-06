@@ -1,6 +1,6 @@
 """Per-layer task-vector magnitudes across vision / language / OLMo experts.
 
-Writes one row per (model, dataset, layer) to artifacts/csvs/magnitudes.csv.
+Writes one row per (model, dataset, layer) to artifacts/analysis/magnitudes/magnitudes.csv.
 CPU-only; uses lazy task-vector loading so peak RSS stays bounded to a
 single parameter at a time.
 """
@@ -18,7 +18,7 @@ from src.vision.task_vectors import NonLinearTaskVector
 
 
 ROOT = "artifacts/checkpoints"
-OUT = "artifacts/csvs/magnitudes.csv"
+OUT = "artifacts/analysis/magnitudes/magnitudes.csv"
 SKIP_SUBSTRINGS = ("lm_head", "embed")
 
 CONFIGS = [

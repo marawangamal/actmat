@@ -1,0 +1,5 @@
+tag,dim,type,within_mean_fcos,n_within_pairs,between_mean_fcos
+vit-l-14_svhn,1024,attn_in,0.2546,276,0.0498
+vit-l-14_svhn,1024,attn_o,0.0090,276,0.0498
+vit-l-14_svhn,1024,mlp_c_fc,0.1920,276,0.0498
+vit-l-14_svhn,4096,mlp_c_proj,0.1225,276,nan

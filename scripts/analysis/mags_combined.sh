@@ -8,7 +8,7 @@
 #SBATCH --error=artifacts/logs/%x_%j.err
 # Walk every (model, dataset) task-vector dir under artifacts/checkpoints,
 # compute the global Frobenius norm across all 2-D layer deltas, and append
-# one row per (model, dataset) to artifacts/csvs/magnitudes_combined.csv.
+# one row per (model, dataset) to artifacts/analysis/magnitudes/magnitudes_combined.csv.
 #
 # Usage:
 #   sbatch scripts/mags_combined.sh

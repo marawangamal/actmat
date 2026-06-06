@@ -23,3 +23,7 @@ artifacts/testing-checkpoints/
 
 wandb
 
+
+# stray SLURM logs in repo root (jobs now log to artifacts/logs/)
+slurm-*.out
+slurm-*.err

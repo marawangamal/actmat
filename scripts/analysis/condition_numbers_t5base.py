@@ -76,7 +76,7 @@ def main():
     )
     ap.add_argument(
         "--out",
-        default="artifacts/results-analysis/t5-base-cond.csv",
+        default="artifacts/analysis/condition-numbers/t5-base-cond.csv",
     )
     args = ap.parse_args()
 

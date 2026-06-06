@@ -79,8 +79,11 @@ def _set_eval_split(split):
 
 def _merge_and_remap(merge_kwargs):
     """Merge task vectors with given kwargs."""
+    kw = dict(merge_kwargs)
+    if getattr(args, "mean_keys", None):
+        kw["mean_keys"] = args.mean_keys
     return combine_task_vectors(
-        task_vectors, merge_name, merge_mode=args.merge_mode, **merge_kwargs
+        task_vectors, merge_name, merge_mode=args.merge_mode, **kw
     )
 
 

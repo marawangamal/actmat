@@ -102,15 +102,23 @@ class _StatsRef:
         return key.replace(".weight", "")
 
 
+_MERGE_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def apply_merge(w_list, w_0, method="sum", key=None, vectors=None):
-    deltas = torch.stack([w.float() - w_0.float() for w in w_list])
+    # Merge on GPU when available: the per-layer solves (pinv/SVD, and especially
+    # the iterative GD variants) are orders of magnitude faster on CUDA. The merge
+    # functions follow taus.device, so any covariance/fisher stats they load get
+    # moved onto the same device. Result is returned on CPU for safetensors save.
+    w0 = w_0.to(_MERGE_DEVICE).float()
+    deltas = torch.stack([w.to(_MERGE_DEVICE).float() - w0 for w in w_list])
     if deltas[0].ndim == 2:
         merged_delta = getattr(merging, "merge_" + method)(
             deltas, key=key, vectors=vectors
         )
     else:
         merged_delta = deltas.mean(dim=0)
-    return (w_0.float() + merged_delta).to(w_0.dtype)
+    return (w0 + merged_delta).to(w_0.dtype).cpu()
 
 
 def resolve(name_or_path):
@@ -183,6 +191,7 @@ for layer_name in layer_to_file:
             w_list.append(w_t)
 
         if args.ignore_mean and re.search(args.ignore_mean, layer_name):
+            print(f"[IGNORE-MEAN] forcing mean merge for layer: {layer_name}", flush=True)
             w_merged = apply_merge(w_list, w_0, method="mean")
         else:
             w_merged = apply_merge(

@@ -1,0 +1,61 @@
+diff --git a/.python-version b/.python-version
+index e4fba21..2c07333 100644
+--- a/.python-version
++++ b/.python-version
+@@ -1 +1 @@
+-3.12
++3.11
+diff --git a/eval/eval_LongHealth.py b/eval/eval_LongHealth.py
+index a2831f3..08d6417 100644
+--- a/eval/eval_LongHealth.py
++++ b/eval/eval_LongHealth.py
+@@ -227,8 +227,8 @@ def main():
+     # No few-shot examples for this experiment, as it relies on very long
+     # contexts which don't allow for few shot
+ 
+-    llm = LLM(args.model, download_dir="./cache")
+-    sampling_params = SamplingParams(max_tokens=max_new_tokens)
++    llm = LLM(args.model, max_model_len=16384)
++    sampling_params = SamplingParams(temperature=0, max_tokens=max_new_tokens, stop=["<|end|>", "<|user|>"])  # greedy; stop at Phi turn end
+ 
+     tokenizer = AutoTokenizer.from_pretrained(args.model, token=args.token)
+ 
+diff --git a/eval/eval_meqsum.py b/eval/eval_meqsum.py
+index 901a944..cbcafb0 100755
+--- a/eval/eval_meqsum.py
++++ b/eval/eval_meqsum.py
+@@ -68,8 +68,8 @@ def main():
+     if (log_path / "predictions.json").exists():
+         (log_path / "predictions.json").unlink()
+ 
+-    llm = LLM(args.model, download_dir="./cache")
+-    sampling_params = SamplingParams(max_tokens=max_tokens)
++    llm = LLM(args.model, max_model_len=16384)
++    sampling_params = SamplingParams(temperature=0, max_tokens=max_tokens, stop=["<|end|>", "<|user|>"])  # greedy; stop at Phi turn end (some merged models' eos config omits <|end|>)
+ 
+     rouge = load("rouge")
+ 
+diff --git a/pyproject.toml b/pyproject.toml
+index 3ae1931..2181242 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -3,9 +3,10 @@ name = "clue"
+ version = "0.1.0"
+ description = "CLUE: A Clinical Language Understanding Evaluation for LLMs"
+ readme = "README.md"
+-requires-python = ">=3.12"
++requires-python = ">=3.11"
+ dependencies = [
+     "bert-score",
++    "datasets>=3.0",  # old datasets (2.14) uses pa.PyExtensionType, removed in pyarrow>=14
+     "en-core-sci-sm",
+     "evaluate>=0.4.3",
+     "hf-transfer>=0.1.9",
+@@ -16,6 +17,7 @@ dependencies = [
+     "spacy==3.7.4",
+     "torch==2.5.1",
+     "tqdm>=4.67.1",
++    "transformers==4.45.2",  # >=4.46 blocks torch.load (.bin) unless torch>=2.6; scibert (BERTScore en-sci) is .bin-only
+     "vllm==0.6.6",
+ ]
+ 

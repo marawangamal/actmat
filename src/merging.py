@@ -75,10 +75,20 @@ def combine_task_vectors(
         all_key_sets = [set(v.lazy_keys()) for v in casted]
 
         ignore_keys = kwargs.pop("ignore_keys", None) or []
+        mean_keys = kwargs.pop("mean_keys", None) or []
 
         for key in tqdm(keys, desc="Merging task vectors", leave=False):
             if any(key not in ks for ks in all_key_sets):
                 # Skip keys that are not present in all vectors
+                continue
+            if mean_keys and any(mk in key for mk in mean_keys):
+                # Force a plain mean merge for these layers, overriding merge_fn
+                # (e.g. the t5 head-mean group averages DenseReluDense.wo).
+                print(f"[mean_keys] forcing mean merge for {key}")
+                taus = torch.stack(
+                    [v.get_vector_element(key).to(device) for v in casted]
+                )
+                new_vector[key] = taus.mean(dim=0).to("cpu")
                 continue
             if ignore_keys and any(ik in key for ik in ignore_keys):
                 # Skip entirely — caller is responsible for filling these keys
@@ -332,6 +342,17 @@ def merge_fisher(
 def merge_actmat(d: torch.Tensor, *args, **kwargs):
     c = d.transpose(1, 2) @ d
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
+def merge_actmat_identity_inv(d: torch.Tensor, *args, **kwargs):
+    """ACTMat numerator with the identity in place of pinv(Σ_t C_t).
+
+    Vanilla ACTMat returns (Σ_t d_t C_t) @ pinv(Σ_t C_t); this ablation drops the
+    inverse (using identity, scaled by 1/T) to isolate the effect of the pinv
+    normalization. The merged delta is just (1/T)·Σ_t d_t (d_tᵀ d_t).
+    """
+    c = d.transpose(1, 2) @ d
+    return (d @ c).sum(dim=0) / d.shape[0]
 
 
 def merge_actmat_herm(d: torch.Tensor, *args, **kwargs):
@@ -774,8 +795,8 @@ def merge_actmat_5k(d: torch.Tensor, *args, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
-merge_actmat_gd_5k = lambda d, **kwargs: (
-    merge_actmat_gd(d, **kwargs) if d.shape[-1] <= 5_000 else d.mean(0)
+merge_actmat_gd_10ki = lambda d, **kwargs: (
+    merge_actmat_gd(d, **kwargs) if d.shape[-1] <= 10_000 else d.mean(0)
 )
 
 
