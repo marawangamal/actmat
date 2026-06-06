@@ -61,6 +61,10 @@ DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
 MODELS=(ViT-B-16)
 FT_MODE="standard"
 SAVE_DIR="artifacts/checkpoints"
+OVERWRITE_ARGS=()
+if [ "${OVERWRITE:-0}" = "1" ]; then
+  OVERWRITE_ARGS=(--overwrite)
+fi
 
 # Unique DDP rendezvous port per task so co-located array tasks don't collide.
 PORT=$((12355 + SLURM_ARRAY_TASK_ID))
@@ -78,5 +82,6 @@ for MODEL in "${MODELS[@]}"; do
     --save="$SAVE_DIR" \
     --train-dataset="$DATASET" \
     --grad-cross-matrix \
-    --checkpoint-every=200
+    --checkpoint-every=200 \
+    "${OVERWRITE_ARGS[@]}"
 done
