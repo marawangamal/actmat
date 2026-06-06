@@ -93,16 +93,79 @@ L_ang(Δ) = Σ_i ( 1 − cos_{c_i}(Δ, d_i) ),   cos_{c_i}(x,y) = <x,y>_{c_i} / 
 ```
 
 `L_ang` ignores `‖Δ‖` entirely, so a 2× overshoot scores 0, while a wrong direction
-scores up to 2. Implemented as `angular_rm_loss` in `rm-loss-general.py` and added
-as a metric for all four methods (job 9743557).
+scores up to 2. Implemented as `angular_rm_loss` in `rm-loss-general.py` for all
+four methods.
 
-**Prediction:** `L_ang(actmat) < L_ang(identity)` on OLMo/T5 by a wider margin, and
-— the real test — possibly on ViT too, *if* ViT's ACTMat loss is overshoot rather
-than mis-direction. If ViT still loses under `L_ang`, then on ViT ACTMat's RegMean
-*direction* is genuinely worse and accuracy is tracking something the RegMean
-geometry (any norm) does not capture — pointing back to the
-[merge-objective-proxy](merge-objective-proxy.md) candidates (interference /
-output-space / held-out objectives).
+**Result (it flips T5 and collapses ViT's gap).** Summed loss, ACTMat vs identity:
+
+| model | L2 sum: actmat<id? | angular sum: actmat<id? | angular median(act/id) |
+|---|:--:|:--:|--:|
+| Olmo-3-7b | ✅ | ✅ | 0.89 |
+| t5-base | ❌ | ✅ **flips** | 0.78 |
+| t5-large | ❌ | ✅ **flips** | 0.65 |
+| ViT-B-16 | ❌ (1.90×) | ❌ (1.14×) | 1.14 |
+| ViT-B-32 | ❌ (1.62×) | ❌ (1.11×) | 1.11 |
+| ViT-L-14 | ❌ (1.63×) | ❌ (1.08×) | 1.08 |
+
+Removing the magnitude penalty kills the `wo`/overshoot hijacking: the angular
+**sum** now agrees with the per-layer verdict (ACTMat wins OLMo + both T5, matching
+accuracy) instead of being dominated by a few overshooting layers. ViT goes from
+*catastrophically* worse (1.6–1.9×) to *marginally* worse (1.08–1.14×). So most of
+ViT's ACTMat "loss" on the RegMean loss was **overshoot, not mis-direction** — but a
+small residual directional gap remains, and ACTMat still beats mean on ViT
+*accuracy*, so the angular loss is a much better proxy than L2 yet still not perfect
+on vision (residual → the [merge-objective-proxy](merge-objective-proxy.md)
+interference / output-space candidates).
+
+## Finding 3 — head-mean ablation: the loss-dominating layers are accuracy-irrelevant
+
+Direct test: re-merge with the catastrophic layers forced to a plain **mean**
+(everything else unchanged), under a separate `group-headmean` (t5,
+`DenseReluDense.wo`) / `group-8-headmean` (ViT FFT, `mlp.c_fc`). If those layers
+drove the L2-loss reversal *and* mattered for accuracy, mean-merging them should
+move accuracy a lot.
+
+**t5 (FFT), accuracy:**
+
+| model | method | group-main | group-headmean | Δ |
+|---|---|--:|--:|--:|
+| t5-base | actmat | 0.7974 | 0.7927 | −0.47 pp |
+| t5-base | regmean | 0.7744 | 0.7629 | −1.16 pp |
+| t5-large | actmat | 0.8320 | 0.8271 | −0.49 pp |
+| t5-large | regmean | — | 0.8210 | — |
+| t5-base | mean (ref) | 0.6323 | — | — |
+| t5-large | mean (ref) | 0.5164 | — | — |
+
+The `wo` layers carry **50–66% of the entire L2 RegMean-loss sum** yet are worth only
+**~0.5–1.2 pp of accuracy.** ACTMat-headmean (0.79) still far exceeds plain mean
+(0.63): **ACTMat's accuracy advantage does not come from the layers where it loses
+the RegMean loss** — it comes from the `wi`/attention layers where it *wins* the
+loss. The L2 sum is dominated by accuracy-irrelevant layers; that is the proxy
+failure, made concrete.
+
+**ViT (FFT), `c_fc`→mean, accuracy:**
+
+| model | method | group-8 | group-8-headmean | Δ |
+|---|---|--:|--:|--:|
+| ViT-B-32 | actmat | 0.8287 | 0.8366 | **+0.80 pp** |
+| ViT-B-32 | regmean | 0.8302 | 0.8021 | −2.82 pp |
+| ViT-L-14 | actmat | 0.9217 | 0.9141 | −0.76 pp |
+| ViT-L-14 | regmean | 0.9006 | 0.8802 | −2.04 pp |
+| ViT-B-32 | mean (ref) | 0.6544 | — | — |
+| ViT-L-14 | mean (ref) | 0.7928 | — | — |
+
+For ViT **actmat**, neutralizing `c_fc` (81–87% of the L2 loss sum) moves accuracy
+only a little and inconsistently — *helps* B-32 (+0.80, so actmat's `c_fc` overshoot
+was mildly harmful, partly agreeing with the loss) but slightly *hurts* L-14
+(−0.76). So `c_fc` carries a bit more accuracy signal than t5's `wo`, but still
+modest (<1 pp) relative to its loss dominance, and actmat-headmean stays far above
+plain mean (0.84 vs 0.65; 0.91 vs 0.79). RegMean *relies* on its `c_fc` merge
+(−2 to −2.8 pp when removed).
+
+NB: the LoRA eval is a no-op here — LoRA adapts only attention, so `c_fc` has zero
+delta under LoRA (verified ‖Δ c_fc‖=0 for `lora_finetuned`, 0.45 for `finetuned`);
+the c_fc effect only exists in the full finetune, which is what the rm-loss analysis
+used. Hence `group-8-headmean` is run in FFT mode.
 
 ## Pointers
 
@@ -110,4 +173,7 @@ output-space / held-out objectives).
   `rm_loss` and the cov-estimate metrics → `artifacts/analysis/rm-loss/rm_loss_general.csv`.
 - Per-layer / per-type aggregation reproduced in this session (median & geomean of
   the per-layer actmat/identity ratio; layer-type Σ-share).
-- Merge accuracies: `artifacts/results/<model>/group-*/merged/{actmat,mean,regmean}/`.
+- Head-mean override: `--mean-keys <substr>` (src/args.py) forces matching layers to
+  a plain mean merge in `combine_task_vectors` (src/merging.py), keeping `--merge-func`
+  for the rest. Drivers: `scripts/{language,vision}/eval_task_addition_headmean.sh`.
+- Merge accuracies: `artifacts/results/<model>/group-{main,headmean,8,8-headmean}/merged/{actmat,mean,regmean}/`.
