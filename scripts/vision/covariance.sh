@@ -12,13 +12,14 @@ set -euo pipefail
 mkdir -p artifacts/logs
 
 # Edit these values for the run.
-MODEL="ViT-B-16"
-EXPERTS_DIR="artifacts/checkpoints/${MODEL}/group-20/experts"
-DATA_LOCATION="data/vision"
-CACHE_DIR="$SCRATCH/openclip"
-NUM_BATCHES=10
-BATCH_SIZE=32
-OVERWRITE=0
+MODEL="${MODEL:-ViT-B-16}"
+GROUP="${GROUP:-main}"
+EXPERTS_DIR="${EXPERTS_DIR:-artifacts/checkpoints/${MODEL}/group-${GROUP}/experts}"
+DATA_LOCATION="${DATA_LOCATION:-data/vision}"
+CACHE_DIR="${CACHE_DIR:-$SCRATCH/openclip}"
+NUM_BATCHES="${NUM_BATCHES:-10}"
+BATCH_SIZE="${BATCH_SIZE:-32}"
+OVERWRITE="${OVERWRITE:-0}"
 
 source ".venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
