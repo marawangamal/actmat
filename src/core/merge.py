@@ -14,6 +14,7 @@ def merge_experts(
     ignore_keep_pt=None,
     ignore_mean=None,
     device=None,
+    merge_kwargs=None,
 ):
     """Merge experts layer-by-layer through the generic Expert interface."""
     experts = list(expert_experts)
@@ -50,7 +51,11 @@ def merge_experts(
                 else:
                     w0 = w_0.to(merge_device).float()
                     d = torch.stack([w.to(merge_device).float() - w0 for w in w_list])
-                    merged_delta = merge_fn(d=d, stat_fetcher_maps=stat_fetcher_maps)
+                    merged_delta = merge_fn(
+                        d=d,
+                        stat_fetcher_maps=stat_fetcher_maps,
+                        **(merge_kwargs or {}),
+                    )
                     w_merged = (w0 + merged_delta).to(w_0.dtype).cpu()
 
             merged_expert.save_layer_params(w_merged, layer_name, metadata=metadata)
