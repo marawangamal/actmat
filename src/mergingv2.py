@@ -96,8 +96,17 @@ merge_isoc3 = lambda *args, **kwargs: merge_isoc(*args, **kwargs) * 3.0
 # ---------------------------------------------------------------------------
 
 
-def merge_regmean(d: torch.Tensor, get_covariance: Callable, **kwargs):
-    c = stat_fetcher_maps["covariance"]()
+def merge_regmean(d: torch.Tensor, **kwargs):
+    stat_fetcher_maps = kwargs["stat_fetcher_maps"]
+    c = []
+    for fetchers in stat_fetcher_maps:
+        ct = fetchers["covariance"]()
+        if ct is None:
+            return d.mean(dim=0)
+        if not isinstance(ct, torch.Tensor):
+            ct = torch.as_tensor(ct)
+        c.append(ct)
+    c = torch.stack([x.to(device=d.device, dtype=d.dtype) for x in c])
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
@@ -110,11 +119,19 @@ def _dinv(x, thresh=1e-8):
 
 def merge_fisher(
     d: torch.Tensor,
-    stat_fetcher_maps: Callable,  # Shape: (N, Do*Di)
+    stat_fetcher_maps: Sequence[dict],  # Shape: (N, Do*Di)
     **kwargs,
 ):
-    f = stat_fetcher_maps["fisher"]()
-    N, Do, Di = tau.shape
+    N, Do, Di = d.shape
+    f = []
+    for fetchers in stat_fetcher_maps:
+        ft = fetchers["fisher"]()
+        if ft is None:
+            return d.mean(dim=0)
+        if not isinstance(ft, torch.Tensor):
+            ft = torch.as_tensor(ft)
+        f.append(ft)
+    f = torch.stack([x.reshape(-1).to(device=d.device, dtype=d.dtype) for x in f])
     return (_dinv(f.sum(dim=0)) * (f * d.reshape(N, Do * Di)).sum(dim=0)).reshape(
         Do, Di
     )
