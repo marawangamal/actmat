@@ -131,8 +131,12 @@ def _interp_cov(c: torch.Tensor, angular_distance: float) -> torch.Tensor:
 
 
 def merge_regmean_interp(d: torch.Tensor, **kwargs):
-    """RegMean with each covariance moved toward I by `angular_distance` radians."""
-    angular_distance = kwargs.get("angular_distance", 0.0)
+    """RegMean with each covariance moved toward I by `angular_distance`.
+
+    `angular_distance` is in units of pi (0 = aligned, 0.5 = orthogonal),
+    matching scripts/vision/generate_error_terms.py.
+    """
+    angular_distance = kwargs.get("angular_distance", 0.0) * torch.pi
     stat_fetcher_maps = kwargs["stat_fetcher_maps"]
     c = []
     for fetchers in stat_fetcher_maps:

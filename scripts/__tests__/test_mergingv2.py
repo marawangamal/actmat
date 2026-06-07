@@ -82,6 +82,9 @@ class TestInterpCov(unittest.TestCase):
 
 
 class TestMergeRegmeanInterp(unittest.TestCase):
+    """merge_regmean_interp takes angular_distance in units of pi
+    (matching generate_error_terms.py), unlike _interp_cov (radians)."""
+
     def _make_inputs(self, n_tasks=3, dim=16):
         torch.manual_seed(0)
         covs = [_random_psd(dim) for _ in range(n_tasks)]
@@ -102,17 +105,29 @@ class TestMergeRegmeanInterp(unittest.TestCase):
 
     def test_saturated_angle_equals_mean(self):
         """All covariances at the identity endpoint: RegMean with c_t = I
-        reduces to the plain mean."""
+        reduces to the plain mean. angular_distance=0.5 is orthogonal,
+        beyond any PSD covariance's angle to I."""
         d, maps = self._make_inputs()
-        out = merge_regmean_interp(d, stat_fetcher_maps=maps, angular_distance=3.0)
+        out = merge_regmean_interp(d, stat_fetcher_maps=maps, angular_distance=0.5)
         self.assertTrue(torch.allclose(out, d.mean(dim=0), atol=1e-5))
 
     def test_intermediate_angle_strictly_between(self):
+        # 0.05*pi ~ 0.16 rad, safely below the ~0.5 rad theta_max of the
+        # random 16-dim test covariances (no saturation)
         d, maps = self._make_inputs()
-        out = merge_regmean_interp(d, stat_fetcher_maps=maps, angular_distance=0.2)
+        out = merge_regmean_interp(d, stat_fetcher_maps=maps, angular_distance=0.05)
         regmean = merge_regmean(d, stat_fetcher_maps=maps)
         self.assertFalse(torch.allclose(out, regmean, atol=1e-5))
         self.assertFalse(torch.allclose(out, d.mean(dim=0), atol=1e-5))
+
+    def test_angular_distance_in_units_of_pi(self):
+        """angular_distance=x must interpolate covariances by x*pi radians."""
+        d, maps = self._make_inputs()
+        out = merge_regmean_interp(d, stat_fetcher_maps=maps, angular_distance=0.1)
+        covs = [m["covariance"]() for m in maps]
+        ci = torch.stack([_interp_cov(c, 0.1 * torch.pi) for c in covs])
+        expected = (d @ ci).sum(dim=0) @ torch.linalg.pinv(ci.sum(dim=0))
+        self.assertTrue(torch.allclose(out, expected, atol=1e-5))
 
     def test_missing_covariance_falls_back_to_mean(self):
         d, maps = self._make_inputs()

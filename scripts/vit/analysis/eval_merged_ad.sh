@@ -10,7 +10,9 @@
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
 # Sweep regmean_interp over angular distances (covariance -> identity).
-# AD=0 is plain regmean; AD >= angle(c, I) saturates at identity (= mean).
+# AD is in units of pi (matching generate_error_terms.py): 0 = plain regmean,
+# 0.5 = orthogonal; AD >= angle(c, I) saturates at identity (= mean), which
+# for the ViT-B-16 fft-8 covariances happens at AD ~ 0.39-0.49.
 
 set -euo pipefail
 mkdir -p artifacts/logs
