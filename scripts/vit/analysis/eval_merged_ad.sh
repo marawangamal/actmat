@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=eval_vit_merge_ad
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-10
+#SBATCH --array=0-6
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -43,7 +43,7 @@ case "$NUM_TASKS" in
 esac
 
 METHOD="regmean_interp"
-ADS=(${ADS:-0.0 0.05 0.1 0.15 0.2 0.25 0.3 0.4 0.5 0.75 1.0})
+ADS=(${ADS:-0.1 0.2 0.3 0.4 0.45 0.5 0.55})
 # ViT-B-16 is the only model with a populated group-fft-8 tree (incl. covariance.pt)
 MODELS=(${MODELS:-ViT-B-16})
 
