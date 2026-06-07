@@ -16,11 +16,11 @@ source ".venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-DATA_DIR="${DATA_DIR:-data/vision}"
-OPENCLIP_DIR="${OPENCLIP_DIR:-$SCRATCH/openclip}"
-CKPT_ROOT="${CKPT_ROOT:-artifacts/checkpoints}"
 NUM_TASKS="${NUM_TASKS:-8}"
 FT_MODE="${FT_MODE:-fft}"
+DATA_DIR="data/vision"
+OPENCLIP_DIR="$SCRATCH/openclip"
+CKPT_ROOT="artifacts/checkpoints"
 
 DATASETS_8=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 DATASETS_14=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN CIFAR100 STL10 Flowers102 OxfordIIITPet PCAM FER2013)
@@ -55,4 +55,3 @@ for MODEL in "${MODELS[@]}"; do
     --data-location "$DATA_DIR" \
     "${OVERWRITE_ARGS[@]}"
 done
-

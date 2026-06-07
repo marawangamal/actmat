@@ -38,6 +38,10 @@ uv sync --group vision-language
 bash scripts/vision/finetune.sh   # if ckpts not downloaded
 # 2. Evaluate experts        (NUM_TASKS=8|14|20 selects the suite)
 bash scripts/vision/eval_experts.sh
+# 2b. Evaluate pretrained ViTs with the explicit-path wrapper
+SINGLE_DIR=pretrained NUM_TASKS=8 bash scripts/vit/eval_single.sh
+# 2c. Evaluate multitask ViTs with the explicit-path wrapper
+SINGLE_DIR=multitask NUM_TASKS=8 bash scripts/vit/eval_single.sh
 # 3. Evaluate merged models  (NUM_TASKS=8|14|20 selects the suite)
 bash scripts/vision/eval_task_addition.sh
 ```

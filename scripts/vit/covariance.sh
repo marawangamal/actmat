@@ -16,12 +16,11 @@ source ".venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-DATA_DIR="${DATA_DIR:-data/vision}"
-OPENCLIP_DIR="${OPENCLIP_DIR:-$SCRATCH/openclip}"
-CKPT_ROOT="${CKPT_ROOT:-artifacts/checkpoints}"
 NUM_TASKS="${NUM_TASKS:-8}"
 FT_MODE="${FT_MODE:-fft}"
-CHECKPOINT_NAME="${CHECKPOINT_NAME:-finetuned.pt}"
+DATA_DIR="data/vision"
+OPENCLIP_DIR="$SCRATCH/openclip"
+CKPT_ROOT="artifacts/checkpoints"
 
 DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
 DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
@@ -33,9 +32,7 @@ for MODEL in "${MODELS[@]}"; do
     --model "$MODEL" \
     --expert-dir "$EXPERT_DIR" \
     --dataset "$DATASET" \
-    --checkpoint-name "$CHECKPOINT_NAME" \
     --output-path "$EXPERT_DIR/covariance.pt" \
     --data-location "$DATA_DIR" \
     --cache-dir "$OPENCLIP_DIR"
 done
-

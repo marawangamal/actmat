@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-3
+#SBATCH --array=0-11
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -16,13 +16,12 @@ source ".venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-DATA_DIR="${DATA_DIR:-data/vision}"
-OPENCLIP_DIR="${OPENCLIP_DIR:-$SCRATCH/openclip}"
-CKPT_ROOT="${CKPT_ROOT:-artifacts/checkpoints}"
-RESULTS_ROOT="${RESULTS_ROOT:-artifacts/results}"
 NUM_TASKS="${NUM_TASKS:-8}"
 FT_MODE="${FT_MODE:-fft}"
-CHECKPOINT_NAME="${CHECKPOINT_NAME:-finetuned.pt}"
+DATA_DIR="data/vision"
+OPENCLIP_DIR="$SCRATCH/openclip"
+CKPT_ROOT="artifacts/checkpoints"
+RESULTS_ROOT="artifacts/results"
 
 DATASETS_8="Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN"
 DATASETS_14="${DATASETS_8},CIFAR100,STL10,Flowers102,OxfordIIITPet,PCAM,FER2013"
@@ -35,19 +34,26 @@ case "$NUM_TASKS" in
 esac
 
 METHODS=(${METHODS:-mean isoc tsv actmat})
-METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-MODELS=(${MODELS:-ViT-B-16})
+MODELS=(${MODELS:-ViT-B-16 ViT-B-32 ViT-L-14})
 
-for MODEL in "${MODELS[@]}"; do
-  EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
-  OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"
-  python scripts/vit/eval_merged.py \
-    --model "$MODEL" \
-    --experts-dir "$EXPERTS_DIR" \
-    --eval-datasets "$EVAL_DATASETS" \
-    --merge-method "$METHOD" \
-    --checkpoint-name "$CHECKPOINT_NAME" \
-    --output-dir "$OUT" \
-    --data-location "$DATA_DIR" \
-    --cache-dir "$OPENCLIP_DIR"
-done
+NUM_METHODS="${#METHODS[@]}"
+TOTAL_JOBS=$(("${#MODELS[@]}" * NUM_METHODS))
+if [ "$SLURM_ARRAY_TASK_ID" -ge "$TOTAL_JOBS" ]; then
+  echo "No model/method pair for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
+  exit 0
+fi
+MODEL_IDX=$((SLURM_ARRAY_TASK_ID / NUM_METHODS))
+METHOD_IDX=$((SLURM_ARRAY_TASK_ID % NUM_METHODS))
+MODEL="${MODELS[$MODEL_IDX]}"
+METHOD="${METHODS[$METHOD_IDX]}"
+
+EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
+OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+python scripts/vit/eval_merged.py \
+  --model "$MODEL" \
+  --experts-dir "$EXPERTS_DIR" \
+  --eval-datasets "$EVAL_DATASETS" \
+  --merge-method "$METHOD" \
+  --output-dir "$OUT" \
+  --data-location "$DATA_DIR" \
+  --cache-dir "$OPENCLIP_DIR"

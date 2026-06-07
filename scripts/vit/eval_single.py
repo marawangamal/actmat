@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument("--expert-dir", required=True)
     parser.add_argument("--eval-datasets", type=parse_csv, default=None)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--heads-dir", default=None)
+    parser.add_argument("--experts-dir", default=None)
     parser.add_argument("--checkpoint-name", default="finetuned.pt")
     parser.add_argument("--data-location", default="data/vision")
     parser.add_argument(
@@ -51,9 +51,9 @@ if __name__ == "__main__":
         weights_only=False,
     )
     scores = {}
-    heads_dir = args.heads_dir or args.expert_dir
+    experts_dir = args.experts_dir or args.expert_dir
     for dataset in eval_datasets:
-        per_dataset_head = osp.join(heads_dir, dataset, "head.pt")
+        per_dataset_head = osp.join(experts_dir, dataset, "head.pt")
         head_path = (
             per_dataset_head
             if osp.exists(per_dataset_head)
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         if len(eval_datasets) > 1 and head_path == osp.join(args.expert_dir, "head.pt"):
             raise ValueError(
                 "eval_single.py needs per-dataset heads for multi-dataset eval. "
-                "Pass --heads-dir containing <dataset>/head.pt, or evaluate one dataset."
+                "Pass --experts-dir containing <dataset>/head.pt, or evaluate one dataset."
             )
         scores[f"{dataset}:top1"] = eval_dataset_with_head(
             image_encoder, dataset, head_path, args
