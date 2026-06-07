@@ -13,7 +13,6 @@ from src.utils import expert_dir, group_dir
 # sys.path.append("..")
 # from src import mhap, mhas
 # from src.vision.task_vectors import NonLinearTaskVector
-# from src.nlg.task_vectors import ParamFolderTaskVector
 
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:

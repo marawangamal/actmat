@@ -11,7 +11,12 @@ import argparse
 import json
 from pathlib import Path
 
-from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
+from scripts.__legacy__.results_db import (
+    append_result,
+    args_to_dict,
+    make_run_hash,
+    record_exists,
+)
 
 
 def load_results(results_dir: Path) -> dict[str, dict[str, float]]:

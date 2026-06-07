@@ -286,12 +286,6 @@ def parse_arguments():
         help="Max batches in phase 1 (coefficient selection).",
     )
     parser.add_argument(
-        "--results-db",
-        type=str,
-        default=None,
-        help="Path to a JSON-lines results database file.",
-    )
-    parser.add_argument(
         "--results-dir",
         type=str,
         default="artifacts/results",
