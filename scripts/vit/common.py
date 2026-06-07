@@ -11,7 +11,6 @@ from src.vision.datasets.common import get_dataloader, maybe_dictionarize
 from src.vision.datasets.registry import get_dataset
 from src.vision.modeling import ClassificationHead, ImageClassifier
 
-
 DEFAULT_VIT_DATASETS = [
     "Cars",
     "DTD",
@@ -49,7 +48,9 @@ def eval_dataset_with_head(image_encoder, dataset_name, head_path, args):
         num_workers=args.num_workers,
     )
     use_train = getattr(args, "eval_split", "test") == "train"
-    dataloader = get_dataloader(dataset, is_train=use_train, args=args, image_encoder=None)
+    dataloader = get_dataloader(
+        dataset, is_train=use_train, args=args, image_encoder=None
+    )
     device = getattr(args, "device", "cuda" if torch.cuda.is_available() else "cpu")
     max_batches = getattr(args, "eval_max_batches", None)
 

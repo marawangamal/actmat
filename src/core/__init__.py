@@ -1,2 +1,1 @@
 """Format-agnostic merge primitives."""
-

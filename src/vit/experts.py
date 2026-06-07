@@ -68,4 +68,3 @@ class ViTExpert(Expert):
 def optional_sidecar(expert_dir, filename):
     path = osp.join(expert_dir, filename)
     return path if os.path.exists(path) else None
-

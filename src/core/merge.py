@@ -20,7 +20,9 @@ def merge_experts(
     if len(experts) == 0:
         raise ValueError("merge_experts requires at least one expert")
 
-    merge_device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    merge_device = device or torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
     merge_fn = getattr(mergingv2, "merge_" + merge_method)
 
     with torch.no_grad():
@@ -37,7 +39,9 @@ def merge_experts(
                     w_list.append(expert.get_layer_params(layer_name))
                     stat_fetcher_maps.append(expert.get_stat_fetcher_map(layer_name))
 
-                if w_0.ndim != 2 or (ignore_mean and re.search(ignore_mean, layer_name)):
+                if w_0.ndim != 2 or (
+                    ignore_mean and re.search(ignore_mean, layer_name)
+                ):
                     print(
                         f"[IGNORE-MEAN] forcing mean merge for layer: {layer_name}",
                         flush=True,
@@ -45,9 +49,7 @@ def merge_experts(
                     w_merged = torch.stack(w_list).mean(0)
                 else:
                     w0 = w_0.to(merge_device).float()
-                    d = torch.stack(
-                        [w.to(merge_device).float() - w0 for w in w_list]
-                    )
+                    d = torch.stack([w.to(merge_device).float() - w0 for w in w_list])
                     merged_delta = merge_fn(d=d, stat_fetcher_maps=stat_fetcher_maps)
                     w_merged = (w0 + merged_delta).to(w_0.dtype).cpu()
 
@@ -55,4 +57,3 @@ def merge_experts(
 
     merged_expert.flush()
     return merged_expert
-

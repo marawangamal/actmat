@@ -27,4 +27,3 @@ class Expert:
 
     def flush(self):
         pass
-

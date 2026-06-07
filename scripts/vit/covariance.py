@@ -66,7 +66,9 @@ def parse_args():
     parser.add_argument("--cov-num-batches", type=parse_int_list, default=[10])
     parser.add_argument("--cov-batch-size", type=int, default=32)
     parser.add_argument("--cov-type", choices=["cov", "sm"], default="sm")
-    parser.add_argument("--cov-estimator", choices=["sampled", "full", "avg"], default="full")
+    parser.add_argument(
+        "--cov-estimator", choices=["sampled", "full", "avg"], default="full"
+    )
     parser.add_argument("--overwrite", action="store_true", default=False)
     return parser.parse_args()
 
@@ -124,7 +126,9 @@ if __name__ == "__main__":
         raise SystemExit(0)
 
     load_project_imports()
-    args.dataset_name = args.dataset if args.dataset.endswith("Val") else f"{args.dataset}Val"
+    args.dataset_name = (
+        args.dataset if args.dataset.endswith("Val") else f"{args.dataset}Val"
+    )
     args.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.cov_device = torch.device("cpu")
     args.device = args.model_device

@@ -1,2 +1,1 @@
 """Explicit-path ViT helpers."""
-

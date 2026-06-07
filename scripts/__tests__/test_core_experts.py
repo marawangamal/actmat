@@ -80,8 +80,12 @@ class TestViTExpert(unittest.TestCase):
             self.assertNotIn("block.attn.in_proj_weight", expert.state_dict)
 
             merged = ViTExpert()
-            merged.save_layer_params(expert.get_layer_params("mlp.weight") + 1, "mlp.weight")
-            torch.testing.assert_close(merged.state_dict["mlp.weight"], torch.full((2, 2), 2.0))
+            merged.save_layer_params(
+                expert.get_layer_params("mlp.weight") + 1, "mlp.weight"
+            )
+            torch.testing.assert_close(
+                merged.state_dict["mlp.weight"], torch.full((2, 2), 2.0)
+            )
 
             native = expert.model_state_dict
             torch.testing.assert_close(
@@ -101,9 +105,10 @@ class TestViTExpert(unittest.TestCase):
             torch.save({"image_encoder.layer": torch.eye(2)}, cov_path)
 
             expert = ViTExpert(weights_path=weights_path, covariance_path=cov_path)
-            torch.testing.assert_close(expert.get_layer_cov("layer.weight"), torch.eye(2))
+            torch.testing.assert_close(
+                expert.get_layer_cov("layer.weight"), torch.eye(2)
+            )
 
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -57,7 +57,9 @@ if __name__ == "__main__":
             image_encoder, dataset, head_path, args
         )["top1"]
 
-    scores["avg_top1"] = sum(scores[f"{d}:top1"] for d in eval_datasets) / len(eval_datasets)
+    scores["avg_top1"] = sum(scores[f"{d}:top1"] for d in eval_datasets) / len(
+        eval_datasets
+    )
     write_metrics(
         args.output_dir,
         make_tasks(scores),
