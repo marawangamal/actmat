@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import os.path as osp
 import sys
@@ -29,6 +30,12 @@ def parse_args():
     parser.add_argument("--covariance-name", default="covariance.pt")
     parser.add_argument("--fisher-name", default="fisher.pt")
     parser.add_argument("--ignore-keep-pt", default=None)
+    parser.add_argument(
+        "--merge-kwargs",
+        type=json.loads,
+        default={},
+        help='JSON dict of extra kwargs forwarded to the merge function, e.g. \'{"angular_distance": 0.3}\'.',
+    )
     parser.add_argument("--ignore-mean", default=None)
     parser.add_argument("--data-location", default="data/vision")
     parser.add_argument(
@@ -74,6 +81,7 @@ if __name__ == "__main__":
         args.merge_method,
         ignore_keep_pt=args.ignore_keep_pt,
         ignore_mean=args.ignore_mean,
+        merge_kwargs=args.merge_kwargs,
     )
 
     image_encoder = torch.load(base_model_path, map_location="cpu", weights_only=False)
@@ -95,6 +103,7 @@ if __name__ == "__main__":
         {
             "model": args.model,
             "merge_method": args.merge_method,
+            "merge_kwargs": args.merge_kwargs,
             "checkpoint_name": args.checkpoint_name,
             "avg_top1": scores["avg_top1"],
         },

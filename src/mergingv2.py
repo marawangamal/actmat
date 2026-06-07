@@ -110,6 +110,51 @@ def merge_regmean(d: torch.Tensor, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def _interp_cov(c: torch.Tensor, angular_distance: float) -> torch.Tensor:
+    """Point on the segment c -> I at `angular_distance` (radians) from c.
+
+    The angle (Frobenius inner product) between c and (1-s)c + sI is monotone
+    in s, with closed-form inverse; s is clamped to [0, 1] so angles beyond
+    angle(c, I) saturate at the identity.
+    """
+    eye = torch.eye(c.shape[-1], device=c.device, dtype=c.dtype)
+    na = torch.linalg.norm(c)
+    p = torch.trace(c) / na  # component of I along c
+    q = torch.linalg.norm(eye - (p / na) * c)  # component of I orthogonal to c
+    if q == 0:  # c is a multiple of I; every point on the segment has angle 0
+        return c
+    theta = torch.as_tensor(angular_distance, device=c.device, dtype=c.dtype)
+    theta_max = torch.atan2(q, p)  # angle(c, I), reached at s=1
+    t = torch.tan(theta.clamp(min=0.0).minimum(theta_max))
+    s = (na * t / (q + (na - p) * t)).clamp(0.0, 1.0)
+    return (1 - s) * c + s * eye
+
+
+def merge_regmean_interp(d: torch.Tensor, **kwargs):
+    """RegMean with each covariance moved toward I by `angular_distance`.
+
+    `angular_distance` is in units of pi (0 = aligned, 0.5 = orthogonal),
+    matching scripts/vision/generate_error_terms.py.
+    """
+    angular_distance = kwargs.get("angular_distance", 0.0) * torch.pi
+    stat_fetcher_maps = kwargs["stat_fetcher_maps"]
+    c = []
+    for fetchers in stat_fetcher_maps:
+        ct = fetchers["covariance"]()
+        if ct is None:
+            return d.mean(dim=0)
+        if not isinstance(ct, torch.Tensor):
+            ct = torch.as_tensor(ct)
+        c.append(ct)
+    c = torch.stack(
+        [
+            _interp_cov(x.to(device=d.device, dtype=d.dtype), angular_distance)
+            for x in c
+        ]
+    )
+    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
 # ---------------------------------------------------------------------------
 # Fisher Merging
 # ---------------------------------------------------------------------------
