@@ -27,11 +27,8 @@ def get_rand_psd(
 
 
 parser = argparse.ArgumentParser()
-# parser.add_argument("--ckpt_dir", default="artifacts/checkpoints")
-# parser.add_argument("--results_dir", default="artifacts/results")
-parser.add_argument("--ckpt_dir", default="artifacts/checkpoints-analysisv2-epochs1")
-parser.add_argument("--results_dir", default="artifacts/results-analysisv2-epochs1")
-
+parser.add_argument("--ckpt_dir", default="artifacts/checkpoints")
+parser.add_argument("--results_dir", default="artifacts/results")
 parser.add_argument("--model", default="ViT-B-16")
 parser.add_argument("--group", default="main")
 args = parser.parse_args()
