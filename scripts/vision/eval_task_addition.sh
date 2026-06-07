@@ -89,15 +89,23 @@ method="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 for MODEL in "${MODELS[@]}"; do
   # 2a. Run covariance/fisher script if needed (regmean + actmat consume covariance.pt; fisher consumes fisher.pt)
   if [ "$method" = "regmean" ] || [ "$method" = "actmat" ]; then
-    echo "[BASH] Running covariance.py | model: $MODEL | ft mode: $FT_MODE | tasks: $NUM_TASKS"
-    python scripts/vision/covariance.py \
-      --model="$MODEL" \
-      --finetuning-mode="$FT_MODE" \
-      --save="$CKPT_ROOT" \
-      --group="$NUM_TASKS" \
-      --data-location="$DATA_DIR" \
-      --eval-datasets="$EVAL_DATASETS" \
-      --mha=split
+    case "$FT_MODE" in
+      lora) FT_FILE="lora_finetuned.pt" ;;
+      linear) FT_FILE="linear_finetuned.pt" ;;
+      *) FT_FILE="finetuned.pt" ;;
+    esac
+    IFS=',' read -ra COV_DATASETS <<< "$EVAL_DATASETS"
+    for DATASET in "${COV_DATASETS[@]}"; do
+      CKPT_DIR="$CKPT_ROOT/$MODEL/group-$NUM_TASKS/experts/${DATASET}Val"
+      echo "[BASH] Running covariance.py | model: $MODEL | dataset: $DATASET"
+      python scripts/vision/covariance.py \
+        --model="$MODEL" \
+        --finetuned-path="$CKPT_DIR/$FT_FILE" \
+        --output-path="$CKPT_DIR/covariance.pt" \
+        --data-location="$DATA_DIR" \
+        --cache-dir="$OPENCLIP_DIR" \
+        --mha=split
+    done
   elif [ "$method" = "fisher" ]; then
     echo "[BASH] Running fisher.py | model: $MODEL | ft mode: $FT_MODE | tasks: $NUM_TASKS"
     python scripts/vision/fisher.py \

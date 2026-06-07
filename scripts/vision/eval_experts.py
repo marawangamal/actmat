@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 from src.args import parse_arguments
-from src.results_db import append_result, args_to_dict, make_run_hash, record_exists
 from src.utils import (
     expert_dir,
     experts_results_path,
@@ -18,10 +17,6 @@ args = parse_arguments()
 args.save = resolve_run_dir(args)
 
 prefix = get_prefix(args.finetuning_mode)
-_run_hash = make_run_hash("eval_experts", args) if args.results_db else None
-if args.results_db and record_exists(args.results_db, _run_hash):
-    print(f"Skipping: matching record already exists in {args.results_db}")
-    exit(0)
 
 accuracies = {}
 
@@ -156,15 +151,3 @@ metrics_json = {
 }
 results_file.write_text(json.dumps(metrics_json, indent=2))
 print(f"Results saved to {results_file}")
-
-if args.results_db:
-    append_result(
-        args.results_db,
-        {
-            "script": "eval_experts",
-            **args_to_dict(args),
-            **accuracies,
-        },
-        _run_hash,
-    )
-    print("Results appended to", args.results_db)

@@ -1,8 +1,11 @@
 import copy
+import json
 import os
+import random
 import time
 from typing import Dict, Optional
 
+import numpy as np
 import torch
 
 # --finetuning-mode=standard   --model=ViT-B-16   --world-size=1   --num-workers=1   --openclip-cachedir=$SCRATCH/openclip   --data-location=data/vision   --save=$SCRATCH/actmat/checkpoints/vision
@@ -111,11 +114,28 @@ def _format_duration(seconds: float) -> str:
     return f"{minutes:02d}:{secs:02d}"
 
 
+def seed_everything(seed, rank=0):
+    seed = seed + rank
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def save_args(args, ckpdir):
+    os.makedirs(ckpdir, exist_ok=True)
+    with open(os.path.join(ckpdir, "args.json"), "w") as f:
+        json.dump(vars(args), f, indent=2, sort_keys=True, default=str)
+
+
 def finetune(rank, args):
     setup_ddp(rank, args.world_size, port=args.port)
+    seed_everything(args.seed, rank)
 
     train_dataset = args.train_dataset
     ckpdir = expert_dir(args.save, train_dataset)
+    if is_main_process():
+        save_args(args, ckpdir)
 
     assert args.finetuning_mode in [
         "linear",
@@ -419,11 +439,14 @@ if __name__ == "__main__":
     if args.train_dataset is not None:
         train_datasets = [ds.strip() for ds in args.train_dataset]
 
+    requested_epochs = args.epochs
     for dataset in train_datasets:
         # HACK: Some command line arguments are overwritten by defaults here.
         args.lr = 1e-5
-        if not args.grad_cross_matrix and args.max_samples is None:
+        if requested_epochs is None:
             args.epochs = epochs[dataset]
+        else:
+            args.epochs = requested_epochs
         args.train_dataset = dataset + "Val"
 
         # We use gradient accumulation to simulate larger batch sizes if the model does not fit in memory.

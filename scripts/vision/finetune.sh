@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=finetune_vision
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=12:00:00
@@ -38,15 +38,33 @@ if [ ! -f "$KMNIST_RAW_DST/train-images-idx3-ubyte.gz" ] && [ -d downloads/kmnis
   cp downloads/kmnist/*.gz "$KMNIST_RAW_DST/"
 fi
 
+# Stage PCAM h5 files (torchvision pulls from Google Drive and easily hits rate-limits).
+# COPY rather than symlink — h5py inside DataLoader workers fails to resolve paths
+# through symlink chains on network FS ("can't retrieve real path for file").
+PCAM_DST="$SLURM_TMPDIR/data/vision/PCAM/pcam"
+PCAM_SRC="$PWD/artifacts/data/vision/PCAM/pcam"
+if [ ! -f "$PCAM_DST/camelyonpatch_level_2_split_test_y.h5" ] && [ -d "$PCAM_SRC" ]; then
+  mkdir -p "$PCAM_DST"
+  for f in "$PCAM_SRC"/*.h5; do
+    [ -f "$f" ] && cp "$f" "$PCAM_DST/$(basename "$f")"
+  done
+fi
+
 # 3. Array dispatch over the standard 8-task benchmark (Ilharco et al.); loop over
 #    models inside each task. Per-checkpoint skip logic in finetune.py makes
 #    already-saved (model, dataset) runs a no-op.
 DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
+# Full 20-task suite (set #SBATCH --array=0-19 and uncomment):
+# DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN CIFAR10 CIFAR100 STL10 Food101 Flowers102 FER2013 PCAM OxfordIIITPet RenderedSST2 EMNIST FashionMNIST KMNIST)
 DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
 
-MODELS=(ViT-B-32 ViT-B-16 ViT-L-14)
+MODELS=(ViT-B-16)
 FT_MODE="standard"
-SAVE_DIR="artifacts/checkpoints-analysis"
+SAVE_DIR="artifacts/checkpoints"
+OVERWRITE_ARGS=()
+if [ "${OVERWRITE:-0}" = "1" ]; then
+  OVERWRITE_ARGS=(--overwrite)
+fi
 
 # Unique DDP rendezvous port per task so co-located array tasks don't collide.
 PORT=$((12355 + SLURM_ARRAY_TASK_ID))
@@ -62,8 +80,8 @@ for MODEL in "${MODELS[@]}"; do
     --cache-dir="$OPENCLIP_DIR" \
     --data-location="$DATA_DIR" \
     --save="$SAVE_DIR" \
-    --epochs=1 \
     --train-dataset="$DATASET" \
     --grad-cross-matrix \
-    --checkpoint-every=200
+    --checkpoint-every=200 \
+    "${OVERWRITE_ARGS[@]}"
 done

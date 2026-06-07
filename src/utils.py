@@ -31,8 +31,6 @@ def resolve_run_dir(args):
     """
     base = args.save if args.save is not None else "artifacts/checkpoints"
     run = os.path.join(base, args.model, group_dir(getattr(args, "group", "main")))
-    if getattr(args, "seed", None) is not None:
-        run = os.path.join(run, f"seed_{args.seed}")
     if getattr(args, "max_steps", None) is not None:
         run = os.path.join(run, f"max_steps_{args.max_steps}")
     if getattr(args, "max_samples", None) is not None:

@@ -1,16 +1,18 @@
-import argparse
-import torch
 import os
-import pandas as pd
-from tqdm import tqdm
 import sys
+import argparse
+from tqdm import tqdm
+import os.path as osp
 
-from src.utils import expert_dir
+import numpy as np
+import torch
+import pandas as pd
+
+from src.utils import expert_dir, group_dir
 
 # sys.path.append("..")
 # from src import mhap, mhas
 # from src.vision.task_vectors import NonLinearTaskVector
-# from src.nlg.task_vectors import ParamFolderTaskVector
 
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -24,16 +26,16 @@ def get_rand_psd(
     return X @ X.T
 
 
-# --model ViT-B-16 --max-samples 1280
 parser = argparse.ArgumentParser()
+parser.add_argument("--ckpt_dir", default="artifacts/checkpoints")
+parser.add_argument("--results_dir", default="artifacts/results")
 parser.add_argument("--model", default="ViT-B-16")
-parser.add_argument("--max-samples", type=int, required=True)
+parser.add_argument("--group", default="main")
 args = parser.parse_args()
 
 model = args.model
-suffix = f"max_samples_{args.max_samples}"
-checkpoints_dir = f"artifacts/checkpoints-analysis/{model}/{suffix}"
-results_dir = f"artifacts/results-analysis/{model}/{suffix}"
+ckpt_dir = osp.join(args.ckpt_dir, model, group_dir(args.group))
+results_dir = osp.join(args.results_dir, model, group_dir(args.group))
 os.makedirs(results_dir, exist_ok=True)
 
 datasets = [
@@ -47,99 +49,99 @@ datasets = [
     "SVHN",
 ]
 
+ad_fn = lambda c: np.arccos(c.clip(-1.0, 1.0)) / np.pi
+
 rows = []
 for d in tqdm(datasets, desc="datasets"):
-    task_dir = expert_dir(checkpoints_dir, d)
+    task_dir = expert_dir(ckpt_dir, d)
     if not os.path.isdir(task_dir):
         continue
-    cdict = torch.load(os.path.join(task_dir, "covariance.pt"))
-    cdict = {k.replace(".", "_"): v for k, v in cdict.items()}
-    filenames = [f for f in os.listdir(task_dir) if "grad_cross" in f]
-    if not filenames:
+    if not all(
+        [
+            osp.exists(os.path.join(task_dir, s))
+            for s in ["gbar.pt", "sbar.pt", "stilde.pt", "covariance.pt"]
+        ]
+    ):
         continue
-    for filename in tqdm(filenames, desc=d, leave=False):
-        layer_name = filename.replace(".pt", "").replace("grad_cross_matrix_", "")
-        gcm = torch.load(os.path.join(task_dir, filename))
-        cov = cdict["image_encoder_" + layer_name]
-        m, n = gcm["gbar"].shape
-        cosim_cross = cosine_similarity(gcm["gbar"].T @ gcm["gbar"], gcm["sbar"])
-        cosim_corr = cosine_similarity(gcm["sbar"], gcm["stilde"])
-        cosim_drift = cosine_similarity(gcm["stilde"], cov)
-        cosim_tot = cosine_similarity(gcm["gbar"].T @ gcm["gbar"], cov)
+    cov = torch.load(os.path.join(task_dir, "covariance.pt"))
+    gbar = torch.load(os.path.join(task_dir, "gbar.pt"))
+    sbar = torch.load(os.path.join(task_dir, "sbar.pt"))
+    stilde = torch.load(os.path.join(task_dir, "stilde.pt"))
+
+    layer_idx = 0
+    for l in gbar:
+        lc = "image_encoder." + l
+        # print(f"{l}: {gbar[l].shape}")
+        # cross_cosim = cosine_similarity(gbar[l].T @ gbar[l], sbar[l])
+        # corr_cosim = cosine_similarity(sbar[l], stilde[l])
+        # drift_cosim = cosine_similarity(stilde[l], cov[lc])
+        # tot_cosim = cosine_similarity(gbar[l].T @ gbar[l], cov[lc])
+
+        cross_ad = ad_fn(cosine_similarity(gbar[l].T @ gbar[l], sbar[l]))
+        corr_ad = ad_fn(cosine_similarity(sbar[l], stilde[l]))
+        drift_ad = ad_fn(cosine_similarity(stilde[l], cov[lc]))
+        tot_ad = ad_fn(cosine_similarity(gbar[l].T @ gbar[l], cov[lc]))
+
         # # deltas
-        # delta_gsc = (
-        #     cosim_tot
-        #     - cosine_similarity(gcm["gbar"].T @ gcm["gbar"], gcm["sbar"])
-        #     - cosine_similarity(gcm["sbar"], cov)
-        # )
-        # delta_ssc = (
-        #     cosine_similarity(gcm["sbar"], cov)
-        #     - cosine_similarity(gcm["sbar"], gcm["stilde"])
-        #     - cosine_similarity(gcm["stilde"], cov)
-        # )
-
-        # Controls:
-        cosim_cross_ctrl = cosine_similarity(
-            gcm["gbar"].T @ gcm["gbar"], get_rand_psd(n, n)
+        delta_gsc = (
+            tot_ad
+            - ad_fn(cosine_similarity(gbar[l].T @ gbar[l], sbar[l]))
+            - ad_fn(cosine_similarity(sbar[l], cov[lc]))
         )
-        cosim_corr_ctrl = cosine_similarity(gcm["sbar"], get_rand_psd(n, n))
+        delta_ssc = (
+            ad_fn(cosine_similarity(sbar[l], cov[lc]))
+            - ad_fn(cosine_similarity(sbar[l], stilde[l]))
+            - ad_fn(cosine_similarity(stilde[l], cov[lc]))
+        )
 
-        # TODO: add drift term
-        # cov_terminal = torch.randn_like(gcm["sbar"])
-        # cosim_drift = cosine_similarity(gcm["sbar"], cov_terminal)
         rows.extend(
             [
                 {
                     "dataset": d,
-                    "layer_name": layer_name,
-                    "cosine_similarity": cosim_cross.item(),
+                    "layer_name": l,
+                    "layer_idx": layer_idx,
+                    "angular_distance": cross_ad.item(),
                     "type": "cross",
-                    "mode": "true",
                 },
                 {
                     "dataset": d,
-                    "layer_name": layer_name,
-                    "cosine_similarity": cosim_corr.item(),
+                    "layer_name": l,
+                    "layer_idx": layer_idx,
+                    "angular_distance": corr_ad.item(),
                     "type": "corr",
-                    "mode": "true",
                 },
                 {
                     "dataset": d,
-                    "layer_name": layer_name,
-                    "cosine_similarity": cosim_drift.item(),
+                    "layer_name": l,
+                    "layer_idx": layer_idx,
+                    "angular_distance": drift_ad.item(),
                     "type": "drift",
-                    "mode": "true",
                 },
                 {
                     "dataset": d,
-                    "layer_name": layer_name,
-                    "cosine_similarity": cosim_tot.item(),
+                    "layer_name": l,
+                    "layer_idx": layer_idx,
+                    "angular_distance": tot_ad.item(),
                     "type": "tot",
-                    "mode": "true",
                 },
-                # Controls:
+                # deltas
                 {
                     "dataset": d,
-                    "layer_name": layer_name,
-                    "cosine_similarity": cosim_cross_ctrl.item(),
-                    "type": "cross",
-                    "mode": "ctrl",
+                    "layer_name": l,
+                    "layer_idx": layer_idx,
+                    "angular_distance": delta_gsc.item(),
+                    "type": r"$\delta_\text{gsc}$",
                 },
                 {
                     "dataset": d,
-                    "layer_name": layer_name,
-                    "cosine_similarity": cosim_corr_ctrl.item(),
-                    "type": "corr",
-                    "mode": "ctrl",
+                    "layer_name": l,
+                    "layer_idx": layer_idx,
+                    "angular_distance": delta_ssc.item(),
+                    "type": r"$\delta_\text{ssc}$",
                 },
-                # {
-                #     "dataset": d,
-                #     "layer_name": layer_name,
-                #     "cosine_similarity": cosim_drift.item(),
-                #     "type": "drift",
-                # },
             ]
         )
+        layer_idx += 1
 
 df = pd.DataFrame(rows)
 df.to_csv(os.path.join(results_dir, "error_terms.csv"), index=False)

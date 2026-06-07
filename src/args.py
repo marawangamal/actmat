@@ -94,7 +94,12 @@ def parse_arguments():
     )
     parser.add_argument("--ls", type=float, default=0.0, help="Label smoothing.")
     parser.add_argument("--warmup-length", type=int, default=500)
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=None,
+        help="Number of training epochs. Vision uses the per-dataset default schedule when omitted.",
+    )
     parser.add_argument(
         "--num-batches",
         type=int,
@@ -119,7 +124,7 @@ def parse_arguments():
         default=None,
         help="Cap on unique training examples per dataset. None means use the full train split.",
     )
-    parser.add_argument("--seed", type=int, default=None, help="Random seed.")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed.")
     parser.add_argument(
         "--world-size",
         type=int,
@@ -165,13 +170,6 @@ def parse_arguments():
              "model (by val top1) instead of the final one, and stop after "
              "--patience epochs without improvement.",
     )
-    parser.add_argument(
-        "--epochs-mult",
-        type=float,
-        default=1.0,
-        help="Scale the per-dataset epoch schedule by this factor (e.g. 2.0 = 2x epochs).",
-    )
-
     # ─── Finetuning mode ──────────────────────────────────────────────────────
     parser.add_argument(
         "--finetuning-mode",
@@ -286,12 +284,6 @@ def parse_arguments():
         type=int,
         default=50,
         help="Max batches in phase 1 (coefficient selection).",
-    )
-    parser.add_argument(
-        "--results-db",
-        type=str,
-        default=None,
-        help="Path to a JSON-lines results database file.",
     )
     parser.add_argument(
         "--results-dir",

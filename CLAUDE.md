@@ -120,7 +120,7 @@ and has neither. The vision task-count (8/14/20) is the `group` value, passed as
 `--group=$NUM_TASKS` by a single `eval_task_addition.sh` / `eval_experts.sh`. Vision
 expert **checkpoints are shared across suites**: they live physically in `group-20`
 (the superset), and `group-8` / `group-14` expert dirs are **symlinks** into it (so
-finetuning runs once; `finetune_array.sh` / `finetune_mtl.sh` pass `--group=20`).
+finetuning runs once; `finetune_mtl.sh` passes `--group=20`).
 Language uses `group-main` throughout. Named experiment buckets (`results-wang`,
 `results-sgd`, `results-mixed`) are exotic and stay on `group-main` by default.
 
