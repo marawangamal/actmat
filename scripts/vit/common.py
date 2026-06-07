@@ -1,7 +1,6 @@
 import json
 import os
 import os.path as osp
-from types import SimpleNamespace
 
 import numpy as np
 import torch
@@ -31,20 +30,6 @@ def parse_csv(value):
     return [x.strip() for x in value.split(",") if x.strip()]
 
 
-def make_eval_namespace(args):
-    return SimpleNamespace(
-        model=args.model,
-        data_location=args.data_location,
-        cache_dir=args.cache_dir,
-        feature_cache_dir=None,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        device="cuda" if torch.cuda.is_available() else "cpu",
-        eval_split=getattr(args, "eval_split", "test"),
-        eval_max_batches=getattr(args, "eval_max_batches", None),
-    )
-
-
 def load_head(head_path):
     if not osp.exists(head_path):
         raise FileNotFoundError(f"Missing classification head: {head_path}")
@@ -65,7 +50,7 @@ def eval_dataset_with_head(image_encoder, dataset_name, head_path, args):
     )
     use_train = getattr(args, "eval_split", "test") == "train"
     dataloader = get_dataloader(dataset, is_train=use_train, args=args, image_encoder=None)
-    device = args.device
+    device = getattr(args, "device", "cuda" if torch.cuda.is_available() else "cpu")
     max_batches = getattr(args, "eval_max_batches", None)
 
     with torch.no_grad():

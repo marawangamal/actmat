@@ -10,7 +10,6 @@ sys.path.insert(0, osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
 from scripts.vit.common import (  # noqa: E402
     DEFAULT_VIT_DATASETS,
     eval_dataset_with_head,
-    make_eval_namespace,
     make_tasks,
     parse_csv,
     write_metrics,
@@ -45,7 +44,6 @@ if __name__ == "__main__":
         raise SystemExit(0)
 
     eval_datasets = args.eval_datasets or list(DEFAULT_VIT_DATASETS)
-    eval_args = make_eval_namespace(args)
     scores = {}
     for dataset in eval_datasets:
         expert_dir = osp.join(args.experts_dir, dataset)
@@ -56,7 +54,7 @@ if __name__ == "__main__":
         )
         head_path = osp.join(expert_dir, "head.pt")
         scores[f"{dataset}:top1"] = eval_dataset_with_head(
-            image_encoder, dataset, head_path, eval_args
+            image_encoder, dataset, head_path, args
         )["top1"]
 
     scores["avg_top1"] = sum(scores[f"{d}:top1"] for d in eval_datasets) / len(eval_datasets)

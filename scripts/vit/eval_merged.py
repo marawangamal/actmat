@@ -10,7 +10,6 @@ sys.path.insert(0, osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
 from scripts.vit.common import (  # noqa: E402
     DEFAULT_VIT_DATASETS,
     eval_dataset_with_head,
-    make_eval_namespace,
     make_tasks,
     parse_csv,
     write_metrics,
@@ -80,12 +79,11 @@ if __name__ == "__main__":
     image_encoder = torch.load(base_model_path, map_location="cpu", weights_only=False)
     image_encoder.load_state_dict(merged.model_state_dict, strict=False)
 
-    eval_args = make_eval_namespace(args)
     scores = {}
     for dataset in eval_datasets:
         head_path = osp.join(args.experts_dir, dataset, "head.pt")
         scores[f"{dataset}:top1"] = eval_dataset_with_head(
-            image_encoder, dataset, head_path, eval_args
+            image_encoder, dataset, head_path, args
         )["top1"]
     scores["avg_top1"] = sum(scores[f"{d}:top1"] for d in eval_datasets) / len(eval_datasets)
 
