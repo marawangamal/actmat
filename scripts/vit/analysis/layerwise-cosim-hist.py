@@ -7,7 +7,7 @@ the full per-(task, layer) distribution as overlaid histograms, one hue per
 method, to contrast HOW each estimate aligns with c across the network — not
 just on average. |cos| (cov estimates are PSD, so cos >= 0 anyway).
 
-Run: python scripts/vit/analysis/merge_cov_cosine_hist.py --model ViT-B-16 --group fft-8
+Run: python scripts/vit/analysis/layerwise-cosim-hist.py --model ViT-B-16 --group fft-8
 """
 
 import argparse
@@ -47,7 +47,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="artifacts/checkpoints")
     p.add_argument("--model", default="ViT-B-16")
     p.add_argument("--group", default="fft-8")
-    p.add_argument("--out", default="artifacts/analysis/cov_cosine_hist.png")
+    p.add_argument("--out", default="artifacts/analysis/layerwise-cosim-hist.png")
     return p.parse_args()
 
 
