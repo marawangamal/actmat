@@ -51,6 +51,7 @@ for MODEL in "${MODELS[@]}"; do
     --world-size 1 \
     --num-workers 1 \
     --port "$PORT" \
+    --wandb \
     --cache-dir "$OPENCLIP_DIR" \
     --data-location "$DATA_DIR" \
     "${OVERWRITE_ARGS[@]}"

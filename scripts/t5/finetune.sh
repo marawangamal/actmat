@@ -49,5 +49,9 @@ for MODEL in "${MODELS[@]}"; do
     --port "$PORT" \
     --cache-dir "$CACHE_DIR" \
     --data-location "$DATA_DIR" \
+    --wandb \
+    --early-stop \
+    --grad-cross-matrix \
+    --checkpoint-every 200 \
     "${OVERWRITE_ARGS[@]}"
 done
