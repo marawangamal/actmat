@@ -34,7 +34,13 @@ def parse_args():
         "--merge-kwargs",
         type=json.loads,
         default={},
-        help='JSON dict of extra kwargs forwarded to the merge function, e.g. \'{"angular_distance": 0.3}\'.',
+        help="JSON dict of extra kwargs forwarded to the merge function, e.g. '{\"angular_distance\": 0.3}'.",
+    )
+    parser.add_argument(
+        "--expert-kwargs",
+        type=json.loads,
+        default={},
+        help="JSON dict of extra kwargs forwarded to ViTExpert, e.g. '{\"mha\": \"none\"}'.",
     )
     parser.add_argument("--ignore-mean", default=None)
     parser.add_argument("--data-location", default="data/vision")
@@ -61,7 +67,7 @@ if __name__ == "__main__":
     base_expert_dir = osp.join(args.experts_dir, eval_datasets[0])
     base_model_path = osp.join(base_expert_dir, "pretrained.pt")
 
-    base = ViTExpert(weights_path=base_model_path)
+    base = ViTExpert(weights_path=base_model_path, **args.expert_kwargs)
     experts = []
     for dataset in eval_datasets:
         expert_dir = osp.join(args.experts_dir, dataset)
@@ -70,10 +76,11 @@ if __name__ == "__main__":
                 weights_path=osp.join(expert_dir, args.checkpoint_name),
                 covariance_path=optional_sidecar(expert_dir, args.covariance_name),
                 fisher_path=optional_sidecar(expert_dir, args.fisher_name),
+                **args.expert_kwargs,
             )
         )
 
-    merged = ViTExpert()
+    merged = ViTExpert(**args.expert_kwargs)
     merge_experts(
         base,
         experts,
@@ -104,6 +111,7 @@ if __name__ == "__main__":
             "model": args.model,
             "merge_method": args.merge_method,
             "merge_kwargs": args.merge_kwargs,
+            "expert_kwargs": args.expert_kwargs,
             "checkpoint_name": args.checkpoint_name,
             "avg_top1": scores["avg_top1"],
         },

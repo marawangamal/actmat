@@ -41,6 +41,7 @@ esac
 
 METHODS=(${METHODS:-mean isoc tsv actmat})
 MODEL="${MODEL:-ViT-B-16}"
+EXPERT_KWARGS="${EXPERT_KWARGS:-{}}"
 
 NUM_METHODS="${#METHODS[@]}"
 if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
@@ -56,6 +57,7 @@ python scripts/vit/eval_merged.py \
   --experts-dir "$EXPERTS_DIR" \
   --eval-datasets "$EVAL_DATASETS" \
   --merge-method "$METHOD" \
+  --expert-kwargs "$EXPERT_KWARGS" \
   --output-dir "$OUT" \
   --data-location "$DATA_DIR" \
   --cache-dir "$OPENCLIP_DIR"

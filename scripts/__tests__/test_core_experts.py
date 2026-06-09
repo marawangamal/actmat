@@ -97,6 +97,32 @@ class TestViTExpert(unittest.TestCase):
                 state_dict["block.attn.out_proj.weight"],
             )
 
+    def test_mha_none_preserves_native_state_dict(self):
+        state_dict = {
+            "block.attn.in_proj_weight": torch.arange(18.0).reshape(6, 3),
+            "block.attn.out_proj.weight": torch.arange(9.0).reshape(3, 3),
+            "mlp.weight": torch.ones(2, 2),
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            weights_path = osp.join(tmpdir, "model.pt")
+            torch.save(state_dict, weights_path)
+
+            expert = ViTExpert(weights_path=weights_path, mha="none")
+            self.assertIn("block.attn.in_proj_weight", expert.state_dict)
+            self.assertNotIn("block.attn.q.weight", expert.state_dict)
+
+            native = expert.model_state_dict
+            self.assertIs(native, expert.state_dict)
+            torch.testing.assert_close(
+                native["block.attn.in_proj_weight"],
+                state_dict["block.attn.in_proj_weight"],
+            )
+
+    def test_invalid_mha_mode_raises(self):
+        with self.assertRaises(ValueError):
+            ViTExpert(mha="packed")
+
     def test_cov_key_mapping(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             weights_path = osp.join(tmpdir, "model.pt")
