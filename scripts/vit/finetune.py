@@ -10,6 +10,8 @@ import numpy as np
 import torch
 
 from src.distributed import cleanup_ddp, distribute_loader, is_main_process, setup_ddp
+from src.grad_cross import GradCrossTermTracker
+from src.mhas import swap_mha, unswap_mha
 from src.utils import LabelSmoothing, cosine_lr
 from src.vision.datasets.common import get_dataloader, maybe_dictionarize
 from src.vision.datasets.registry import get_dataset
@@ -52,6 +54,12 @@ def parse_args():
     parser.add_argument("--lora-rank", type=int, default=16)
     parser.add_argument("--lora-alpha", type=float, default=16)
     parser.add_argument("--lora-dropout", type=float, default=0.0)
+    parser.add_argument(
+        "--grad-cross-matrix",
+        action="store_true",
+        default=False,
+        help="Collect per-layer grad-cross-moment sidecars during fine-tuning.",
+    )
     parser.add_argument("--overwrite", action="store_true", default=False)
     return parser.parse_args()
 
@@ -113,6 +121,10 @@ def finetune(rank, args):
     setup_ddp(rank, args.world_size, port=args.port)
     seed_everything(args.seed, rank)
 
+    assert not (
+        args.grad_cross_matrix and args.num_grad_accumulation > 1
+    ), "--grad-cross-matrix is incompatible with gradient accumulation > 1"
+
     os.makedirs(args.output_dir, exist_ok=True)
     if is_main_process():
         save_args(args)
@@ -146,6 +158,8 @@ def finetune(rank, args):
             args.lora_dropout,
             target_modules="all-linear",
         )
+    if args.grad_cross_matrix:
+        swap_mha(image_encoder)
 
     classification_head = torch.load(
         osp.join(args.output_dir, "head.pt"), map_location="cpu", weights_only=False
@@ -199,6 +213,10 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {total_steps}")
 
+    grad_cross_tracker = None
+    if args.grad_cross_matrix and is_main_process():
+        grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
+
     run_start_time = time.perf_counter()
     step = 0
     for epoch in range(args.epochs):
@@ -221,6 +239,8 @@ def finetune(rank, args):
             if (i + 1) % args.num_grad_accumulation == 0:
                 scheduler(step)
                 torch.nn.utils.clip_grad_norm_(params, 1.0)
+                if grad_cross_tracker is not None:
+                    grad_cross_tracker.step()
                 optimizer.step()
                 optimizer.zero_grad()
 
@@ -232,6 +252,12 @@ def finetune(rank, args):
             ):
                 model_path = osp.join(args.output_dir, f"checkpoint_{step}.pt")
                 enc = ddp_model.module.image_encoder
+                if args.grad_cross_matrix:
+                    enc = copy.deepcopy(enc).cpu()
+                    for module in enc.modules():
+                        module._forward_hooks.clear()
+                        module._backward_hooks.clear()
+                    unswap_mha(enc)
                 enc.save(model_path)
                 _prune_checkpoints(args.output_dir, args.keep_checkpoints)
                 print(f"Saved checkpoint to {model_path}", flush=True)
@@ -254,11 +280,20 @@ def finetune(rank, args):
         if args.max_steps is not None and step >= args.max_steps:
             break
 
+    if grad_cross_tracker is not None:
+        grad_cross_tracker.save(args.output_dir)
+        grad_cross_tracker.remove_hooks()
+
     if is_main_process():
         image_encoder = ddp_model.module.image_encoder
         if lora_finetuning:
             image_encoder = merge_lora(image_encoder)
         enc_to_save = copy.deepcopy(image_encoder).cpu()
+        if args.grad_cross_matrix:
+            for module in enc_to_save.modules():
+                module._forward_hooks.clear()
+                module._backward_hooks.clear()
+            unswap_mha(enc_to_save)
         enc_to_save.save(ft_path)
 
     cleanup_ddp()

@@ -1,4 +1,5 @@
 import argparse
+import copy
 import gc
 import os
 import os.path as osp
@@ -10,6 +11,7 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 sys.path.insert(0, osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
 
+from src.grad_cross import GradCrossTermTracker  # noqa: E402
 from src.language.datasets.batcher import Batcher  # noqa: E402
 from src.language.datasets.dataset_readers import get_datasetReader  # noqa: E402
 from src.language.datasets.pytorch_dataset import PytorchDataset  # noqa: E402
@@ -49,6 +51,12 @@ def parse_args():
     parser.add_argument("--lora-rank", type=int, default=16)
     parser.add_argument("--lora-alpha", type=float, default=16)
     parser.add_argument("--lora-dropout", type=float, default=0.0)
+    parser.add_argument(
+        "--grad-cross-matrix",
+        action="store_true",
+        default=False,
+        help="Collect per-layer grad-cross-moment sidecars during fine-tuning.",
+    )
     parser.add_argument("--overwrite", action="store_true", default=False)
     return parser.parse_args()
 
@@ -91,6 +99,15 @@ def save_args(args):
         json.dump(vars(args), f, indent=2, sort_keys=True, default=str)
 
 
+def save_model_without_hooks(model, path):
+    model_to_save = copy.deepcopy(model).cpu()
+    for module in model_to_save.modules():
+        module._forward_hooks.clear()
+        module._backward_hooks.clear()
+    model_to_save.save(path)
+    del model_to_save
+
+
 def build_model(args):
     transformer = AutoModelForSeq2SeqLM.from_pretrained(args.model)
     tokenizer = AutoTokenizer.from_pretrained(args.model, model_max_length=128)
@@ -117,6 +134,10 @@ def build_train_iterator(model, args):
 
 
 def finetune(args):
+    assert not (
+        args.grad_cross_matrix and args.num_grad_accumulation > 1
+    ), "--grad-cross-matrix is incompatible with gradient accumulation > 1"
+
     os.makedirs(args.output_dir, exist_ok=True)
     save_args(args)
 
@@ -155,7 +176,9 @@ def finetune(args):
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=args.lr, weight_decay=args.wd)
-    scaler = torch.amp.GradScaler("cuda")
+    grad_cross_tracker = (
+        GradCrossTermTracker(model) if args.grad_cross_matrix else None
+    )
 
     best_val_acc = -1.0
     bad_checkpoints = 0
@@ -171,10 +194,11 @@ def finetune(args):
             loss, _ = model(batch)
             loss = loss / args.num_grad_accumulation
 
-        scaler.scale(loss).backward()
+        loss.backward()
         if (i + 1) % args.num_grad_accumulation == 0:
-            scaler.step(optimizer)
-            scaler.update()
+            if grad_cross_tracker is not None:
+                grad_cross_tracker.step()
+            optimizer.step()
             optimizer.zero_grad()
 
         step = (i + 1) // args.num_grad_accumulation
@@ -196,7 +220,10 @@ def finetune(args):
         ):
             checkpoint_path = osp.join(args.output_dir, f"checkpoint_{step}.pt")
             if not lora:
-                model.save(checkpoint_path)
+                if grad_cross_tracker is None:
+                    model.save(checkpoint_path)
+                else:
+                    save_model_without_hooks(model, checkpoint_path)
                 _prune_checkpoints(args.output_dir, args.keep_checkpoints)
 
             val_acc = eval_single_dataset(
@@ -206,7 +233,10 @@ def finetune(args):
                 best_val_acc = val_acc
                 bad_checkpoints = 0
                 if not lora:
-                    model.save(finetuned_path)
+                    if grad_cross_tracker is None:
+                        model.save(finetuned_path)
+                    else:
+                        save_model_without_hooks(model, finetuned_path)
                 saved_best = True
             else:
                 bad_checkpoints += 1
@@ -220,9 +250,19 @@ def finetune(args):
 
     if lora:
         model.transformer = model.transformer.merge_and_unload()
-        model.save(finetuned_path)
+        if grad_cross_tracker is None:
+            model.save(finetuned_path)
+        else:
+            save_model_without_hooks(model, finetuned_path)
     elif not saved_best:
-        model.save(finetuned_path)
+        if grad_cross_tracker is None:
+            model.save(finetuned_path)
+        else:
+            save_model_without_hooks(model, finetuned_path)
+
+    if grad_cross_tracker is not None:
+        grad_cross_tracker.save(args.output_dir)
+        grad_cross_tracker.remove_hooks()
 
     model.cpu()
     del model
@@ -233,6 +273,8 @@ if __name__ == "__main__":
     args = parse_args()
     os.environ.setdefault("HF_HOME", args.cache_dir)
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.grad_cross_matrix and args.num_grad_accumulation is None:
+        args.num_grad_accumulation = 1
     if args.batch_size is None or args.num_grad_accumulation is None:
         batch_size, grad_accum = _batch_defaults(args.model)
         args.batch_size = args.batch_size or batch_size
