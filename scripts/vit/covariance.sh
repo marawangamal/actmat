@@ -22,17 +22,24 @@ DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 CKPT_ROOT="artifacts/checkpoints"
 
-DATASETS=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
-DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
-MODELS=(${MODELS:-ViT-B-16})
+DATASETS_8=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
+DATASETS_14=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN CIFAR100 STL10 Flowers102 OxfordIIITPet PCAM FER2013)
+DATASETS_20=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN CIFAR100 STL10 Flowers102 OxfordIIITPet PCAM FER2013 EMNIST CIFAR10 Food101 FashionMNIST RenderedSST2 KMNIST)
+case "$NUM_TASKS" in
+  8) DATASETS=("${DATASETS_8[@]}") ;;
+  14) DATASETS=("${DATASETS_14[@]}") ;;
+  20) DATASETS=("${DATASETS_20[@]}") ;;
+  *) echo "Unsupported NUM_TASKS=$NUM_TASKS"; exit 1 ;;
+esac
 
-for MODEL in "${MODELS[@]}"; do
-  EXPERT_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
-  python scripts/vit/covariance.py \
-    --model "$MODEL" \
-    --expert-dir "$EXPERT_DIR" \
-    --dataset "$DATASET" \
-    --output-path "$EXPERT_DIR/covariance.pt" \
-    --data-location "$DATA_DIR" \
-    --cache-dir "$OPENCLIP_DIR"
-done
+DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
+MODEL="${MODEL:-ViT-B-16}"
+
+EXPERT_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
+python scripts/vit/covariance.py \
+  --model "$MODEL" \
+  --expert-dir "$EXPERT_DIR" \
+  --dataset "$DATASET" \
+  --output-path "$EXPERT_DIR/covariance.pt" \
+  --data-location "$DATA_DIR" \
+  --cache-dir "$OPENCLIP_DIR"

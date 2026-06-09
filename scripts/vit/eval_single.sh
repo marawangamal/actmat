@@ -5,9 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-2
-#SBATCH --output=artifacts/logs/%x_%A_%a.out
-#SBATCH --error=artifacts/logs/%x_%A_%a.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -26,13 +25,8 @@ DATA_DIR="data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 CKPT_ROOT="artifacts/checkpoints"
 RESULTS_ROOT="artifacts/results"
-MODELS=(${MODELS:-ViT-B-16 ViT-B-32 ViT-L-14})
+MODEL="${MODEL:-ViT-B-16}"
 
-if [ "$SLURM_ARRAY_TASK_ID" -ge "${#MODELS[@]}" ]; then
-  echo "No model for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
-  exit 0
-fi
-MODEL="${MODELS[$SLURM_ARRAY_TASK_ID]}"
 EXPERT_DIR="${EXPERT_DIR:-$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/$SINGLE_DIR}"
 EXPERTS_DIR="${EXPERTS_DIR:-$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts}"
 OUTPUT_DIR="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/$SINGLE_DIR"

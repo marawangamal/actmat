@@ -33,7 +33,7 @@ case "$NUM_TASKS" in
 esac
 
 DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
-MODELS=(${MODELS:-ViT-B-16})
+MODEL="${MODEL:-ViT-B-16}"
 PORT=$((12355 + SLURM_ARRAY_TASK_ID))
 
 OVERWRITE_ARGS=()
@@ -41,18 +41,16 @@ if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
 fi
 
-for MODEL in "${MODELS[@]}"; do
-  OUT="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
-  python scripts/vit/finetune.py \
-    --model "$MODEL" \
-    --train-dataset "$DATASET" \
-    --finetuning-mode "$FT_MODE" \
-    --output-dir "$OUT" \
-    --world-size 1 \
-    --num-workers 1 \
-    --port "$PORT" \
-    --wandb \
-    --cache-dir "$OPENCLIP_DIR" \
-    --data-location "$DATA_DIR" \
-    "${OVERWRITE_ARGS[@]}"
-done
+OUT="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
+python scripts/vit/finetune.py \
+  --model "$MODEL" \
+  --train-dataset "$DATASET" \
+  --finetuning-mode "$FT_MODE" \
+  --output-dir "$OUT" \
+  --world-size 1 \
+  --num-workers 1 \
+  --port "$PORT" \
+  --wandb \
+  --cache-dir "$OPENCLIP_DIR" \
+  --data-location "$DATA_DIR" \
+  "${OVERWRITE_ARGS[@]}"
