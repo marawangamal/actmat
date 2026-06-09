@@ -60,6 +60,7 @@ def parse_args():
         default=False,
         help="Collect per-layer grad-cross-moment sidecars during fine-tuning.",
     )
+    parser.add_argument("--wandb", action="store_true", default=False)
     parser.add_argument("--overwrite", action="store_true", default=False)
     return parser.parse_args()
 
@@ -86,6 +87,20 @@ def save_args(args):
     os.makedirs(args.output_dir, exist_ok=True)
     with open(osp.join(args.output_dir, "args.json"), "w") as f:
         json.dump(vars(args), f, indent=2, sort_keys=True, default=str)
+
+
+def init_wandb(args):
+    if not args.wandb:
+        return None
+    import wandb
+
+    return wandb.init(
+        project="actmat",
+        name=f"vit-{args.model}-{args.finetuning_mode}-{args.train_dataset}",
+        group=f"vit-{args.model}-{args.finetuning_mode}",
+        config=vars(args),
+        dir=args.output_dir,
+    )
 
 
 def save_head(args, dataset_name):
@@ -213,6 +228,8 @@ def finetune(rank, args):
     if is_main_process():
         print(f"Total steps: {total_steps}")
 
+    wandb_run = init_wandb(args) if is_main_process() else None
+
     grad_cross_tracker = None
     if args.grad_cross_matrix and is_main_process():
         grad_cross_tracker = GradCrossTermTracker(ddp_model.module.image_encoder)
@@ -261,19 +278,35 @@ def finetune(rank, args):
                 enc.save(model_path)
                 _prune_checkpoints(args.output_dir, args.keep_checkpoints)
                 print(f"Saved checkpoint to {model_path}", flush=True)
+                if wandb_run is not None:
+                    wandb_run.log({"checkpoint/saved": 1}, step=step)
 
             if step % 100 == 0 and is_main_process():
                 percent_complete = 100 * i / len(ddp_loader)
                 elapsed = time.perf_counter() - run_start_time
+                batch_time = time.time() - start_time
                 print(
                     f"Train Epoch: {epoch}/{args.epochs} "
                     f"[{percent_complete:.0f}% {i}/{len(dataset.train_loader)}]\t"
                     f"Loss: {loss.item():.6f}\t"
                     f"Data (t) {data_time:.3f}\t"
-                    f"Batch (t) {time.time() - start_time:.3f}\t"
+                    f"Batch (t) {batch_time:.3f}\t"
                     f"Elapsed {_format_duration(elapsed)}",
                     flush=True,
                 )
+                if wandb_run is not None:
+                    wandb_run.log(
+                        {
+                            "train/loss": loss.item(),
+                            "train/epoch": epoch,
+                            "train/data_time": data_time,
+                            "train/batch_time": batch_time,
+                            "train/elapsed_seconds": elapsed,
+                            "train/progress": step / total_steps,
+                            "train/lr": optimizer.param_groups[0]["lr"],
+                        },
+                        step=step,
+                    )
 
             if args.max_steps is not None and step >= args.max_steps:
                 break
@@ -295,6 +328,9 @@ def finetune(rank, args):
                 module._backward_hooks.clear()
             unswap_mha(enc_to_save)
         enc_to_save.save(ft_path)
+
+    if wandb_run is not None:
+        wandb_run.finish()
 
     cleanup_ddp()
 

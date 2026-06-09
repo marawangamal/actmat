@@ -57,6 +57,7 @@ def parse_args():
         default=False,
         help="Collect per-layer grad-cross-moment sidecars during fine-tuning.",
     )
+    parser.add_argument("--wandb", action="store_true", default=False)
     parser.add_argument("--overwrite", action="store_true", default=False)
     return parser.parse_args()
 
@@ -97,6 +98,20 @@ def save_args(args):
 
     with open(osp.join(args.output_dir, "args.json"), "w") as f:
         json.dump(vars(args), f, indent=2, sort_keys=True, default=str)
+
+
+def init_wandb(args):
+    if not args.wandb:
+        return None
+    import wandb
+
+    return wandb.init(
+        project="actmat",
+        name=f"t5-{args.model}-{args.finetuning_mode}-{args.train_dataset}",
+        group=f"t5-{args.model}-{args.finetuning_mode}",
+        config=vars(args),
+        dir=args.output_dir,
+    )
 
 
 def save_model_without_hooks(model, path):
@@ -150,6 +165,7 @@ def finetune(args):
     ):
         print(f"Skipping fine-tuning because {finetuned_path} already exists.")
         return
+    wandb_run = init_wandb(args)
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -204,14 +220,27 @@ def finetune(args):
         step = (i + 1) // args.num_grad_accumulation
         if (i + 1) % (10 * args.num_grad_accumulation) == 0:
             elapsed = time.time() - start_time
+            batch_time = time.time() - iter_start
             print(
                 f"Train Iteration: {step} [{100 * step / args.num_batches:.0f}% "
                 f"{step}/{args.num_batches}]\tLoss: {loss.item():.6f}\t"
-                f"Data (t) {data_time:.3f}\tBatch (t) {time.time() - iter_start:.3f}\t"
+                f"Data (t) {data_time:.3f}\tBatch (t) {batch_time:.3f}\t"
                 f"Best val acc: {100 * best_val_acc:.2f}%\t"
                 f"Elapsed {_format_duration(elapsed)}",
                 flush=True,
             )
+            if wandb_run is not None:
+                wandb_run.log(
+                    {
+                        "train/loss": loss.item(),
+                        "train/data_time": data_time,
+                        "train/batch_time": batch_time,
+                        "train/best_val_acc": best_val_acc,
+                        "train/elapsed_seconds": elapsed,
+                        "train/progress": step / args.num_batches,
+                    },
+                    step=step,
+                )
 
         if (
             args.checkpoint_every > 0
@@ -229,6 +258,7 @@ def finetune(args):
             val_acc = eval_single_dataset(
                 "validation", model, model.tokenizer, args.train_dataset, args
             )["top1"]
+            improved = val_acc > best_val_acc
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
                 bad_checkpoints = 0
@@ -240,8 +270,20 @@ def finetune(args):
                 saved_best = True
             else:
                 bad_checkpoints += 1
+            if wandb_run is not None:
+                wandb_run.log(
+                    {
+                        "val/top1": val_acc,
+                        "val/best_top1": best_val_acc,
+                        "val/improved": int(improved),
+                        "val/bad_checkpoints": bad_checkpoints,
+                    },
+                    step=step,
+                )
             if args.early_stop and bad_checkpoints >= args.patience:
                 print(f"Early stopping at step {step}.", flush=True)
+                if wandb_run is not None:
+                    wandb_run.log({"train/early_stop": 1}, step=step)
                 break
             model.train()
 
@@ -267,6 +309,8 @@ def finetune(args):
     model.cpu()
     del model
     gc.collect()
+    if wandb_run is not None:
+        wandb_run.finish()
 
 
 if __name__ == "__main__":
