@@ -33,6 +33,10 @@ MODEL="${MODEL:-t5-base}"
 PORT=$((12355 + SLURM_ARRAY_TASK_ID))
 
 if [ "$DATASET" = "story_cloze" ] && [ ! -f data/language/story_cloze/cloze_validation_2016.csv ]; then
+  if [ -L data ] && [ ! -e data ]; then
+    rm data
+  fi
+  mkdir -p data/language/story_cloze
   tar -xzf downloads/data.tar.gz -C . \
     data/language/story_cloze/cloze_test_2016.csv \
     data/language/story_cloze/cloze_validation_2016.csv
