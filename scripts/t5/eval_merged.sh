@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-7
+#SBATCH --array=0-3
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -30,18 +30,14 @@ case "$NUM_TASKS" in
 esac
 
 METHODS=(${METHODS:-mean isoc tsv actmat})
-MODELS=(${MODELS:-t5-base t5-large})
+MODEL="${MODEL:-t5-base}"
 
 NUM_METHODS="${#METHODS[@]}"
-TOTAL_JOBS=$(("${#MODELS[@]}" * NUM_METHODS))
-if [ "$SLURM_ARRAY_TASK_ID" -ge "$TOTAL_JOBS" ]; then
-  echo "No model/method pair for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
+if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
+  echo "No method for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
   exit 0
 fi
-MODEL_IDX=$((SLURM_ARRAY_TASK_ID / NUM_METHODS))
-METHOD_IDX=$((SLURM_ARRAY_TASK_ID % NUM_METHODS))
-MODEL="${MODELS[$MODEL_IDX]}"
-METHOD="${METHODS[$METHOD_IDX]}"
+METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
 EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
 OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"

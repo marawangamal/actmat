@@ -5,9 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-1
-#SBATCH --output=artifacts/logs/%x_%A_%a.out
-#SBATCH --error=artifacts/logs/%x_%A_%a.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -25,13 +24,8 @@ DATA_DIR="data"
 CACHE_DIR="$SCRATCH/huggingface"
 CKPT_ROOT="artifacts/checkpoints"
 RESULTS_ROOT="artifacts/results"
-MODELS=(${MODELS:-t5-base t5-large})
+MODEL="${MODEL:-t5-base}"
 
-if [ "$SLURM_ARRAY_TASK_ID" -ge "${#MODELS[@]}" ]; then
-  echo "No model for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
-  exit 0
-fi
-MODEL="${MODELS[$SLURM_ARRAY_TASK_ID]}"
 EXPERT_DIR="${EXPERT_DIR:-$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/$SINGLE_DIR}"
 OUTPUT_DIR="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/$SINGLE_DIR"
 

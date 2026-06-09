@@ -29,7 +29,7 @@ case "$NUM_TASKS" in
 esac
 
 DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
-MODELS=(${MODELS:-t5-base})
+MODEL="${MODEL:-t5-base}"
 PORT=$((12355 + SLURM_ARRAY_TASK_ID))
 
 OVERWRITE_ARGS=()
@@ -37,21 +37,19 @@ if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
 fi
 
-for MODEL in "${MODELS[@]}"; do
-  OUT="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
-  python scripts/t5/finetune.py \
-    --model "$MODEL" \
-    --train-dataset "$DATASET" \
-    --finetuning-mode "$FT_MODE" \
-    --output-dir "$OUT" \
-    --world-size 1 \
-    --num-workers 1 \
-    --port "$PORT" \
-    --cache-dir "$CACHE_DIR" \
-    --data-location "$DATA_DIR" \
-    --wandb \
-    --early-stop \
-    --grad-cross-matrix \
-    --checkpoint-every 200 \
-    "${OVERWRITE_ARGS[@]}"
-done
+OUT="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
+python scripts/t5/finetune.py \
+  --model "$MODEL" \
+  --train-dataset "$DATASET" \
+  --finetuning-mode "$FT_MODE" \
+  --output-dir "$OUT" \
+  --world-size 1 \
+  --num-workers 1 \
+  --port "$PORT" \
+  --cache-dir "$CACHE_DIR" \
+  --data-location "$DATA_DIR" \
+  --wandb \
+  --early-stop \
+  --grad-cross-matrix \
+  --checkpoint-every 200 \
+  "${OVERWRITE_ARGS[@]}"

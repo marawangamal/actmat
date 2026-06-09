@@ -29,21 +29,19 @@ case "$NUM_TASKS" in
 esac
 
 DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
-MODELS=(${MODELS:-t5-base})
+MODEL="${MODEL:-t5-base}"
 
 OVERWRITE_ARGS=()
 if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
 fi
 
-for MODEL in "${MODELS[@]}"; do
-  EXPERT_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
-  python scripts/t5/covariance.py \
-    --model "$MODEL" \
-    --expert-dir "$EXPERT_DIR" \
-    --dataset "$DATASET" \
-    --output-path "$EXPERT_DIR/covariance.pt" \
-    --cache-dir "$CACHE_DIR" \
-    --data-location "$DATA_DIR" \
-    "${OVERWRITE_ARGS[@]}"
-done
+EXPERT_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
+python scripts/t5/covariance.py \
+  --model "$MODEL" \
+  --expert-dir "$EXPERT_DIR" \
+  --dataset "$DATASET" \
+  --output-path "$EXPERT_DIR/covariance.pt" \
+  --cache-dir "$CACHE_DIR" \
+  --data-location "$DATA_DIR" \
+  "${OVERWRITE_ARGS[@]}"

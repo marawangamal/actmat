@@ -5,9 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-1
-#SBATCH --output=artifacts/logs/%x_%A_%a.out
-#SBATCH --error=artifacts/logs/%x_%A_%a.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -29,12 +28,7 @@ case "$NUM_TASKS" in
   *) echo "Unsupported NUM_TASKS=$NUM_TASKS"; exit 1 ;;
 esac
 
-MODELS=(${MODELS:-t5-base t5-large})
-if [ "$SLURM_ARRAY_TASK_ID" -ge "${#MODELS[@]}" ]; then
-  echo "No model for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
-  exit 0
-fi
-MODEL="${MODELS[$SLURM_ARRAY_TASK_ID]}"
+MODEL="${MODEL:-t5-base}"
 
 EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
 OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
