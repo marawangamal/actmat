@@ -21,7 +21,12 @@ SINGLE_DIR="${SINGLE_DIR:-pretrained}"
 EXPERT_DIR="${EXPERT_DIR:-}"
 EXPERTS_DIR="${EXPERTS_DIR:-}"
 EVAL_DATASETS="${EVAL_DATASETS:-Cars,DTD,EuroSAT,GTSRB,MNIST,RESISC45,SUN397,SVHN}"
-DATA_DIR="data/vision"
+
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
+fi
+DATA_DIR="$SLURM_TMPDIR/data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 CKPT_ROOT="artifacts/checkpoints"
 RESULTS_ROOT="artifacts/results"

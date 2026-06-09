@@ -18,7 +18,12 @@ export SSL_CERT_DIR=/etc/ssl/certs
 NUM_TASKS="${NUM_TASKS:-8}"
 FT_MODE="${FT_MODE:-fft}"
 MODEL="${MODEL:-ViT-B-16}"
-DATA_DIR="data/vision"
+
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
+fi
+DATA_DIR="$SLURM_TMPDIR/data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 CKPT_ROOT="artifacts/checkpoints"
 RESULTS_ROOT="artifacts/results"
