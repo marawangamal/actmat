@@ -32,6 +32,12 @@ DATASET="${DATASETS[$SLURM_ARRAY_TASK_ID]}"
 MODEL="${MODEL:-t5-base}"
 PORT=$((12355 + SLURM_ARRAY_TASK_ID))
 
+if [ "$DATASET" = "story_cloze" ] && [ ! -f data/language/story_cloze/cloze_validation_2016.csv ]; then
+  tar -xzf downloads/data.tar.gz -C . \
+    data/language/story_cloze/cloze_test_2016.csv \
+    data/language/story_cloze/cloze_validation_2016.csv
+fi
+
 OVERWRITE_ARGS=()
 if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
