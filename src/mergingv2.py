@@ -188,3 +188,14 @@ def merge_fisher(
 def merge_actmat(d: torch.Tensor, **kwargs):
     c = d.transpose(1, 2) @ d
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
+def merge_actmat_herm(d: torch.Tensor, **kwargs):
+    c = d.transpose(1, 2) @ d
+    return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0), hermitian=True)
+
+
+def merge_actmat_herm_10ki(d: torch.Tensor, **kwargs):
+    if d.shape[-1] > 10_000:
+        return d.mean(dim=0)
+    return merge_actmat_herm(d)

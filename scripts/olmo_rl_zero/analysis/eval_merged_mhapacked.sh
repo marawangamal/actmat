@@ -28,7 +28,12 @@ BASE_MODEL="allenai/Olmo-3-1025-7B"
 MATH_EXPERT="allenai/Olmo-3-7B-RL-Zero-Math"
 CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
-METHODS=(sum mean actmat tsv isoc regmean)
+METHODS=(${METHODS:-sum mean actmat tsv isoc regmean})
+NUM_METHODS="${#METHODS[@]}"
+if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
+  echo "No method for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
+  exit 0
+fi
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 MHA_MODE="packed"
 METHOD_DIR="${METHOD}-${MHA_MODE}"
@@ -79,7 +84,7 @@ PY
 # 1. Merge (skip if the merged checkpoint already exists — rm -rf "$MERGED_DIR"
 # to force a re-merge). The vocab layers are forced to a plain mean via
 # --ignore-mean; merge.py prints a [IGNORE-MEAN] line for each affected layer.
-if [[ -d "$MERGED_DIR" ]]; then
+if [[ -f "$MERGED_DIR/model.safetensors.index.json" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
   python src/hf2/merge.py \
