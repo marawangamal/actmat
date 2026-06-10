@@ -28,7 +28,7 @@ BASE_MODEL="allenai/Olmo-3-1025-7B"
 MATH_EXPERT="allenai/Olmo-3-7B-RL-Zero-Math"
 CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
-METHODS=(${METHODS:-sum mean actmat tsv isoc regmean})
+METHODS=(${METHODS:-sum mean actmat tsv isoc regmean actmat_gd actmat_gd_10ki})
 NUM_METHODS="${#METHODS[@]}"
 if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
   echo "No method for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
