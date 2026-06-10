@@ -40,7 +40,7 @@ def parse_args():
         "--expert-kwargs",
         type=json.loads,
         default={},
-        help="JSON dict of extra kwargs forwarded to ViTExpert, e.g. '{\"mha\": \"none\"}'.",
+        help="JSON dict of extra kwargs forwarded to ViTExpert, e.g. '{\"mha\": \"packed\"}'.",
     )
     parser.add_argument("--ignore-mean", default=None)
     parser.add_argument("--data-location", default="data/vision")

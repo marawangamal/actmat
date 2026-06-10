@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_olmo_mhap
+#SBATCH --job-name=hf_eval_olmo_packed
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
@@ -7,16 +7,16 @@
 #SBATCH --time=04:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-# Packed-MHA variant of the OLMo RL-Zero merge/eval script. Writes to
+# Packed variant of the OLMo RL-Zero merge/eval script. Writes to
 # ${METHOD}-packed checkpoint and results dirs so it never reuses split-mode
 # merges (the merge-skip below keys off MERGED_DIR existing).
 #
 # To confirm the override fired, grep the merge logs for the marker that
 # src/hf2/merge.py prints per affected layer:
-#   grep "\[IGNORE-MEAN\]" artifacts/logs/hf_eval_olmo_mhap_*.out
+#   grep "\[IGNORE-MEAN\]" artifacts/logs/hf_eval_olmo_packed_*.out
 #
 # Submit with:
-#   sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/analysis/eval_merged_mhapacked.sh
+#   sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_merged_packed.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"

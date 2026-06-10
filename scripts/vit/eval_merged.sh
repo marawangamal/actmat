@@ -41,6 +41,7 @@ esac
 
 METHODS=(${METHODS:-mean isoc tsv actmat})
 MODEL="${MODEL:-ViT-B-16}"
+MHA_MODE="split"
 
 NUM_METHODS="${#METHODS[@]}"
 if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
@@ -48,14 +49,15 @@ if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
   exit 0
 fi
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
+METHOD_DIR="${METHOD}-${MHA_MODE}"
 
 # Standard regenerated checkpoints.
 # EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
-# OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+# OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD_DIR"
 
 # Legacy FFT checkpoint sweep.
 EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/experts"
-OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD_DIR"
 python scripts/vit/eval_merged.py \
   --model "$MODEL" \
   --experts-dir "$EXPERTS_DIR" \
@@ -63,4 +65,5 @@ python scripts/vit/eval_merged.py \
   --merge-method "$METHOD" \
   --output-dir "$OUT" \
   --data-location "$DATA_DIR" \
-  --cache-dir "$OPENCLIP_DIR"
+  --cache-dir "$OPENCLIP_DIR" \
+  --expert-kwargs "{\"mha\": \"${MHA_MODE}\"}"

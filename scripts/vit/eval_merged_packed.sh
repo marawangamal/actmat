@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=eval_vit_actmat_mhapak
+#SBATCH --job-name=eval_vit_actmat_packed
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
@@ -19,6 +19,8 @@ NUM_TASKS="${NUM_TASKS:-8}"
 FT_MODE="${FT_MODE:-fft}"
 METHOD="actmat"
 MODEL="${MODEL:-ViT-B-16}"
+MHA_MODE="packed"
+METHOD_DIR="${METHOD}-${MHA_MODE}"
 
 # Stage datasets to $SLURM_TMPDIR (mirrors scripts/vit/eval_merged.sh)
 if [ ! -d "$SLURM_TMPDIR/data" ]; then
@@ -41,7 +43,7 @@ case "$NUM_TASKS" in
 esac
 
 EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/experts"
-OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD_DIR"
 python scripts/vit/eval_merged.py \
   --model "$MODEL" \
   --experts-dir "$EXPERTS_DIR" \
@@ -50,4 +52,4 @@ python scripts/vit/eval_merged.py \
   --output-dir "$OUT" \
   --data-location "$DATA_DIR" \
   --cache-dir "$OPENCLIP_DIR" \
-  --expert-kwargs '{"mha": "packed"}'
+  --expert-kwargs "{\"mha\": \"${MHA_MODE}\"}"

@@ -32,8 +32,10 @@ CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
 METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki actmat_identity_inv)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
-RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
+MHA_MODE="split"
+METHOD_DIR="${METHOD}-${MHA_MODE}"
+MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD_DIR}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero/merged/${METHOD_DIR}"
 
 # Layers to mean-merge instead of method-merge (vocab head + input embeddings).
 IGNORE_MEAN_RE='lm_head|embed_tokens'
