@@ -15,7 +15,7 @@
 # v2 full-method merges (the merge-skip below keys off MERGED_DIR existing).
 #
 # To confirm the override fired, grep the merge logs for the marker that
-# src/hf/merge.py prints per affected layer:
+# src/hf2/merge.py prints per affected layer:
 #   grep "\[IGNORE-MEAN\]" artifacts/logs/hf_eval_olmo_v3_*.out
 #
 # Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_olmo_rl_zero_v3.sh
@@ -32,10 +32,9 @@ CODE_EXPERT="allenai/Olmo-3-7B-RL-Zero-Code"
 IF_EXPERT="allenai/Olmo-3-7B-RL-Zero-IF"
 METHODS=(sum mean actmat tsv isoc actmat_herm regmean wudi actmat_gd actmat_herm_10ki actmat_gd_10ki actmat_identity_inv)
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
-MHA_MODE="split"
-METHOD_DIR="${METHOD}-${MHA_MODE}"
-MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD_DIR}"
-RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero/merged/${METHOD_DIR}"
+MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
+RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero/merged/${METHOD}"
+EXPERT_STATS_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/experts"
 
 # Layers to mean-merge instead of method-merge (vocab head + input embeddings).
 IGNORE_MEAN_RE='lm_head|embed_tokens'
@@ -79,15 +78,16 @@ PY
 # 1. Merge (skip if the merged checkpoint already exists — rm -rf "$MERGED_DIR"
 # to force a re-merge). The vocab layers are forced to a plain mean via
 # --ignore-mean; merge.py prints a [IGNORE-MEAN] line for each affected layer.
-if [[ -d "$MERGED_DIR" ]]; then
+if [[ -f "$MERGED_DIR/model.safetensors.index.json" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
-  python src/hf/merge.py \
+  python src/hf2/merge.py \
     --base-model-name-or-path "$BASE_MODEL" \
     --chat-template-name-or-path "$MATH_EXPERT" \
     --expert-model-names-or-paths "$MATH_EXPERT" "$CODE_EXPERT" "$IF_EXPERT" \
     --merge-method "$METHOD" \
     --ignore-mean "$IGNORE_MEAN_RE" \
+    --expert-stats-dir "$EXPERT_STATS_DIR" \
     --output-dir "$MERGED_DIR"
 fi
 
