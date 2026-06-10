@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=eval_vit_actmat_mhanon
+#SBATCH --job-name=eval_vit_actmat_mhapak
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
@@ -50,4 +50,4 @@ python scripts/vit/eval_merged.py \
   --output-dir "$OUT" \
   --data-location "$DATA_DIR" \
   --cache-dir "$OPENCLIP_DIR" \
-  --expert-kwargs '{"mha": "none"}'
+  --expert-kwargs '{"mha": "packed"}'

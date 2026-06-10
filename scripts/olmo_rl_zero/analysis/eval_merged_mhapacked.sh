@@ -35,6 +35,7 @@ METHOD_DIR="${METHOD}-${MHA_MODE}"
 MERGED_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/merged/${METHOD_DIR}"
 RESULTS_BASE="artifacts/results/Olmo-3-7b/group-rl-zero/merged/${METHOD_DIR}"
 EXPERT_STATS_DIR="artifacts/checkpoints/Olmo-3-7b/group-rl-zero/experts"
+EXPERT_KWARGS="{\"mha\": \"${MHA_MODE}\"}"
 
 # Layers to mean-merge instead of method-merge (vocab head + input embeddings).
 IGNORE_MEAN_RE='lm_head|embed_tokens'
@@ -86,7 +87,7 @@ else
     --chat-template-name-or-path "$MATH_EXPERT" \
     --expert-model-names-or-paths "$MATH_EXPERT" "$CODE_EXPERT" "$IF_EXPERT" \
     --merge-method "$METHOD" \
-    --mha "$MHA_MODE" \
+    --expert-kwargs "$EXPERT_KWARGS" \
     --ignore-mean "$IGNORE_MEAN_RE" \
     --expert-stats-dir "$EXPERT_STATS_DIR" \
     --output-dir "$MERGED_DIR"

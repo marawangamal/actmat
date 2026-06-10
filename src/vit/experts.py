@@ -11,7 +11,7 @@ class ViTExpert(Expert):
     def __init__(
         self, weights_path=None, covariance_path=None, fisher_path=None, mha="split"
     ):
-        if mha not in {"split", "none"}:
+        if mha not in {"split", "packed"}:
             raise ValueError(f"Unsupported ViTExpert mha mode: {mha}")
 
         self.weights_path = weights_path

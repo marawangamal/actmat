@@ -1,4 +1,5 @@
 import argparse
+import json
 import os.path as osp
 import re
 
@@ -28,7 +29,12 @@ def parse_args():
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--ignore-keep-pt", default=None)
     parser.add_argument("--ignore-mean", default=None)
-    parser.add_argument("--mha", choices=["split", "packed"], default="split")
+    parser.add_argument(
+        "--expert-kwargs",
+        type=json.loads,
+        default={},
+        help="JSON dict of extra kwargs forwarded to each HFExpert.",
+    )
     # Covariance-based methods (e.g. regmean) read per-expert stats sidecars from
     # <expert-stats-dir>/<expert-id>/{covariance,fisher}.pt (expert-id = the model
     # basename).
@@ -44,7 +50,7 @@ if __name__ == "__main__":
     chat_template_path = resolve(args.chat_template_name_or_path)
 
     # build experts list
-    base_hf_dir = HFExpert(base_model_path, mha=args.mha)
+    base_hf_dir = HFExpert(base_model_path, **args.expert_kwargs)
     expert_hf_dirs = []
     for m in args.expert_model_names_or_paths:
         covariance_path = None
@@ -58,12 +64,15 @@ if __name__ == "__main__":
                 resolve(m),
                 covariance_path=covariance_path,
                 fisher_path=fisher_path,
-                mha=args.mha,
+                **args.expert_kwargs,
             )
         )
 
     merged_model_hf_dir = HFExpert(
-        args.output_dir, chat_template_path, chat_template_path, mha=args.mha
+        args.output_dir,
+        chat_template_path,
+        chat_template_path,
+        **args.expert_kwargs,
     )
     for layer_name in base_hf_dir.get_layers():
         metadata = base_hf_dir.get_layer_metadata(layer_name)
