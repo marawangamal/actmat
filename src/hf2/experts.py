@@ -8,6 +8,7 @@ from safetensors import safe_open
 from safetensors.torch import save_file
 
 from src.core.experts import Expert
+from src.hf2.qkv import copy_to_packed_safetensor_index
 
 
 class HFExpert(Expert):
@@ -18,7 +19,12 @@ class HFExpert(Expert):
         tokenizer_path=None,
         covariance_path=None,
         fisher_path=None,
+        mha="split",
+        verbose=False,
     ):
+        if mha not in {"split", "packed"}:
+            raise ValueError(f"Unsupported HFExpert mha mode: {mha}")
+
         self.model_dir = model_dir
         self.covariance_path = covariance_path
         self.fisher_path = fisher_path
@@ -38,6 +44,11 @@ class HFExpert(Expert):
                 self.weight_map = {k: "model.safetensors" for k in f.keys()}
         else:
             self.weight_map = {}
+
+        if mha == "packed":
+            self.weight_map = copy_to_packed_safetensor_index(
+                self.weight_map, self._read_tensor_shape, verbose=verbose
+            )
 
         if tokenizer_path is not None:
             tokenizer_files = (
@@ -85,14 +96,32 @@ class HFExpert(Expert):
     def get_layer_metadata(self, layer_name):
         return self.weight_map[layer_name]
 
+    def _read_tensor_shape(self, layer_name):
+        shard_filename = self.weight_map[layer_name]
+        with safe_open(
+            osp.join(self.model_dir, shard_filename), framework="pt", device="cpu"
+        ) as f:
+            return f.get_tensor(layer_name).shape
+
     def get_layer_params(self, layer_name):
-        shard_name = self.weight_map[layer_name]
+        layer_ref_or_refs = self.weight_map[layer_name]
+        if isinstance(layer_ref_or_refs, str):
+            with safe_open(
+                osp.join(self.model_dir, layer_ref_or_refs),
+                framework="pt",
+                device="cpu",
+            ) as f:
+                return f.get_tensor(layer_name)
+
+        shard_name = layer_ref_or_refs[0]["shard_filename"]
         with safe_open(
             osp.join(self.model_dir, shard_name), framework="pt", device="cpu"
         ) as f:
-            return f.get_tensor(layer_name)
+            tensors = [f.get_tensor(ref["tensor_name"]) for ref in layer_ref_or_refs]
+        return torch.cat(tensors, dim=0)
 
     def get_layer_cov(self, layer_name):
+        # NOTE: in packed mode, qkv key must exist in the cov dict
         if self.cov is None:
             return None
         return self.cov.get(self._param_key_to_cov_key(layer_name))
@@ -103,16 +132,28 @@ class HFExpert(Expert):
         return self.fish.get(self._param_key_to_cov_key(layer_name))
 
     def save_layer_params(self, tensor, layer_name, metadata=None):
-        shard_filename = metadata or "model.safetensors"
+        layer_ref_or_refs = metadata or "model.safetensors"
+        if isinstance(layer_ref_or_refs, str):
+            layer_ref_or_refs = [
+                {"tensor_name": layer_name, "shard_filename": layer_ref_or_refs}
+            ]
+
+        shard_filename = layer_ref_or_refs[0]["shard_filename"]
         shard_path = osp.join(self.model_dir, shard_filename)
+
         tensors = {}
         if osp.exists(shard_path):
             with safe_open(shard_path, framework="pt", device="cpu") as f:
                 tensors = {k: f.get_tensor(k) for k in f.keys()}
-        tensors[layer_name] = tensor.contiguous()
+
+        n_tensors = len(layer_ref_or_refs)
+        layer_tensors = tensor.chunk(n_tensors, dim=0)
+        layer_names = [ref["tensor_name"] for ref in layer_ref_or_refs]
+        for ln, lt in zip(layer_names, layer_tensors):
+            tensors[ln] = lt.contiguous()
+            self.weight_map[ln] = shard_filename
+            self.total_size += lt.numel() * lt.element_size()
         save_file(tensors, shard_path, metadata={"format": "pt"})
-        self.weight_map[layer_name] = shard_filename
-        self.total_size += tensor.numel() * tensor.element_size()
 
     def flush(self):
         with open(osp.join(self.model_dir, "model.safetensors.index.json"), "w") as f:
