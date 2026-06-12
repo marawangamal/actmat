@@ -48,6 +48,12 @@ def parse_args():
     parser.add_argument("--port", type=int, default=12355)
     parser.add_argument("--num-workers", type=int, default=1)
     parser.add_argument("--checkpoint-every", type=int, default=-1)
+    parser.add_argument(
+        "--checkpoint-first",
+        action="store_true",
+        default=False,
+        help="Also save a checkpoint right after the first iteration.",
+    )
     parser.add_argument("--keep-checkpoints", type=int, default=-1)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--early-stop", action="store_true", default=False)
@@ -117,6 +123,22 @@ def save_head(args, dataset_name):
     )
     classification_head.save(head_path)
     del head_encoder
+
+
+def _save_step_checkpoint(args, ddp_model, step, wandb_run):
+    model_path = osp.join(args.output_dir, f"checkpoint_{step}.pt")
+    enc = ddp_model.module.image_encoder
+    if args.grad_cross_matrix:
+        enc = copy.deepcopy(enc).cpu()
+        for module in enc.modules():
+            module._forward_hooks.clear()
+            module._backward_hooks.clear()
+        unswap_mha(enc)
+    enc.save(model_path)
+    _prune_checkpoints(args.output_dir, args.keep_checkpoints)
+    print(f"Saved checkpoint to {model_path}", flush=True)
+    if wandb_run is not None:
+        wandb_run.log({"checkpoint/saved": 1}, step=step)
 
 
 def _prune_checkpoints(output_dir, keep):
@@ -236,6 +258,7 @@ def finetune(rank, args):
 
     run_start_time = time.perf_counter()
     step = 0
+    first_ckpt_saved = False
     for epoch in range(args.epochs):
         ddp_model.train()
         for i, batch in enumerate(ddp_loader):
@@ -261,25 +284,16 @@ def finetune(rank, args):
                 optimizer.step()
                 optimizer.zero_grad()
 
-            if (
+            checkpoint_now = (
                 args.checkpoint_every > 0
                 and step > 0
                 and step % args.checkpoint_every == 0
-                and is_main_process()
-            ):
-                model_path = osp.join(args.output_dir, f"checkpoint_{step}.pt")
-                enc = ddp_model.module.image_encoder
-                if args.grad_cross_matrix:
-                    enc = copy.deepcopy(enc).cpu()
-                    for module in enc.modules():
-                        module._forward_hooks.clear()
-                        module._backward_hooks.clear()
-                    unswap_mha(enc)
-                enc.save(model_path)
-                _prune_checkpoints(args.output_dir, args.keep_checkpoints)
-                print(f"Saved checkpoint to {model_path}", flush=True)
-                if wandb_run is not None:
-                    wandb_run.log({"checkpoint/saved": 1}, step=step)
+            )
+            if args.checkpoint_first and not first_ckpt_saved:
+                checkpoint_now = True
+                first_ckpt_saved = True
+            if checkpoint_now and is_main_process():
+                _save_step_checkpoint(args, ddp_model, step, wandb_run)
 
             if step % 100 == 0 and is_main_process():
                 percent_complete = 100 * i / len(ddp_loader)
