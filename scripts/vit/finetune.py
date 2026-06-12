@@ -125,7 +125,7 @@ def save_head(args, dataset_name):
     del head_encoder
 
 
-def _save_step_checkpoint(args, ddp_model, step, wandb_run):
+def _save_step_checkpoint(args, ddp_model, step, wandb_run, grad_cross_tracker=None):
     model_path = osp.join(args.output_dir, f"checkpoint_{step}.pt")
     enc = ddp_model.module.image_encoder
     if args.grad_cross_matrix:
@@ -135,6 +135,8 @@ def _save_step_checkpoint(args, ddp_model, step, wandb_run):
             module._backward_hooks.clear()
         unswap_mha(enc)
     enc.save(model_path)
+    if grad_cross_tracker is not None:
+        grad_cross_tracker.save(args.output_dir, step=step)
     _prune_checkpoints(args.output_dir, args.keep_checkpoints)
     print(f"Saved checkpoint to {model_path}", flush=True)
     if wandb_run is not None:
@@ -293,7 +295,9 @@ def finetune(rank, args):
                 checkpoint_now = True
                 first_ckpt_saved = True
             if checkpoint_now and is_main_process():
-                _save_step_checkpoint(args, ddp_model, step, wandb_run)
+                _save_step_checkpoint(
+                    args, ddp_model, step, wandb_run, grad_cross_tracker
+                )
 
             if step % 100 == 0 and is_main_process():
                 percent_complete = 100 * i / len(ddp_loader)

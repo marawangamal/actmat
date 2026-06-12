@@ -79,10 +79,13 @@ class GradCrossTermTracker:
         self._activations.clear()
         self._output_grads.clear()
 
-    def save(self, output_dir):
+    def save(self, output_dir, step=None):
         os.makedirs(output_dir, exist_ok=True)
+        suffix = f"_{step}" if step is not None else ""
         for attr in ("gbar", "sbar", "stilde"):
-            torch.save(getattr(self, attr), os.path.join(output_dir, f"{attr}.pt"))
+            torch.save(
+                getattr(self, attr), os.path.join(output_dir, f"{attr}{suffix}.pt")
+            )
 
     def remove_hooks(self):
         for handle in self._hooks:
