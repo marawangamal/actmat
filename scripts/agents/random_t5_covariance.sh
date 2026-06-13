@@ -25,9 +25,9 @@ if [ -d "$SLURM_TMPDIR" ] && [ -f downloads/data.tar.gz ] && [ ! -d "$SLURM_TMPD
   ln -sfn "$SLURM_TMPDIR/data" data
 fi
 
-OUT="artifacts/checkpoints-analysis/t5-large-random/paws/covariance.pt"
+OUT="artifacts/agents/t5-large-random/paws/covariance.pt"
 
-python scripts/analysis/random_t5_covariance.py \
+python scripts/agents/random_t5_covariance.py \
     --model=t5-large \
     --cov-split=train \
     --cov-num-batches=10 \

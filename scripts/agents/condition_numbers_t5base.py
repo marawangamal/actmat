@@ -21,7 +21,7 @@ where rm_SUM = cond(Σ_t C_regmean_t) and am_SUM = cond(Σ_t C_actmat_t).
 
 Run from repo root:
     export PYTHONPATH="$PYTHONPATH:$PWD"
-    python scripts/analysis/condition_numbers_t5base.py
+    python scripts/agents/condition_numbers_t5base.py
 """
 
 from __future__ import annotations
@@ -76,7 +76,7 @@ def main():
     )
     ap.add_argument(
         "--out",
-        default="artifacts/analysis/condition-numbers/t5-base-cond.csv",
+        default="artifacts/agents/condition-numbers/t5-base-cond.csv",
     )
     args = ap.parse_args()
 

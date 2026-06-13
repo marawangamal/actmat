@@ -18,9 +18,9 @@ export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
 source "$SCRATCH/actmat/.venv-vl/bin/activate"
 
-OUT="artifacts/checkpoints-analysis/ViT-L-14-random/SVHNVal/covariance.pt"
+OUT="artifacts/agents/ViT-L-14-random/SVHNVal/covariance.pt"
 
-python scripts/analysis/random_vit_covariance.py \
+python scripts/agents/random_vit_covariance.py \
     --model=ViT-L-14 \
     --data-location=artifacts/data/vision \
     --cache-dir="$SCRATCH/openclip" \

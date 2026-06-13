@@ -4,7 +4,7 @@ Drops exact-duplicate covariances (e.g. self-attn k/v share q's input) keeping
 one representative, then plots fcos(A,B)=<A,B>_F/(||A||||B||) for every kept
 pair, ordered by forward-pass (dict) order. Title carries the layer count.
 
-    python scripts/analysis/cov_pairwise_heatmap.py --cov <path> --tag <name> \
+    python scripts/agents/cov_pairwise_heatmap.py --cov <path> --tag <name> \
         --pipeline vision --dim 1024
 """
 from __future__ import annotations
@@ -43,7 +43,7 @@ def main():
     ap.add_argument("--tag", required=True)
     ap.add_argument("--pipeline", choices=["vision", "language"], default="vision")
     ap.add_argument("--dim", type=int, default=1024)
-    ap.add_argument("--out-dir", default="artifacts/analysis/cov-layer-sim")
+    ap.add_argument("--out-dir", default="artifacts/agents/cov-layer-sim")
     args = ap.parse_args()
 
     cov = torch.load(args.cov, map_location="cpu", weights_only=False)

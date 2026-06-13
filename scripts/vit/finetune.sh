@@ -58,4 +58,7 @@ python scripts/vit/finetune.py \
   --wandb \
   --cache-dir "$OPENCLIP_DIR" \
   --data-location "$DATA_DIR" \
+  --grad-cross-matrix \
+  --checkpoint-every 200 \
+  --checkpoint-first \
   "${OVERWRITE_ARGS[@]}"

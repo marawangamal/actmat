@@ -10,12 +10,12 @@ architecture+data or from learned features.
 Forward-only: input second moments are independent of any classification head,
 so we hook the bare encoder and skip head construction entirely.
 
-Run (needs a GPU; see scripts/analysis/random_vit_covariance.sh):
+Run (needs a GPU; see scripts/agents/random_vit_covariance.sh):
     export PYTHONPATH="$PYTHONPATH:$PWD"
-    python scripts/analysis/random_vit_covariance.py \
+    python scripts/agents/random_vit_covariance.py \
         --model=ViT-L-14 --data-location=artifacts/data/vision \
         --cache-dir=$SCRATCH/openclip --mha=split --seed 0 \
-        --out=artifacts/checkpoints-analysis/ViT-L-14-random/SVHNVal/covariance.pt
+        --out=artifacts/agents/ViT-L-14-random/SVHNVal/covariance.pt
 """
 
 from __future__ import annotations

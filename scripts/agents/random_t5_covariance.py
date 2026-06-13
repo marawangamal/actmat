@@ -7,11 +7,11 @@ Same data (paws train), same hooks (batch_first) and cov knobs (sm, full,
 10x32=320 samples) as the trained expert -> isolates architecture+data vs
 learned features in the covariance-similarity structure.
 
-Run (needs GPU; see scripts/analysis/random_t5_covariance.sh):
+Run (needs GPU; see scripts/agents/random_t5_covariance.sh):
     export PYTHONPATH="$PYTHONPATH:$PWD"
-    python scripts/analysis/random_t5_covariance.py \
+    python scripts/agents/random_t5_covariance.py \
         --model=t5-large --seed 0 \
-        --out=artifacts/checkpoints-analysis/t5-large-random/paws/covariance.pt
+        --out=artifacts/agents/t5-large-random/paws/covariance.pt
 """
 
 from __future__ import annotations

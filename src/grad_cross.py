@@ -52,16 +52,11 @@ class GradCrossTermTracker:
 
     def step(self):
         for name, module in self.layers.items():
-            if (
-                name not in self._activations
-                or name not in self._output_grads
-                or module.weight.grad is None
-            ):
+            if name not in self._activations or name not in self._output_grads:
                 continue
 
-            z = self._activations[name].float()
-            gy = self._output_grads[name].float()
-            gw_bar = module.weight.grad.detach().float()
+            z = self._activations[name].float()  # (*,Di)
+            gy = self._output_grads[name].float()  # (*,Do)
 
             di = z.shape[-1]
             do = gy.shape[-1]
@@ -72,6 +67,10 @@ class GradCrossTermTracker:
 
             n = z_flat.shape[0]
             gynorm2 = gy_flat.pow(2).sum(-1)
+            # our own weight grad from the captured z/gy (dL/dW = gy^T @ z for
+            # y = z W^T), so gbar is consistent with sbar/stilde and unaffected
+            # by the grad clipping applied to module.weight.grad before step().
+            gw_bar = gy_flat.T @ z_flat  # (Do, Di)
             self.gbar[name] += (gw_bar / n).cpu()
             self.sbar[name] += ((z_flat * gynorm2.unsqueeze(-1)).T @ z_flat / n).cpu()
             self.stilde[name] += ((z_flat.T @ z_flat) / n * gynorm2.mean()).cpu()

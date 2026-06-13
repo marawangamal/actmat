@@ -15,13 +15,13 @@ A "layer type" is the key with its *block index* abstracted away. For ViT,
 attn / attn.q / attn.k / attn.v are bit-identical in self-attention (shared
 residual input) so they are collapsed into a single type ``attn_in``.
 
-Outputs (to --out-dir, default artifacts/analysis/cov-layer-sim/):
+Outputs (to --out-dir, default artifacts/agents/cov-layer-sim/):
   - <tag>_heatmap.png   : pairwise fcos, layers ordered by (type, block)
   - <tag>_summary.csv   : per-type within-type mean, vs between-type mean
 
 Run from repo root:
     export PYTHONPATH="$PYTHONPATH:$PWD"
-    python scripts/analysis/cov_layer_type_similarity.py \
+    python scripts/agents/cov_layer_type_similarity.py \
         --cov artifacts/checkpoints/ViT-L-14/group-20/experts/SVHNVal/covariance.pt \
         --pipeline vision --tag vit-l-14_svhn
 """
@@ -91,7 +91,7 @@ def main():
     ap.add_argument("--cov", required=True, help="path to covariance.pt")
     ap.add_argument("--pipeline", choices=["vision", "language"], required=True)
     ap.add_argument("--tag", required=True)
-    ap.add_argument("--out-dir", default="artifacts/analysis/cov-layer-sim")
+    ap.add_argument("--out-dir", default="artifacts/agents/cov-layer-sim")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)

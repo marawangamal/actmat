@@ -15,4 +15,4 @@ source "$SCRATCH/actmat/.venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-python -u scripts/analysis/condition_numbers_t5base.py
+python -u scripts/agents/condition_numbers_t5base.py
