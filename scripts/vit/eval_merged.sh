@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=eval_vit_merge
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --time=12:00:00
-#SBATCH --array=0-11
+#SBATCH --time=03:00:00
+#SBATCH --array=0-3
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -40,21 +40,22 @@ case "$NUM_TASKS" in
 esac
 
 METHODS=(${METHODS:-mean isoc tsv actmat})
-MODELS=(${MODELS:-ViT-B-16 ViT-B-32 ViT-L-14})
+MODEL="${MODEL:-ViT-B-16}"
 
 NUM_METHODS="${#METHODS[@]}"
-TOTAL_JOBS=$(("${#MODELS[@]}" * NUM_METHODS))
-if [ "$SLURM_ARRAY_TASK_ID" -ge "$TOTAL_JOBS" ]; then
-  echo "No model/method pair for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
+if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
+  echo "No method for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
   exit 0
 fi
-MODEL_IDX=$((SLURM_ARRAY_TASK_ID / NUM_METHODS))
-METHOD_IDX=$((SLURM_ARRAY_TASK_ID % NUM_METHODS))
-MODEL="${MODELS[$MODEL_IDX]}"
-METHOD="${METHODS[$METHOD_IDX]}"
+METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
-EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
-OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+# Standard regenerated checkpoints.
+# EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
+# OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+
+# Legacy FFT checkpoint sweep.
+EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/experts"
+OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD"
 python scripts/vit/eval_merged.py \
   --model "$MODEL" \
   --experts-dir "$EXPERTS_DIR" \

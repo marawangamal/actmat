@@ -1,13 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=eval_vit_experts
 #SBATCH --partition=long
-#SBATCH --gres=gpu:l40s:1
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --time=12:00:00
-#SBATCH --array=0-2
-#SBATCH --output=artifacts/logs/%x_%A_%a.out
-#SBATCH --error=artifacts/logs/%x_%A_%a.err
+#SBATCH --time=03:00:00
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -18,8 +17,13 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 NUM_TASKS="${NUM_TASKS:-8}"
 FT_MODE="${FT_MODE:-fft}"
-MODELS=(${MODELS:-ViT-B-16 ViT-B-32 ViT-L-14})
-DATA_DIR="data/vision"
+MODEL="${MODEL:-ViT-B-16}"
+
+if [ ! -d "$SLURM_TMPDIR/data" ]; then
+  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
+  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
+fi
+DATA_DIR="$SLURM_TMPDIR/data/vision"
 OPENCLIP_DIR="$SCRATCH/openclip"
 CKPT_ROOT="artifacts/checkpoints"
 RESULTS_ROOT="artifacts/results"
@@ -33,12 +37,6 @@ case "$NUM_TASKS" in
   20) EVAL_DATASETS="$DATASETS_20" ;;
   *) echo "Unsupported NUM_TASKS=$NUM_TASKS"; exit 1 ;;
 esac
-
-if [ "$SLURM_ARRAY_TASK_ID" -ge "${#MODELS[@]}" ]; then
-  echo "No model for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
-  exit 0
-fi
-MODEL="${MODELS[$SLURM_ARRAY_TASK_ID]}"
 
 python scripts/vit/eval_experts.py \
   --model "$MODEL" \

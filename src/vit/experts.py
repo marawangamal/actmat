@@ -8,10 +8,16 @@ from src.core.experts import Expert
 
 
 class ViTExpert(Expert):
-    def __init__(self, weights_path=None, covariance_path=None, fisher_path=None):
+    def __init__(
+        self, weights_path=None, covariance_path=None, fisher_path=None, mha="split"
+    ):
+        if mha not in {"split", "packed"}:
+            raise ValueError(f"Unsupported ViTExpert mha mode: {mha}")
+
         self.weights_path = weights_path
         self.covariance_path = covariance_path
         self.fisher_path = fisher_path
+        self.mha = mha
         self._cov = None
         self._fish = None
 
@@ -20,7 +26,9 @@ class ViTExpert(Expert):
         else:
             obj = torch.load(weights_path, map_location="cpu", weights_only=False)
             state_dict = obj.state_dict() if hasattr(obj, "state_dict") else obj
-            self.state_dict = mhas.copy_from_pytorch_state_dict(state_dict)
+            if self.mha == "split":
+                state_dict = mhas.copy_from_pytorch_state_dict(state_dict)
+            self.state_dict = state_dict
 
     @property
     def cov(self):
@@ -40,7 +48,9 @@ class ViTExpert(Expert):
 
     @property
     def model_state_dict(self):
-        return mhas.copy_to_pytorch_state_dict(self.state_dict)
+        if self.mha == "split":
+            return mhas.copy_to_pytorch_state_dict(self.state_dict)
+        return self.state_dict
 
     def _param_key_to_cov_key(self, layer_name):
         return "image_encoder." + layer_name.replace(".weight", "")
