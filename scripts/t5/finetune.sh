@@ -62,4 +62,5 @@ python scripts/t5/finetune.py \
   --early-stop \
   --grad-cross-matrix \
   --checkpoint-every 200 \
+  --checkpoint-first \
   "${OVERWRITE_ARGS[@]}"

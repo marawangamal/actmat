@@ -40,11 +40,18 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--max-samples", type=int, default=None)
+    parser.add_argument("--max-seq-len", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--world-size", type=int, default=1)
     parser.add_argument("--port", type=int, default=12355)
     parser.add_argument("--num-workers", type=int, default=1)
     parser.add_argument("--checkpoint-every", type=int, default=100)
+    parser.add_argument(
+        "--checkpoint-first",
+        action="store_true",
+        default=False,
+        help="Also save a checkpoint right after the first iteration.",
+    )
     parser.add_argument("--keep-checkpoints", type=int, default=-1)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--early-stop", action="store_true", default=False)
@@ -125,7 +132,9 @@ def save_model_without_hooks(model, path):
 
 def build_model(args):
     transformer = AutoModelForSeq2SeqLM.from_pretrained(args.model)
-    tokenizer = AutoTokenizer.from_pretrained(args.model, model_max_length=128)
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model, model_max_length=args.max_seq_len
+    )
     return T5Wrapper(transformer, tokenizer)
 
 
@@ -199,6 +208,7 @@ def finetune(args):
     best_val_acc = -1.0
     bad_checkpoints = 0
     saved_best = False
+    first_ckpt_saved = False
     start_time = time.time()
     model.train()
     for i in range(args.num_batches * args.num_grad_accumulation):
@@ -242,19 +252,29 @@ def finetune(args):
                     step=step,
                 )
 
-        if (
+        ckpt_cadence = (
             args.checkpoint_every > 0
             and step > 0
             and (i + 1) % (args.checkpoint_every * args.num_grad_accumulation) == 0
-        ):
+        )
+        ckpt_first = (
+            args.checkpoint_first
+            and not first_ckpt_saved
+            and (i + 1) % args.num_grad_accumulation == 0
+        )
+        if ckpt_cadence or ckpt_first:
+            first_ckpt_saved = True
             checkpoint_path = osp.join(args.output_dir, f"checkpoint_{step}.pt")
             if not lora:
                 if grad_cross_tracker is None:
                     model.save(checkpoint_path)
                 else:
                     save_model_without_hooks(model, checkpoint_path)
+                if grad_cross_tracker is not None:
+                    grad_cross_tracker.save(args.output_dir, step=step)
                 _prune_checkpoints(args.output_dir, args.keep_checkpoints)
 
+        if ckpt_cadence:
             val_acc = eval_single_dataset(
                 "validation", model, model.tokenizer, args.train_dataset, args
             )["top1"]
