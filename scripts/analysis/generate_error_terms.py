@@ -8,12 +8,6 @@ import numpy as np
 import torch
 import pandas as pd
 
-from src.utils import expert_dir, group_dir
-
-# sys.path.append("..")
-# from src import mhap, mhas
-# from src.vision.task_vectors import NonLinearTaskVector
-
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return torch.dot(a.flatten(), b.flatten()) / (a.norm() * b.norm())
@@ -27,35 +21,25 @@ def get_rand_psd(
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--ckpt_dir", default="artifacts/checkpoints")
-parser.add_argument("--results_dir", default="artifacts/results")
-parser.add_argument("--model", default="ViT-B-16")
-parser.add_argument("--group", default="main")
+parser.add_argument(
+    "--experts-dir", default="artifacts/checkpoints/ViT-B-16/group-fft-8/experts"
+)
+parser.add_argument(
+    "--output-dir", default="artifacts/results/ViT-B-16/group-fft-8/experts"
+)
+parser.add_argument("--expert-kind", default="vit")
 args = parser.parse_args()
 
-model = args.model
-ckpt_dir = osp.join(args.ckpt_dir, model, group_dir(args.group))
-results_dir = osp.join(args.results_dir, model, group_dir(args.group))
-os.makedirs(results_dir, exist_ok=True)
-
-datasets = [
-    "Cars",
-    "DTD",
-    "EuroSAT",
-    "GTSRB",
-    "MNIST",
-    "RESISC45",
-    "SUN397",
-    "SVHN",
-]
+os.makedirs(args.output_dir, exist_ok=True)
 
 ad_fn = lambda c: np.arccos(c.clip(-1.0, 1.0)) / np.pi
+stat_key_to_cov_key = {
+    "vit": lambda x: "image_encoder." + x,
+}
 
 rows = []
-for d in tqdm(datasets, desc="datasets"):
-    task_dir = expert_dir(ckpt_dir, d)
-    if not os.path.isdir(task_dir):
-        continue
+for expert in tqdm(os.listdir(args.experts_dir), desc="experts"):
+    task_dir = os.path.join(args.experts_dir, expert)
     if not all(
         [
             osp.exists(os.path.join(task_dir, s))
@@ -70,13 +54,7 @@ for d in tqdm(datasets, desc="datasets"):
 
     layer_idx = 0
     for l in gbar:
-        lc = "image_encoder." + l
-        # print(f"{l}: {gbar[l].shape}")
-        # cross_cosim = cosine_similarity(gbar[l].T @ gbar[l], sbar[l])
-        # corr_cosim = cosine_similarity(sbar[l], stilde[l])
-        # drift_cosim = cosine_similarity(stilde[l], cov[lc])
-        # tot_cosim = cosine_similarity(gbar[l].T @ gbar[l], cov[lc])
-
+        lc = stat_key_to_cov_key.get(args.expert_kind, lambda x: x)(l)
         cross_ad = ad_fn(cosine_similarity(gbar[l].T @ gbar[l], sbar[l]))
         corr_ad = ad_fn(cosine_similarity(sbar[l], stilde[l]))
         drift_ad = ad_fn(cosine_similarity(stilde[l], cov[lc]))
@@ -97,28 +75,28 @@ for d in tqdm(datasets, desc="datasets"):
         rows.extend(
             [
                 {
-                    "dataset": d,
+                    "dataset": expert,
                     "layer_name": l,
                     "layer_idx": layer_idx,
                     "angular_distance": cross_ad.item(),
                     "type": "cross",
                 },
                 {
-                    "dataset": d,
+                    "dataset": expert,
                     "layer_name": l,
                     "layer_idx": layer_idx,
                     "angular_distance": corr_ad.item(),
                     "type": "corr",
                 },
                 {
-                    "dataset": d,
+                    "dataset": expert,
                     "layer_name": l,
                     "layer_idx": layer_idx,
                     "angular_distance": drift_ad.item(),
                     "type": "drift",
                 },
                 {
-                    "dataset": d,
+                    "dataset": expert,
                     "layer_name": l,
                     "layer_idx": layer_idx,
                     "angular_distance": tot_ad.item(),
@@ -126,14 +104,14 @@ for d in tqdm(datasets, desc="datasets"):
                 },
                 # deltas
                 {
-                    "dataset": d,
+                    "dataset": expert,
                     "layer_name": l,
                     "layer_idx": layer_idx,
                     "angular_distance": delta_gsc.item(),
                     "type": r"$\delta_\text{gsc}$",
                 },
                 {
-                    "dataset": d,
+                    "dataset": expert,
                     "layer_name": l,
                     "layer_idx": layer_idx,
                     "angular_distance": delta_ssc.item(),
@@ -144,5 +122,5 @@ for d in tqdm(datasets, desc="datasets"):
         layer_idx += 1
 
 df = pd.DataFrame(rows)
-df.to_csv(os.path.join(results_dir, "error_terms.csv"), index=False)
-print(f"Saved results to {os.path.join(results_dir, 'error_terms.csv')}")
+df.to_csv(os.path.join(args.output_dir, "error_terms.csv"), index=False)
+print(f"Saved results to {os.path.join(args.output_dir, 'error_terms.csv')}")

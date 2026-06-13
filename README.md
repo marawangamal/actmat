@@ -35,15 +35,17 @@ mkdir -p artifacts && for f in downloads/*.tar.gz downloads/*.tgz; do [ -e "$f" 
 # 0. Setup env
 uv sync --group vision-language
 # 1. (Optional) Finetune models (ckpts can be downloaded as described in setup)
-bash scripts/vision/finetune.sh   # if ckpts not downloaded
+sbatch scripts/vision/finetune.sh   # if ckpts not downloaded
 # 2. Evaluate experts        (NUM_TASKS=8|14|20 selects the suite)
-bash scripts/vision/eval_experts.sh
+sbatch scripts/vision/eval_experts.sh
 # 2b. Evaluate pretrained ViTs with the explicit-path wrapper
 SINGLE_DIR=pretrained NUM_TASKS=8 bash scripts/vit/eval_single.sh
 # 2c. Evaluate multitask ViTs with the explicit-path wrapper
 SINGLE_DIR=multitask NUM_TASKS=8 bash scripts/vit/eval_single.sh
-# 3. Evaluate merged models  (NUM_TASKS=8|14|20 selects the suite)
-bash scripts/vision/eval_task_addition.sh
+# 3a. Evaluate merged models  (NUM_TASKS=8|14|20 selects the suite)
+METHODS="tsv isoc actmat" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-2 scripts/vit/eval_merged.sh
+# 3b. Evaluate merged models (packed qkv)
+METHODS="tsv isoc actmat" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-2 scripts/vit/eval_merged_packed.sh
 ```
 
 Results land under `artifacts/results/{model}/group-{N}/merged/{method}/metrics.json`

@@ -23,7 +23,7 @@ artifacts/testing-checkpoints/
 
 wandb
 artifacts/mergeability
-*.py
+scripts/mergeability
 
 # stray SLURM logs in repo root (jobs now log to artifacts/logs/)
 slurm-*.out
