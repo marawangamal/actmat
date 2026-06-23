@@ -18,6 +18,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 NUM_TASKS="${NUM_TASKS:-7}"
 FT_MODE="${FT_MODE:-fft}"
+MAX_SEQ_LEN="${MAX_SEQ_LEN:-128}"
 DATA_DIR="data"
 CACHE_DIR="$SCRATCH/huggingface"
 CKPT_ROOT="artifacts/checkpoints"
@@ -36,7 +37,13 @@ if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
 fi
 
-EXPERT_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
+# Mirror finetune.sh: non-default seq-lens live in their own group dir.
+GROUP="$FT_MODE-$NUM_TASKS"
+if [ "$MAX_SEQ_LEN" != "128" ]; then
+  GROUP="$GROUP-seqlen$MAX_SEQ_LEN"
+fi
+
+EXPERT_DIR="$CKPT_ROOT/$MODEL/group-$GROUP/experts/$DATASET"
 python scripts/t5/covariance.py \
   --model "$MODEL" \
   --expert-dir "$EXPERT_DIR" \

@@ -40,12 +40,12 @@ fi
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 
 # Standard regenerated checkpoints.
-# EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
-# OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
+OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD"
 
 # Legacy FFT checkpoint sweep.
-EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/experts"
-OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD"
+# EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/experts"
+# OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD"
 
 # Legacy LoRA checkpoint sweep.
 # EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-lora-$NUM_TASKS/experts"
