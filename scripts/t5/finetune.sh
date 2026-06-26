@@ -18,6 +18,7 @@ export SSL_CERT_DIR=/etc/ssl/certs
 
 NUM_TASKS="${NUM_TASKS:-7}"
 FT_MODE="${FT_MODE:-fft}"
+MAX_SEQ_LEN="${MAX_SEQ_LEN:-128}"
 DATA_DIR="data"
 CACHE_DIR="$SCRATCH/huggingface"
 CKPT_ROOT="artifacts/checkpoints"
@@ -47,12 +48,20 @@ if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
 fi
 
-OUT="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts/$DATASET"
+# Keep the default seq-len (128) on the canonical group dir; isolate other
+# seq-lens (e.g. the seqlen-1 ablation) so their checkpoints/stats don't clobber.
+GROUP="$FT_MODE-$NUM_TASKS"
+if [ "$MAX_SEQ_LEN" != "128" ]; then
+  GROUP="$GROUP-seqlen$MAX_SEQ_LEN"
+fi
+
+OUT="$CKPT_ROOT/$MODEL/group-$GROUP/experts/$DATASET"
 python scripts/t5/finetune.py \
   --model "$MODEL" \
   --train-dataset "$DATASET" \
   --finetuning-mode "$FT_MODE" \
   --output-dir "$OUT" \
+  --max-seq-len "$MAX_SEQ_LEN" \
   --world-size 1 \
   --num-workers 1 \
   --port "$PORT" \
@@ -62,4 +71,5 @@ python scripts/t5/finetune.py \
   --early-stop \
   --grad-cross-matrix \
   --checkpoint-every 200 \
+  --checkpoint-first \
   "${OVERWRITE_ARGS[@]}"
