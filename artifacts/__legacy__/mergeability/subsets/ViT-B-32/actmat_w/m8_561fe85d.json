@@ -1,0 +1,25 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m8_561fe85d",
+  "datasets": [
+    "Cars",
+    "DTD",
+    "EuroSAT",
+    "FashionMNIST",
+    "Food101",
+    "GTSRB",
+    "OxfordIIITPet",
+    "SUN397"
+  ],
+  "top1": {
+    "Cars": 0.7275214525556523,
+    "DTD": 0.7148936170212766,
+    "EuroSAT": 0.9081481481481481,
+    "FashionMNIST": 0.9251,
+    "Food101": 0.8325148514851485,
+    "GTSRB": 0.9190815518606492,
+    "OxfordIIITPet": 0.9125102207686018,
+    "SUN397": 0.7109319899244333
+  }
+}

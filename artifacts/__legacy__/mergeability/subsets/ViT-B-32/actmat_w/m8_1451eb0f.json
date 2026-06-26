@@ -1,0 +1,25 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m8_1451eb0f",
+  "datasets": [
+    "Cars",
+    "DTD",
+    "EuroSAT",
+    "Food101",
+    "GTSRB",
+    "KMNIST",
+    "RESISC45",
+    "STL10"
+  ],
+  "top1": {
+    "Cars": 0.6492973510757368,
+    "DTD": 0.7117021276595744,
+    "EuroSAT": 0.8851851851851852,
+    "Food101": 0.8203960396039603,
+    "GTSRB": 0.88756927949327,
+    "KMNIST": 0.9532,
+    "RESISC45": 0.8779365079365079,
+    "STL10": 0.972125
+  }
+}

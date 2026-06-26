@@ -1,0 +1,33 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m12_02f98bb4",
+  "datasets": [
+    "CIFAR10",
+    "CIFAR100",
+    "DTD",
+    "EMNIST",
+    "FER2013",
+    "Food101",
+    "GTSRB",
+    "KMNIST",
+    "MNIST",
+    "RenderedSST2",
+    "SUN397",
+    "SVHN"
+  ],
+  "top1": {
+    "CIFAR10": 0.9329,
+    "CIFAR100": 0.698,
+    "DTD": 0.676595744680851,
+    "EMNIST": 0.978175,
+    "FER2013": 0.6099191975480636,
+    "Food101": 0.7705742574257426,
+    "GTSRB": 0.7837688044338875,
+    "KMNIST": 0.5995,
+    "MNIST": 0.9215,
+    "RenderedSST2": 0.6974190005491488,
+    "SUN397": 0.6887153652392947,
+    "SVHN": 0.8271742470805162
+  }
+}

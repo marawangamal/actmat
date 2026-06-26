@@ -1,0 +1,25 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat",
+  "subset_id": "m8_6fe1124b",
+  "datasets": [
+    "CIFAR10",
+    "DTD",
+    "EuroSAT",
+    "FER2013",
+    "FashionMNIST",
+    "Flowers102",
+    "KMNIST",
+    "RESISC45"
+  ],
+  "top1": {
+    "CIFAR10": 0.9479,
+    "DTD": 0.6702127659574468,
+    "EuroSAT": 0.8970370370370371,
+    "FER2013": 0.6575647812761215,
+    "FashionMNIST": 0.9212,
+    "Flowers102": 0.7360546430313872,
+    "KMNIST": 0.9418,
+    "RESISC45": 0.8482539682539683
+  }
+}

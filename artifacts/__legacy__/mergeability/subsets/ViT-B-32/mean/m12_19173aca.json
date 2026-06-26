@@ -1,0 +1,33 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m12_19173aca",
+  "datasets": [
+    "CIFAR10",
+    "CIFAR100",
+    "Cars",
+    "EMNIST",
+    "EuroSAT",
+    "FER2013",
+    "FashionMNIST",
+    "Flowers102",
+    "Food101",
+    "GTSRB",
+    "STL10",
+    "SUN397"
+  ],
+  "top1": {
+    "CIFAR10": 0.9371,
+    "CIFAR100": 0.7279,
+    "Cars": 0.5914687227956722,
+    "EMNIST": 0.359075,
+    "EuroSAT": 0.5948148148148148,
+    "FER2013": 0.5341320702145445,
+    "FashionMNIST": 0.7353,
+    "Flowers102": 0.6788095625304927,
+    "Food101": 0.8114851485148515,
+    "GTSRB": 0.4568487727632621,
+    "STL10": 0.972125,
+    "SUN397": 0.6512846347607053
+  }
+}

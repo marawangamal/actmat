@@ -1,0 +1,33 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m12_cbe0aa49",
+  "datasets": [
+    "CIFAR10",
+    "CIFAR100",
+    "DTD",
+    "EMNIST",
+    "FER2013",
+    "FashionMNIST",
+    "Flowers102",
+    "GTSRB",
+    "OxfordIIITPet",
+    "RESISC45",
+    "STL10",
+    "SUN397"
+  ],
+  "top1": {
+    "CIFAR10": 0.9402,
+    "CIFAR100": 0.7211,
+    "DTD": 0.6510638297872341,
+    "EMNIST": 0.99555,
+    "FER2013": 0.636667595430482,
+    "FashionMNIST": 0.877,
+    "Flowers102": 0.7302000325256139,
+    "GTSRB": 0.7813935075217735,
+    "OxfordIIITPet": 0.8860724993186154,
+    "RESISC45": 0.8492063492063492,
+    "STL10": 0.96925,
+    "SUN397": 0.6786901763224181
+  }
+}

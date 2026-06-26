@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m4_04393ea3",
+  "datasets": [
+    "DTD",
+    "KMNIST",
+    "RESISC45",
+    "STL10"
+  ],
+  "top1": {
+    "DTD": 0.7271276595744681,
+    "KMNIST": 0.9774,
+    "RESISC45": 0.9206349206349206,
+    "STL10": 0.976
+  }
+}

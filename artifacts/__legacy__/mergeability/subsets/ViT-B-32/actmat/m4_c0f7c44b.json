@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat",
+  "subset_id": "m4_c0f7c44b",
+  "datasets": [
+    "Cars",
+    "FER2013",
+    "FashionMNIST",
+    "GTSRB"
+  ],
+  "top1": {
+    "Cars": 0.7511503544335282,
+    "FER2013": 0.6851490665923655,
+    "FashionMNIST": 0.9378,
+    "GTSRB": 0.9673000791765637
+  }
+}

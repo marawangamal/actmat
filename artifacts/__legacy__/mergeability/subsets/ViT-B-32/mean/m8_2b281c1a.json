@@ -1,0 +1,25 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m8_2b281c1a",
+  "datasets": [
+    "CIFAR100",
+    "Cars",
+    "DTD",
+    "EuroSAT",
+    "GTSRB",
+    "KMNIST",
+    "MNIST",
+    "OxfordIIITPet"
+  ],
+  "top1": {
+    "CIFAR100": 0.709,
+    "Cars": 0.6302698669319736,
+    "DTD": 0.5058510638297873,
+    "EuroSAT": 0.6651851851851852,
+    "GTSRB": 0.5211401425178147,
+    "KMNIST": 0.1592,
+    "MNIST": 0.7898,
+    "OxfordIIITPet": 0.8833469610248024
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m4_7240c325",
+  "datasets": [
+    "FER2013",
+    "KMNIST",
+    "RESISC45",
+    "RenderedSST2"
+  ],
+  "top1": {
+    "FER2013": 0.6007244357759821,
+    "KMNIST": 0.3805,
+    "RESISC45": 0.8104761904761905,
+    "RenderedSST2": 0.6847885777045579
+  }
+}

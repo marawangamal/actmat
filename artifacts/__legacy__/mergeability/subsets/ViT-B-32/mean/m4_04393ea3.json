@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m4_04393ea3",
+  "datasets": [
+    "DTD",
+    "KMNIST",
+    "RESISC45",
+    "STL10"
+  ],
+  "top1": {
+    "DTD": 0.5819148936170213,
+    "KMNIST": 0.3856,
+    "RESISC45": 0.7952380952380952,
+    "STL10": 0.978875
+  }
+}

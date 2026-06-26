@@ -1,0 +1,25 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat",
+  "subset_id": "m8_35c8cf7b",
+  "datasets": [
+    "CIFAR100",
+    "Cars",
+    "DTD",
+    "EuroSAT",
+    "MNIST",
+    "OxfordIIITPet",
+    "SUN397",
+    "SVHN"
+  ],
+  "top1": {
+    "CIFAR100": 0.7446,
+    "Cars": 0.7290138042532024,
+    "DTD": 0.6771276595744681,
+    "EuroSAT": 0.8822222222222222,
+    "MNIST": 0.9936,
+    "OxfordIIITPet": 0.9051512673753066,
+    "SUN397": 0.6945088161209068,
+    "SVHN": 0.9167947141979103
+  }
+}

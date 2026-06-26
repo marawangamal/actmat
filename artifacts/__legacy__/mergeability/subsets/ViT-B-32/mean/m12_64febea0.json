@@ -1,0 +1,33 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m12_64febea0",
+  "datasets": [
+    "CIFAR10",
+    "EuroSAT",
+    "FER2013",
+    "FashionMNIST",
+    "Food101",
+    "GTSRB",
+    "KMNIST",
+    "MNIST",
+    "PCAM",
+    "RESISC45",
+    "STL10",
+    "SVHN"
+  ],
+  "top1": {
+    "CIFAR10": 0.9282,
+    "EuroSAT": 0.5996296296296296,
+    "FER2013": 0.5327389244915018,
+    "FashionMNIST": 0.7235,
+    "Food101": 0.7951683168316832,
+    "GTSRB": 0.46943784639746633,
+    "KMNIST": 0.1046,
+    "MNIST": 0.7671,
+    "PCAM": 0.66558837890625,
+    "RESISC45": 0.6733333333333333,
+    "STL10": 0.966,
+    "SVHN": 0.5476720958819914
+  }
+}
