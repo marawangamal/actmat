@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat",
+  "subset_id": "m4_7240c325",
+  "datasets": [
+    "FER2013",
+    "KMNIST",
+    "RESISC45",
+    "RenderedSST2"
+  ],
+  "top1": {
+    "FER2013": 0.6753970465310671,
+    "KMNIST": 0.9817,
+    "RESISC45": 0.9392063492063492,
+    "RenderedSST2": 0.7462932454695222
+  }
+}

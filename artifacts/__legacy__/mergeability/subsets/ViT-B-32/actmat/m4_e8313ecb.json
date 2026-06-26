@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat",
+  "subset_id": "m4_e8313ecb",
+  "datasets": [
+    "DTD",
+    "EMNIST",
+    "Food101",
+    "SVHN"
+  ],
+  "top1": {
+    "DTD": 0.7111702127659575,
+    "EMNIST": 0.997275,
+    "Food101": 0.759009900990099,
+    "SVHN": 0.9282037492317148
+  }
+}

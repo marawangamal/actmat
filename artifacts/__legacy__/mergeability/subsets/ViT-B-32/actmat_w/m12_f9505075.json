@@ -1,0 +1,33 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m12_f9505075",
+  "datasets": [
+    "CIFAR10",
+    "CIFAR100",
+    "DTD",
+    "EuroSAT",
+    "FER2013",
+    "FashionMNIST",
+    "Flowers102",
+    "GTSRB",
+    "KMNIST",
+    "MNIST",
+    "RESISC45",
+    "SUN397"
+  ],
+  "top1": {
+    "CIFAR10": 0.946,
+    "CIFAR100": 0.7344,
+    "DTD": 0.6547872340425532,
+    "EuroSAT": 0.8659259259259259,
+    "FER2013": 0.636110337141265,
+    "FashionMNIST": 0.8931,
+    "Flowers102": 0.7511790535046349,
+    "GTSRB": 0.7984164687252573,
+    "KMNIST": 0.7554,
+    "MNIST": 0.9705,
+    "RESISC45": 0.8304761904761905,
+    "SUN397": 0.6862468513853904
+  }
+}

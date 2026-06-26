@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m4_c0f7c44b",
+  "datasets": [
+    "Cars",
+    "FER2013",
+    "FashionMNIST",
+    "GTSRB"
+  ],
+  "top1": {
+    "Cars": 0.6720557144633752,
+    "FER2013": 0.5920869322931178,
+    "FashionMNIST": 0.8294,
+    "GTSRB": 0.744972288202692
+  }
+}

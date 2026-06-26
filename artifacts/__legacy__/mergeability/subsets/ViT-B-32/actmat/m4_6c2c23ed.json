@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat",
+  "subset_id": "m4_6c2c23ed",
+  "datasets": [
+    "CIFAR100",
+    "Flowers102",
+    "PCAM",
+    "RenderedSST2"
+  ],
+  "top1": {
+    "CIFAR100": 0.8444,
+    "Flowers102": 0.7871198568872988,
+    "PCAM": 0.78564453125,
+    "RenderedSST2": 0.7336628226249313
+  }
+}

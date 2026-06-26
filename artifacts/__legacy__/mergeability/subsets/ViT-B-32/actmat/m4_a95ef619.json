@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat",
+  "subset_id": "m4_a95ef619",
+  "datasets": [
+    "CIFAR10",
+    "Cars",
+    "MNIST",
+    "STL10"
+  ],
+  "top1": {
+    "CIFAR10": 0.958,
+    "Cars": 0.6754135057828629,
+    "MNIST": 0.9948,
+    "STL10": 0.97375
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m4_e89a78b1",
+  "datasets": [
+    "Food101",
+    "MNIST",
+    "RESISC45",
+    "RenderedSST2"
+  ],
+  "top1": {
+    "Food101": 0.8354851485148515,
+    "MNIST": 0.9955,
+    "RESISC45": 0.9434920634920635,
+    "RenderedSST2": 0.7320153761669412
+  }
+}

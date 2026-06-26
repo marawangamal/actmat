@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m4_427ce8e7",
+  "datasets": [
+    "EMNIST",
+    "Flowers102",
+    "STL10",
+    "SVHN"
+  ],
+  "top1": {
+    "EMNIST": 0.9968,
+    "Flowers102": 0.7944381200195154,
+    "STL10": 0.972125,
+    "SVHN": 0.9077673632452367
+  }
+}

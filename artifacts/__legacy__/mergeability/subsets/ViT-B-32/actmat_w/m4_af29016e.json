@@ -1,0 +1,17 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m4_af29016e",
+  "datasets": [
+    "CIFAR10",
+    "FashionMNIST",
+    "GTSRB",
+    "RESISC45"
+  ],
+  "top1": {
+    "CIFAR10": 0.9493,
+    "FashionMNIST": 0.94,
+    "GTSRB": 0.9548693586698337,
+    "RESISC45": 0.9247619047619048
+  }
+}

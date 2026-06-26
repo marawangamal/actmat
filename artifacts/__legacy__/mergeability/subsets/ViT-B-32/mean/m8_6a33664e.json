@@ -1,0 +1,25 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m8_6a33664e",
+  "datasets": [
+    "FER2013",
+    "FashionMNIST",
+    "Flowers102",
+    "GTSRB",
+    "OxfordIIITPet",
+    "PCAM",
+    "STL10",
+    "SUN397"
+  ],
+  "top1": {
+    "FER2013": 0.5516857063248816,
+    "FashionMNIST": 0.759,
+    "Flowers102": 0.6989754431614896,
+    "GTSRB": 0.5098970704671417,
+    "OxfordIIITPet": 0.8923412373943854,
+    "PCAM": 0.680572509765625,
+    "STL10": 0.97525,
+    "SUN397": 0.658287153652393
+  }
+}

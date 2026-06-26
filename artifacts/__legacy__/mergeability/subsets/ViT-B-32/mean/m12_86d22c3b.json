@@ -1,0 +1,33 @@
+{
+  "model": "ViT-B-32",
+  "method": "mean",
+  "subset_id": "m12_86d22c3b",
+  "datasets": [
+    "CIFAR10",
+    "Cars",
+    "EMNIST",
+    "FER2013",
+    "Flowers102",
+    "Food101",
+    "GTSRB",
+    "KMNIST",
+    "OxfordIIITPet",
+    "RESISC45",
+    "RenderedSST2",
+    "SUN397"
+  ],
+  "top1": {
+    "CIFAR10": 0.9259,
+    "Cars": 0.6062678771297102,
+    "EMNIST": 0.393,
+    "FER2013": 0.5241014210086375,
+    "Flowers102": 0.6817368677833794,
+    "Food101": 0.8246336633663366,
+    "GTSRB": 0.43436262866191605,
+    "KMNIST": 0.1025,
+    "OxfordIIITPet": 0.8836195148541837,
+    "RESISC45": 0.6768253968253968,
+    "RenderedSST2": 0.6216364634816035,
+    "SUN397": 0.6477078085642317
+  }
+}

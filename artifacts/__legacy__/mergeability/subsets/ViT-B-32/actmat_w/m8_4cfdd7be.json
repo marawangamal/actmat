@@ -1,0 +1,25 @@
+{
+  "model": "ViT-B-32",
+  "method": "actmat_w",
+  "subset_id": "m8_4cfdd7be",
+  "datasets": [
+    "CIFAR100",
+    "Cars",
+    "DTD",
+    "EMNIST",
+    "Flowers102",
+    "MNIST",
+    "RESISC45",
+    "RenderedSST2"
+  ],
+  "top1": {
+    "CIFAR100": 0.7631,
+    "Cars": 0.705757990299714,
+    "DTD": 0.7154255319148937,
+    "EMNIST": 0.99075,
+    "Flowers102": 0.7991543340380549,
+    "MNIST": 0.9251,
+    "RESISC45": 0.9117460317460317,
+    "RenderedSST2": 0.7215815485996705
+  }
+}
