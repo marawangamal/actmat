@@ -102,22 +102,7 @@ See [analysis.ipynb](analysis.ipynb) notebook.
 
 
 
-
-## Artifacts layout
-
-All pipelines share one nested convention — `{model}/group-{group}/experts/…` for
-per-expert artifacts and `{model}/group-{group}/merged/{method}/…` for merges — whose
-path builders are the single source of truth in `src/utils.py`. `group-{group}` is the
-experiment-suite path level (`--group`, default `main`) that sits between `{model}` and
-the `experts|multitask|merged|pretrained` subdirs: vision uses `group-{8,14,20}` for the
-task-count suite, OLMo uses `group-{rl-zero,polyglot}`, MediPhi uses `group-mediphi`,
-everything else uses `group-main`.
-The *contents* of `experts/` differ by pipeline (local weights vs. remote-on-the-Hub),
-and only the vision pipeline carries `Val`/`head`/`lora` extras. `[lora_]` is the LoRA
-filename prefix; `{mode}` is `-w` for weight-space merges (omitted for the default
-difference merge).
-
-### Artifacts directory structure
+## Artifacts directory structure
 
 The directory structure generally follows the following pattern:
 
@@ -127,6 +112,3 @@ artifacts/results/{model}/group-{group}/{experts|multitask|merged}/[{expert|meth
 ```
 
 > Note: for checkpoints made by HF scripts, no `experts` dir is created, as experts are directly referenced from $HF_HOME. 
-
-TODO:
-- [ ] Remove [lora_]metrics.json pattern, treat lora/fft as a group.
