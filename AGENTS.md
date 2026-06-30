@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-ACTMat reproduces experiments for model merging via data-free covariance estimation. Core reusable code lives in `src/`: expert abstractions in `src/core/experts.py`, shared merge orchestration in `src/core/merge.py`, tensor merge methods in `src/mergingv2.py`, and artifact path helpers in `src/utils.py`. Pipeline-specific implementations are under `src/vision/`, `src/language/`, `src/vit/`, `src/t5/`, `src/hf/`, and `src/hf2/`.
+ACTMat reproduces experiments for model merging via data-free covariance estimation. Core reusable code lives in `src/`: expert abstractions in `src/core/experts.py`, shared merge orchestration in `src/core/merge.py`, tensor merge methods in `src/mergingv2.py`, and artifact path helpers in `src/utils.py`. Pipeline-specific implementations are under `src/vision/`, `src/language/`, `src/vit/`, `src/t5/`, and `src/hf/`.
 
 Experiment drivers and one-off analysis scripts live in `scripts/`, grouped by pipeline (`scripts/vit/`, `scripts/t5/`, `scripts/olmo_rl_zero/`, `scripts/olmo_polyglot/`, `scripts/medphi/`, etc.). Tests are in `scripts/__tests__/`. Configuration and task definitions are in `configs/`; documentation and figures are in `docs/`. Large generated outputs belong under `artifacts/`, `downloads/`, or external cache paths, not source directories.
 

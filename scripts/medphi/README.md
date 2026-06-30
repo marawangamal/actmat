@@ -39,7 +39,7 @@ sbatch --array=0-4 scripts/medphi/eval_experts.sh    # the 5 MediPhi experts
 sbatch --array=0-3 scripts/medphi/eval_merged.sh      # merges (sum mean actmat tsv)
 ```
 
-Each script sources the CLUE `.venv-med`, (merges via `src/hf2/merge.py` for
+Each script sources the CLUE `.venv-med`, (merges via `src/hf/merge.py` for
 `eval_merged.sh`,) then runs the 2 open CLUE tasks. Results land in the standard
 artifacts layout:
 

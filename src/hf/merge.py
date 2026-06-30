@@ -6,7 +6,7 @@ import re
 import torch
 
 from src import mergingv2
-from src.hf2.experts import HFExpert
+from src.hf.experts import HFExpert
 from src.utils import sanitize_hf_id
 
 

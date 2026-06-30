@@ -15,7 +15,7 @@
 # v2 full-method merges (the merge-skip below keys off MERGED_DIR existing).
 #
 # To confirm the override fired, grep the merge logs for the marker that
-# src/hf2/merge.py prints per affected layer:
+# src/hf/merge.py prints per affected layer:
 #   grep "\[IGNORE-MEAN\]" artifacts/logs/eval_olmo_rl_zero_*.out
 #
 # Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_merged.sh
@@ -86,7 +86,7 @@ PY
 if [[ -f "$MERGED_DIR/model.safetensors.index.json" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
-  python src/hf2/merge.py \
+  python src/hf/merge.py \
     --base-model-name-or-path "$BASE_MODEL" \
     --chat-template-name-or-path "$MATH_EXPERT" \
     --expert-model-names-or-paths "$MATH_EXPERT" "$CODE_EXPERT" "$IF_EXPERT" \

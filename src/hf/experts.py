@@ -8,7 +8,7 @@ from safetensors import safe_open
 from safetensors.torch import save_file
 
 from src.core.experts import Expert
-from src.hf2.qkv import copy_to_packed_safetensor_index
+from src.hf.qkv import copy_to_packed_safetensor_index
 
 
 class HFExpert(Expert):

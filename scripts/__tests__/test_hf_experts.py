@@ -9,7 +9,7 @@ import torch
 from safetensors import safe_open
 from safetensors.torch import save_file
 
-from src.hf2.experts import HFExpert
+from src.hf.experts import HFExpert
 
 
 Q = "model.layers.0.self_attn.q_proj.weight"

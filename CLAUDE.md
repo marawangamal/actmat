@@ -72,15 +72,15 @@ When a method needs statistics, the driver runs the pipeline covariance script f
 
 ### Pipeline Entry Points
 
-Current scripts keep their CLI flags close to the corresponding entry point. ViT and T5 wrappers call `scripts/{vit,t5}/*.py`; HF-style OLMo, Polyglot, MedPhi, and WizardLM scripts call `src/hf2/merge.py` directly.
+Current scripts keep their CLI flags close to the corresponding entry point. ViT and T5 wrappers call `scripts/{vit,t5}/*.py`; HF-style OLMo, Polyglot, MedPhi, and WizardLM scripts call `src/hf/merge.py` directly.
 
 ### Expert Core
 
-`src/core/experts.py` defines the `Expert` interface used by current tensor merging. Pipeline wrappers such as `src/vit/experts.py`, `src/t5/experts.py`, and `src/hf2/experts.py` provide parameter tensors and optional sidecars such as covariance statistics.
+`src/core/experts.py` defines the `Expert` interface used by current tensor merging. Pipeline wrappers such as `src/vit/experts.py`, `src/t5/experts.py`, and `src/hf/experts.py` provide parameter tensors and optional sidecars such as covariance statistics.
 
 ### Merging
 
-`src/core/merge.py::merge_experts(...)` is the shared in-process entry point for ViT/T5 experts. HF folder merges use `src/hf2/merge.py`. Tensor-level methods live in `src/mergingv2.py`; add a method as `merge_<name>(d, **kwargs)`, matching the `--merge-method` CLI value.
+`src/core/merge.py::merge_experts(...)` is the shared in-process entry point for ViT/T5 experts. HF folder merges use `src/hf/merge.py`. Tensor-level methods live in `src/mergingv2.py`; add a method as `merge_<name>(d, **kwargs)`, matching the `--merge-method` CLI value.
 
 ### Statistics collection
 

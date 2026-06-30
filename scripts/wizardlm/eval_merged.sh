@@ -36,7 +36,7 @@ EXPERT_STATS_DIR="artifacts/checkpoints/WizardLM/group-main/experts"
 if [[ -f "$MERGED_DIR/model.safetensors.index.json" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
-  python src/hf2/merge.py \
+  python src/hf/merge.py \
     --base-model-name-or-path "$BASE_MODEL" \
     --chat-template-name-or-path "$CHAT_TEMPLATE" \
     --expert-model-names-or-paths "${EXPERTS[@]}" \
