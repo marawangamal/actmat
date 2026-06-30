@@ -131,3 +131,13 @@ artifacts/results/{model}/group-{group}/{experts|multitask|merged}/[{expert|meth
 ```
 
 > Note: for checkpoints made by HF scripts, no `experts` dir is created, as experts are directly referenced from $HF_HOME. 
+
+## Citation
+```
+@inproceedings{hameed2026actmat,
+  author={Hameed, Marawan Gamal Abdel and Tam, Derek and Notsawo, Pascal Jr Tikeng and Raffel, Colin and Rabusseau, Guillaume},
+  booktitle={ICML 2026 Workshop on Continual Adaptation at Scale (CATS)},
+  title={Model Merging via Data-Free Covariance Estimation},
+  year={2026}
+}
+```
