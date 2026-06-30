@@ -11,7 +11,7 @@
 # LongHealth). Install the CLUE harness first:
 #   bash scripts/medphi/setup.sh
 #
-# Submit with: sbatch --array=0-$((N-1)) scripts/medphi/eval_medphi_experts.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/medphi/eval_experts.sh
 set -euo pipefail
 
 CLUE_DIR="$SCRATCH/clue-eval/CLUE"

@@ -9,7 +9,7 @@
 # reproduces the 2 open tasks only.
 #
 # Usage:  bash scripts/medphi/setup.sh
-# Then:   sbatch scripts/medphi/eval_medphi_base.sh   (etc. — see README.md)
+# Then:   sbatch scripts/medphi/eval_base.sh   (etc. — see README.md)
 set -euo pipefail
 
 CLUE_COMMIT=2de4314cfaf2651a362a2df2ac8336ca0937ea52
@@ -51,6 +51,6 @@ mkdir -p data/MeQSum data/LongHealth
 echo
 echo "Setup complete in $CLUE_DIR"
 echo "Run from the repo root:"
-echo "  sbatch        scripts/medphi/eval_medphi_base.sh"
-echo "  sbatch --array=0-4 scripts/medphi/eval_medphi_experts.sh"
-echo "  sbatch --array=0-3 scripts/medphi/eval_medphi.sh"
+echo "  sbatch        scripts/medphi/eval_base.sh"
+echo "  sbatch --array=0-4 scripts/medphi/eval_experts.sh"
+echo "  sbatch --array=0-3 scripts/medphi/eval_merged.sh"

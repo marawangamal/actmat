@@ -11,7 +11,7 @@
 # tasks (MeQSum + LongHealth). Install the CLUE harness first:
 #   bash scripts/medphi/setup.sh
 #
-# Submit with: sbatch scripts/medphi/eval_medphi_base.sh
+# Submit with: sbatch scripts/medphi/eval_base.sh
 set -euo pipefail
 
 CLUE_DIR="$SCRATCH/clue-eval/CLUE"

@@ -95,11 +95,11 @@ See [scripts/medphi/README.md](scripts/medphi/README.md) for details and the pap
 # 0. Setup env (clones + patches the CLUE harness, builds .venv-med, fetches data)
 bash scripts/medphi/setup.sh
 # 2. Evaluate base model (Phi-3.5-mini-instruct)
-bash scripts/medphi/eval_medphi_base.sh
+bash scripts/medphi/eval_base.sh
 # 3. Evaluate expert models
-bash scripts/medphi/eval_medphi_experts.sh
+bash scripts/medphi/eval_experts.sh
 # 4. Evaluate merged models
-bash scripts/medphi/eval_medphi.sh
+bash scripts/medphi/eval_merged.sh
 ```
 
 ## Reproducing Plots

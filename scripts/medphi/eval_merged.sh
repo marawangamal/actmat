@@ -15,7 +15,7 @@
 # max_model_len, <|end|> stops) lives in its own .venv-med — install it first:
 #   bash scripts/medphi/setup.sh
 #
-# Submit with: sbatch --array=0-$((N-1)) scripts/medphi/eval_medphi.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/medphi/eval_merged.sh
 set -euo pipefail
 
 CLUE_DIR="$SCRATCH/clue-eval/CLUE"
@@ -33,9 +33,15 @@ EXPERTS=(
   microsoft/MediPhi-Guidelines
 )
 METHODS=(sum mean actmat tsv)
+NUM_METHODS="${#METHODS[@]}"
+if [ "$SLURM_ARRAY_TASK_ID" -ge "$NUM_METHODS" ]; then
+  echo "No method for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
+  exit 0
+fi
 METHOD="${METHODS[$SLURM_ARRAY_TASK_ID]}"
 MERGED_DIR="$PWD/artifacts/checkpoints/Phi-3.5-mini-instruct/group-mediphi/merged/${METHOD}"
 RESULTS_BASE="$PWD/artifacts/results/Phi-3.5-mini-instruct/group-mediphi/merged/${METHOD}"
+EXPERT_STATS_DIR="$PWD/artifacts/checkpoints/Phi-3.5-mini-instruct/group-mediphi/experts"
 
 # Stagger array starts: concurrent vLLM cold-starts race on the shared venv's
 # jsonschema files (transient ENOENT on the network FS).
@@ -43,14 +49,15 @@ sleep $(( SLURM_ARRAY_TASK_ID * 90 ))
 
 # 1. Merge (skip if exists). Chat template from base so the merged model can be
 # evaluated with vLLM .chat().
-if [[ -d "$MERGED_DIR" ]]; then
+if [[ -f "$MERGED_DIR/model.safetensors.index.json" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
-  python src/hf/merge.py \
+  python src/hf2/merge.py \
     --base-model-name-or-path "$BASE_MODEL" \
     --chat-template-name-or-path "$BASE_MODEL" \
     --expert-model-names-or-paths "${EXPERTS[@]}" \
     --merge-method "$METHOD" \
+    --expert-stats-dir "$EXPERT_STATS_DIR" \
     --output-dir "$MERGED_DIR"
 fi
 
