@@ -69,6 +69,6 @@ deactivate
 source "$SCRATCH/actmat/.venv-pg-mmlu-mrb/bin/activate"
 lighteval vllm "model_name=$(realpath "$MERGED_DIR"),tensor_parallel_size=1,gpu_memory_utilization=0.9,max_model_length=8192,dtype=bfloat16,generation_parameters={max_new_tokens:4096,temperature:0.6,top_p:0.95}" \
   "$TASKS_LIGHTEVAL" \
-  --custom-tasks scripts/polyglot-all/lighteval_tasks.py \
+  --custom-tasks scripts/olmo_polyglot/lighteval_tasks.py \
   --output-dir "$RESULTS_BASE/lighteval" \
   --results-path-template '{output_dir}' --save-details

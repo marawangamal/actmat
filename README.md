@@ -3,7 +3,7 @@
 This is the source code to reproduce the experiments of the paper [Model Merging via Data-Free Covariance Estimation](https://arxiv.org/pdf/2604.01329).
 
 <p align="center">
-  <img src="docs/crown-jewel.png" alt="Overview" width="70%">
+  <img src="artifacts/docs/crown-jewel.png" alt="Overview" width="70%">
 </p>
 
 
@@ -69,7 +69,7 @@ METHODS="tsv isoc actmat regmean" NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch -
 
 Results land under `artifacts/results/{model}/group-{ft_mode}-{num_tasks}/...`.
 
-## OLMo Experiments (OLMo-3-7B)
+## RL Zero Experiments (OLMo-3-7B)
 
 ```sh
 # 0. Setup env
@@ -78,11 +78,26 @@ UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo
 METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged.sh
 # 1b. Evaluate RL-Zero reasoning merged models (packed qkv)
 METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged_packed.sh
-# 2. Evaluate Polyglot multilingual merged models
+```
+
+Results land under `artifacts/results/Olmo-3-7b/group-rl-zero/merged/{method}/...`.
+
+## Polyglot Experiments (OLMo-3-7B)
+
+```sh
+# 0. Setup envs (MGSM uses lm-eval; MMLU/M-RewardBench uses the lighteval fork)
+UV_PROJECT_ENVIRONMENT=.venv-pg-mgsm uv sync --group polyglot-mgsm
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv sync --group polyglot-mmlu-mrb
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv pip install --python .venv-pg-mmlu-mrb -e ./lighteval --no-deps
+# 1. Evaluate Polyglot multilingual merged models
 sbatch --array=0-6 scripts/olmo_polyglot/eval_merged.sh
 ```
 
-Results land under `artifacts/results/Olmo-3-7b/group-{rl-zero|polyglot}/merged/{method}/...`.
+The lighteval step intentionally overlays the local `lighteval/` fork without
+changing the pinned vLLM dependency stack; re-run it after syncing
+`.venv-pg-mmlu-mrb`.
+
+Results land under `artifacts/results/Olmo-3-7b/group-polyglot/merged/{method}/...`.
 
 ## Clinical experiments (Phi-3.5 / MediPhi)
 
