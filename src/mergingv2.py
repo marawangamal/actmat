@@ -8,8 +8,6 @@ import torch
 from typing import Callable, Optional, Sequence, Union
 from tqdm import tqdm
 
-from src.task_vectors import _TaskVector
-
 pinv = torch.linalg.pinv
 
 # ---------------------------------------------------------------------------

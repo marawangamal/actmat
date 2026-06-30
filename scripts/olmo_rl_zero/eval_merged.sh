@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_olmo_v3
+#SBATCH --job-name=eval_olmo_rl_zero
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
@@ -7,18 +7,18 @@
 #SBATCH --time=04:00:00
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
-# Variant of eval_olmo_v2.sh that does NOT merge the vocab layers with the chosen
-# method: lm_head.weight and model.embed_tokens.weight are instead averaged
+# Merge/eval script that does NOT merge the vocab layers with the chosen method:
+# lm_head.weight and model.embed_tokens.weight are instead averaged
 # (--ignore-mean 'lm_head|embed_tokens'). Everything else (experts, tasks,
 # two-view chat-template structure, gsm8k+minerva / code+ifeval) is identical to
 # v2. Writes to its OWN merged-checkpoint and results dirs so it never reuses the
 # v2 full-method merges (the merge-skip below keys off MERGED_DIR existing).
 #
 # To confirm the override fired, grep the merge logs for the marker that
-# src/hf2/merge.py prints per affected layer:
-#   grep "\[IGNORE-MEAN\]" artifacts/logs/hf_eval_olmo_v3_*.out
+# src/hf/merge.py prints per affected layer:
+#   grep "\[IGNORE-MEAN\]" artifacts/logs/eval_olmo_rl_zero_*.out
 #
-# Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_olmo_rl_zero_v3.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_merged.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"
@@ -86,7 +86,7 @@ PY
 if [[ -f "$MERGED_DIR/model.safetensors.index.json" ]]; then
   echo ">>> Skipping merge: $MERGED_DIR already exists"
 else
-  python src/hf2/merge.py \
+  python src/hf/merge.py \
     --base-model-name-or-path "$BASE_MODEL" \
     --chat-template-name-or-path "$MATH_EXPERT" \
     --expert-model-names-or-paths "$MATH_EXPERT" "$CODE_EXPERT" "$IF_EXPERT" \

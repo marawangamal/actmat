@@ -34,13 +34,13 @@ clean, tuned task-arithmetic baseline to compare ACTMat against.
 
 ```sh
 bash scripts/medphi/setup.sh                          # clone CLUE + patch + build .venv-med + data
-sbatch        scripts/medphi/eval_medphi_base.sh      # base Phi-3.5-mini-instruct
-sbatch --array=0-4 scripts/medphi/eval_medphi_experts.sh   # the 5 MediPhi experts
-sbatch --array=0-3 scripts/medphi/eval_medphi.sh      # merges (sum mean actmat tsv)
+sbatch        scripts/medphi/eval_base.sh            # base Phi-3.5-mini-instruct
+sbatch --array=0-4 scripts/medphi/eval_experts.sh    # the 5 MediPhi experts
+sbatch --array=0-3 scripts/medphi/eval_merged.sh      # merges (sum mean actmat tsv)
 ```
 
 Each script sources the CLUE `.venv-med`, (merges via `src/hf/merge.py` for
-`eval_medphi.sh`,) then runs the 2 open CLUE tasks. Results land in the standard
+`eval_merged.sh`,) then runs the 2 open CLUE tasks. Results land in the standard
 artifacts layout:
 
 ```

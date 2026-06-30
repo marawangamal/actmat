@@ -66,26 +66,21 @@ Driver SLURM scripts loop over `MODELS × METHODS × FT_MODES`:
 - `scripts/language/eval_task_addition.sh`
 - `scripts/olmo/eval_task_addition.sh`
 
-When a method needs statistics, the driver runs `covariance.py` (regmean, actmat) or `fisher.py` (fisher) for the model first, then `eval_task_addition.py`. Statistics live next to checkpoints as `covariance.pt` / `covariance/*.pt` / `fisher.pt` and are auto-discovered by `_TaskVector`.
+When a method needs statistics, the driver runs the pipeline covariance script first, then the relevant `eval_merged.py` entry point. Statistics live next to checkpoints as `covariance.pt` and are discovered by the pipeline expert wrappers.
 
 ## Architecture
 
-### Three pipelines, one CLI
+### Pipeline Entry Points
 
-`src/args.py` is a **single shared argument parser** for all three pipelines. Pipeline-specific flags (`--capability` for OLMo, `--mha` for vision, `--max-seq-len` for language) live in the same parser; scripts ignore the flags they don't use. When adding a flag, put it in `src/args.py`, not in a per-script parser.
+Current scripts keep their CLI flags close to the corresponding entry point. ViT and T5 wrappers call `scripts/{vit,t5}/*.py`; HF-style OLMo, Polyglot, MedPhi, and WizardLM scripts call `src/hf/merge.py` directly.
 
-### Task-vector core
+### Expert Core
 
-`src/task_vectors.py` defines the abstract `_TaskVector` (a dict of per-parameter tensors with arithmetic + lazy disk loading). Each pipeline subclasses it:
-- `src/vision/task_vectors.py` — OpenCLIP ViT checkpoints
-- `src/language/task_vectors.py` — HF T5 checkpoints
-- `src/nlg/task_vectors.py` — folder-of-safetensors checkpoints for OLMo (`ParamFolderTaskVector`)
-
-A `_TaskVector` is built from a `checkpoint_dir` containing `pretrained.pt` + `{prefix}finetuned.pt` (prefix is `""` for FFT, `"lora_"` for LoRA). OLMo/WizardLM use param-folder checkpoints — `pretrained/` + `finetuned/` subdirectories instead of `.pt` files. It auto-discovers `covariance.pt`/`fisher.pt` siblings.
+`src/core/experts.py` defines the `Expert` interface used by current tensor merging. Pipeline wrappers such as `src/vit/experts.py`, `src/t5/experts.py`, and `src/hf/experts.py` provide parameter tensors and optional sidecars such as covariance statistics.
 
 ### Merging
 
-`src/merging.py::combine_task_vectors(vectors, merge_fn_name, **kwargs)` is the single entry point. It looks up `merge_<name>` in the same module — the `--merge-func` CLI value maps directly to a function name (`sum`, `mean`, `tsv`, `isoc`, `regmean`, `fisher`, `actmat`, `ace`, `actmat_general`, `actmat_gd`, `sum04`). To add a method, define `merge_<name>(taus, **kwargs)` in `src/merging.py`; nothing else needs registration. `--merge-mode d` merges differences (Δ = θ_ft − θ_pre); `--merge-mode w` merges raw weights (used by RegMean variants — triggers `save_pt=True` on the task vector).
+`src/core/merge.py::merge_experts(...)` is the shared in-process entry point for ViT/T5 experts. HF folder merges use `src/hf/merge.py`. Tensor-level methods live in `src/mergingv2.py`; add a method as `merge_<name>(d, **kwargs)`, matching the `--merge-method` CLI value.
 
 ### Statistics collection
 

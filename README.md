@@ -3,7 +3,7 @@
 This is the source code to reproduce the experiments of the paper [Model Merging via Data-Free Covariance Estimation](https://arxiv.org/pdf/2604.01329).
 
 <p align="center">
-  <img src="docs/crown-jewel.png" alt="Overview" width="70%">
+  <img src="artifacts/docs/crown-jewel.png" alt="Overview" width="70%">
 </p>
 
 
@@ -33,51 +33,71 @@ mkdir -p artifacts && for f in downloads/*.tar.gz downloads/*.tgz; do [ -e "$f" 
 
 ```sh
 # 0. Setup env
-uv sync --group vision-language
+UV_PROJECT_ENVIRONMENT=.venv-vl uv sync --group vision-language
 # 1. (Optional) Finetune models (ckpts can be downloaded as described in setup)
-sbatch scripts/vision/finetune.sh   # if ckpts not downloaded
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-7 scripts/vit/finetune.sh
+# 1b. (Optional) Generate covariance files if they are not in the checkpoints
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-7 scripts/vit/covariance.sh
 # 2. Evaluate experts        (NUM_TASKS=8|14|20 selects the suite)
-sbatch scripts/vision/eval_experts.sh
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_experts.sh
 # 2b. Evaluate pretrained ViTs with the explicit-path wrapper
-SINGLE_DIR=pretrained NUM_TASKS=8 bash scripts/vit/eval_single.sh
-# 2c. Evaluate multitask ViTs with the explicit-path wrapper
-SINGLE_DIR=multitask NUM_TASKS=8 bash scripts/vit/eval_single.sh
+SINGLE_DIR=pretrained NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_single.sh
 # 3a. Evaluate merged models  (NUM_TASKS=8|14|20 selects the suite)
-METHODS="tsv isoc actmat" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-2 scripts/vit/eval_merged.sh
-# 3b. Evaluate merged models (packed qkv)
-METHODS="tsv isoc actmat" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-2 scripts/vit/eval_merged_packed.sh
+METHODS="tsv isoc actmat regmean" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-3 scripts/vit/eval_merged.sh
+# 3b. Evaluate merged models (packed qkv, actmat performs better on this)
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_merged_packed.sh
 ```
 
-Results land under `artifacts/results/{model}/group-{N}/merged/{method}/metrics.json`
-(see [Artifacts layout](#artifacts-layout)).
+Results land under `artifacts/results/{model}/group-{ft_mode}-{num_tasks}/...`.
 
 ## Language Experiments (T5-Base / T5-Large)
 
 ```sh
 # 0. Setup env
-uv sync --group vision-language
+UV_PROJECT_ENVIRONMENT=.venv-vl uv sync --group vision-language
 # 1. (Optional) Finetune models (ckpts can be downloaded as described in setup)
-bash scripts/language/finetune.sh
+NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch --array=0-6 scripts/t5/finetune.sh
+# 1b. (Optional) Generate covariance files if they are not in the checkpoints
+NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch --array=0-6 scripts/t5/covariance.sh
 # 2. Evaluate experts
-bash scripts/language/eval_single_task.sh
+NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch scripts/t5/eval_experts.sh
+# 2b. Evaluate pretrained T5 with the explicit-path wrapper
+SINGLE_DIR=pretrained NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch scripts/t5/eval_single.sh
 # 3. Evaluate merged models
-bash scripts/language/eval_task_addition.sh
+METHODS="tsv isoc actmat regmean" NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch --array=0-3 scripts/t5/eval_merged.sh
 ```
 
-Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
+Results land under `artifacts/results/{model}/group-{ft_mode}-{num_tasks}/...`.
 
-## Reasoning experiments (Olmo-3-7b)
+## RL Zero Experiments (OLMo-3-7B)
 
 ```sh
 # 0. Setup env
-uv sync --group olmo
-# 2. Evaluate base model
-bash scripts/olmo_rl_zero/eval_olmo_base.sh 
-# 3. Evaluate expert models
-bash scripts/olmo_rl_zero/eval_olmo_experts.sh
-# 4. Evaluate merged models
-bash scripts/olmo_rl_zero/eval_olmo_rl_zero.sh
+UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo
+# 1. Evaluate RL-Zero reasoning merged models
+METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged.sh
+# 1b. Evaluate RL-Zero reasoning merged models (packed qkv)
+METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged_packed.sh
 ```
+
+Results land under `artifacts/results/Olmo-3-7b/group-rl-zero/merged/{method}/...`.
+
+## Polyglot Experiments (OLMo-3-7B)
+
+```sh
+# 0. Setup envs (MGSM uses lm-eval; MMLU/M-RewardBench uses the lighteval fork)
+UV_PROJECT_ENVIRONMENT=.venv-pg-mgsm uv sync --group polyglot-mgsm
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv sync --group polyglot-mmlu-mrb
+UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv pip install --python .venv-pg-mmlu-mrb -e ./lighteval --no-deps
+# 1. Evaluate Polyglot multilingual merged models
+sbatch --array=0-6 scripts/olmo_polyglot/eval_merged.sh
+```
+
+The lighteval step intentionally overlays the local `lighteval/` fork without
+changing the pinned vLLM dependency stack; re-run it after syncing
+`.venv-pg-mmlu-mrb`.
+
+Results land under `artifacts/results/Olmo-3-7b/group-polyglot/merged/{method}/...`.
 
 ## Clinical experiments (Phi-3.5 / MediPhi)
 
@@ -90,21 +110,20 @@ See [scripts/medphi/README.md](scripts/medphi/README.md) for details and the pap
 # 0. Setup env (clones + patches the CLUE harness, builds .venv-med, fetches data)
 bash scripts/medphi/setup.sh
 # 2. Evaluate base model (Phi-3.5-mini-instruct)
-bash scripts/medphi/eval_medphi_base.sh
+bash scripts/medphi/eval_base.sh
 # 3. Evaluate expert models
-bash scripts/medphi/eval_medphi_experts.sh
+bash scripts/medphi/eval_experts.sh
 # 4. Evaluate merged models
-bash scripts/medphi/eval_medphi.sh
+bash scripts/medphi/eval_merged.sh
 ```
 
 ## Reproducing Plots
 See [analysis.ipynb](analysis.ipynb) notebook.
 
 
-
 ## Artifacts directory structure
 
-The directory structure generally follows the following pattern:
+The `artifacts` directory structure follows the following pattern:
 
 ```sh
 artifacts/checkpoints/{model}/group-{group}/{experts|multitask|merged}/[{expert|method}]

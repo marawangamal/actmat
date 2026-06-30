@@ -42,8 +42,13 @@ case "$NUM_TASKS" in
   *) echo "Unsupported NUM_TASKS=$NUM_TASKS"; exit 1 ;;
 esac
 
-EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/experts"
-OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD_DIR"
+# Standard regenerated checkpoints.
+EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
+OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/merged/$METHOD_DIR"
+
+# Legacy FFT checkpoint sweep.
+# EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/experts"
+# OUT="$RESULTS_ROOT/$MODEL/group-legacy-$FT_MODE-$NUM_TASKS/merged/$METHOD_DIR"
 python scripts/vit/eval_merged.py \
   --model "$MODEL" \
   --experts-dir "$EXPERTS_DIR" \
