@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_olmo_packed
+#SBATCH --job-name=eval_olmo_rl_zero_packed
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
@@ -13,7 +13,7 @@
 #
 # To confirm the override fired, grep the merge logs for the marker that
 # src/hf2/merge.py prints per affected layer:
-#   grep "\[IGNORE-MEAN\]" artifacts/logs/hf_eval_olmo_packed_*.out
+#   grep "\[IGNORE-MEAN\]" artifacts/logs/eval_olmo_rl_zero_packed_*.out
 #
 # Submit with:
 #   sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_merged_packed.sh

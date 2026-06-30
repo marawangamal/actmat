@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_polyglot
+#SBATCH --job-name=eval_olmo_polyglot
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
@@ -19,7 +19,7 @@
 # Note: we use lm_eval mgsm_native_cot, where the few-shot examples are reasoning
 # chains rather than a single number.
 #
-# Submit with: sbatch --array=0-6 scripts/olmo_polyglot/eval_polyglot.sh
+# Submit with: sbatch --array=0-6 scripts/olmo_polyglot/eval_merged.sh
 set -euo pipefail
 
 BASE="allenai/Olmo-3-1025-7B"

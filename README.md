@@ -33,51 +33,56 @@ mkdir -p artifacts && for f in downloads/*.tar.gz downloads/*.tgz; do [ -e "$f" 
 
 ```sh
 # 0. Setup env
-uv sync --group vision-language
+UV_PROJECT_ENVIRONMENT=.venv-vl uv sync --group vision-language
 # 1. (Optional) Finetune models (ckpts can be downloaded as described in setup)
-sbatch scripts/vision/finetune.sh   # if ckpts not downloaded
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-7 scripts/vit/finetune.sh
+# 1b. (Optional) Generate covariance files if they are not in the checkpoints
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-7 scripts/vit/covariance.sh
 # 2. Evaluate experts        (NUM_TASKS=8|14|20 selects the suite)
-sbatch scripts/vision/eval_experts.sh
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_experts.sh
 # 2b. Evaluate pretrained ViTs with the explicit-path wrapper
-SINGLE_DIR=pretrained NUM_TASKS=8 bash scripts/vit/eval_single.sh
-# 2c. Evaluate multitask ViTs with the explicit-path wrapper
-SINGLE_DIR=multitask NUM_TASKS=8 bash scripts/vit/eval_single.sh
+SINGLE_DIR=pretrained NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_single.sh
 # 3a. Evaluate merged models  (NUM_TASKS=8|14|20 selects the suite)
-METHODS="tsv isoc actmat" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-2 scripts/vit/eval_merged.sh
-# 3b. Evaluate merged models (packed qkv)
-METHODS="tsv isoc actmat" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-2 scripts/vit/eval_merged_packed.sh
+METHODS="tsv isoc actmat regmean" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-3 scripts/vit/eval_merged.sh
+# 3b. Evaluate merged models (packed qkv, actmat performs better on this)
+NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_merged_packed.sh
 ```
 
-Results land under `artifacts/results/{model}/group-{N}/merged/{method}/metrics.json`
-(see [Artifacts layout](#artifacts-layout)).
+Results land under `artifacts/results/{model}/group-{ft_mode}-{num_tasks}/...`.
 
 ## Language Experiments (T5-Base / T5-Large)
 
 ```sh
 # 0. Setup env
-uv sync --group vision-language
+UV_PROJECT_ENVIRONMENT=.venv-vl uv sync --group vision-language
 # 1. (Optional) Finetune models (ckpts can be downloaded as described in setup)
-bash scripts/language/finetune.sh
+NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch --array=0-6 scripts/t5/finetune.sh
+# 1b. (Optional) Generate covariance files if they are not in the checkpoints
+NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch --array=0-6 scripts/t5/covariance.sh
 # 2. Evaluate experts
-bash scripts/language/eval_single_task.sh
+NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch scripts/t5/eval_experts.sh
+# 2b. Evaluate pretrained T5 with the explicit-path wrapper
+SINGLE_DIR=pretrained NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch scripts/t5/eval_single.sh
 # 3. Evaluate merged models
-bash scripts/language/eval_task_addition.sh
+METHODS="tsv isoc actmat regmean" NUM_TASKS=7 FT_MODE=fft MODEL=t5-base sbatch --array=0-3 scripts/t5/eval_merged.sh
 ```
 
-Results are saved to `artifacts/results/{model}-{method}/metrics.json`.
+Results land under `artifacts/results/{model}/group-{ft_mode}-{num_tasks}/...`.
 
-## Reasoning experiments (Olmo-3-7b)
+## OLMo Experiments (OLMo-3-7B)
 
 ```sh
 # 0. Setup env
-uv sync --group olmo
-# 2. Evaluate base model
-bash scripts/olmo_rl_zero/eval_olmo_base.sh 
-# 3. Evaluate expert models
-bash scripts/olmo_rl_zero/eval_olmo_experts.sh
-# 4. Evaluate merged models
-bash scripts/olmo_rl_zero/eval_olmo_rl_zero.sh
+UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo
+# 1. Evaluate RL-Zero reasoning merged models
+METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged.sh
+# 1b. Evaluate RL-Zero reasoning merged models (packed qkv)
+METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged_packed.sh
+# 2. Evaluate Polyglot multilingual merged models
+sbatch --array=0-6 scripts/olmo_polyglot/eval_merged.sh
 ```
+
+Results land under `artifacts/results/Olmo-3-7b/group-{rl-zero|polyglot}/merged/{method}/...`.
 
 ## Clinical experiments (Phi-3.5 / MediPhi)
 
@@ -101,10 +106,9 @@ bash scripts/medphi/eval_medphi.sh
 See [analysis.ipynb](analysis.ipynb) notebook.
 
 
-
 ## Artifacts directory structure
 
-The directory structure generally follows the following pattern:
+The `artifacts` directory structure follows the following pattern:
 
 ```sh
 artifacts/checkpoints/{model}/group-{group}/{experts|multitask|merged}/[{expert|method}]

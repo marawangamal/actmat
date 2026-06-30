@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=hf_eval_olmo
+#SBATCH --job-name=eval_olmo_rl_zero_legacy
 #SBATCH --partition=long
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=16
@@ -8,7 +8,7 @@
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 # Merge Olmo-3-7B RL-Zero experts (Math + Code + IF) onto the base, then eval
-# with olmes. Tasks mirror scripts/olmo/eval_task_addition.sh (HumanEval(+),
+# with olmes. Tasks mirror the current RL-Zero evaluation set (HumanEval(+),
 # IFEval, AIME). Experts share the base's vocab, so no embed/lm_head masking.
 #
 # Chat template: the merge bakes in ONE template, but each olmes task group needs
@@ -19,7 +19,7 @@
 #   merged/${METHOD}-ct-math  -> AIME (math) tasks
 # Weights are never duplicated; only chat_template.jinja differs per view.
 #
-# Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_olmo_rl_zero.sh
+# Submit with: sbatch --array=0-$((N-1)) scripts/olmo_rl_zero/eval_merged_legacy.sh
 set -euo pipefail
 
 source "$SCRATCH/actmat/.venv-olmo/bin/activate"
