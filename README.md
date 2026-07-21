@@ -136,7 +136,7 @@ artifacts/results/{model}/group-{group}/{experts|multitask|merged}/[{expert|meth
 ```
 @inproceedings{hameed2026actmat,
   author={Hameed, Marawan Gamal Abdel and Tam, Derek and Notsawo, Pascal Jr Tikeng and Raffel, Colin and Rabusseau, Guillaume},
-  booktitle={ICML 2026 Workshop on Continual Adaptation at Scale (CATS)},
+  booktitle={Third Conference on Language Modeling (COLM)},
   title={Model Merging via Data-Free Covariance Estimation},
   year={2026}
 }
