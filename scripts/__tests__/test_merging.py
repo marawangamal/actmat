@@ -1,7 +1,7 @@
-"""Unit tests for tensor-level merge functions in src.mergingv2.
+"""Unit tests for tensor-level merge functions in src.merging.
 
-Run directly: `python scripts/__tests__/test_mergingv2.py`
-Or with unittest:  `python -m unittest scripts.__tests__.test_mergingv2`
+Run directly: `python scripts/__tests__/test_merging.py`
+Or with unittest:  `python -m unittest scripts.__tests__.test_merging`
 """
 
 import sys
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import torch
 
-from src.mergingv2 import _interp_cov, merge_regmean, merge_regmean_interp
+from src.merging import _interp_cov, merge_regmean, merge_regmean_interp
 
 
 def _angle(a: torch.Tensor, b: torch.Tensor) -> float:

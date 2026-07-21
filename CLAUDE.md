@@ -80,7 +80,7 @@ Current scripts keep their CLI flags close to the corresponding entry point. ViT
 
 ### Merging
 
-`src/core/merge.py::merge_experts(...)` is the shared in-process entry point for ViT/T5 experts. HF folder merges use `src/hf/merge.py`. Tensor-level methods live in `src/mergingv2.py`; add a method as `merge_<name>(d, **kwargs)`, matching the `--merge-method` CLI value.
+`src/core/merge.py::merge_experts(...)` is the shared in-process entry point for ViT/T5 experts. HF folder merges use `src/hf/merge.py`. Tensor-level methods live in `src/merging.py`; add a method as `merge_<name>(d, **kwargs)`, matching the `--merge-method` CLI value.
 
 ### Statistics collection
 
