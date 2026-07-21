@@ -82,40 +82,6 @@ METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged_pa
 
 Results land under `artifacts/results/Olmo-3-7b/group-rl-zero/merged/{method}/...`.
 
-## Polyglot Experiments (OLMo-3-7B)
-
-```sh
-# 0. Setup envs (MGSM uses lm-eval; MMLU/M-RewardBench uses the lighteval fork)
-UV_PROJECT_ENVIRONMENT=.venv-pg-mgsm uv sync --group polyglot-mgsm
-UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv sync --group polyglot-mmlu-mrb
-UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv pip install --python .venv-pg-mmlu-mrb -e ./lighteval --no-deps
-# 1. Evaluate Polyglot multilingual merged models
-sbatch --array=0-6 scripts/olmo_polyglot/eval_merged.sh
-```
-
-The lighteval step intentionally overlays the local `lighteval/` fork without
-changing the pinned vLLM dependency stack; re-run it after syncing
-`.venv-pg-mmlu-mrb`.
-
-Results land under `artifacts/results/Olmo-3-7b/group-polyglot/merged/{method}/...`.
-
-## Clinical experiments (Phi-3.5 / MediPhi)
-
-Merge the 5 [MediPhi](https://huggingface.co/microsoft/MediPhi) clinical experts onto
-`Phi-3.5-mini-instruct` and evaluate on the [CLUE](https://github.com/TIO-IKIM/CLUE)
-benchmark (the 2 openly-available tasks; the other 4 need PhysioNet/MIMIC credentials).
-See [scripts/medphi/README.md](scripts/medphi/README.md) for details and the paper-reproduction numbers.
-
-```sh
-# 0. Setup env (clones + patches the CLUE harness, builds .venv-med, fetches data)
-bash scripts/medphi/setup.sh
-# 2. Evaluate base model (Phi-3.5-mini-instruct)
-bash scripts/medphi/eval_base.sh
-# 3. Evaluate expert models
-bash scripts/medphi/eval_experts.sh
-# 4. Evaluate merged models
-bash scripts/medphi/eval_merged.sh
-```
 
 ## Reproducing Plots
 See [analysis.ipynb](analysis.ipynb) notebook.
@@ -136,7 +102,7 @@ artifacts/results/{model}/group-{group}/{experts|multitask|merged}/[{expert|meth
 ```
 @inproceedings{hameed2026actmat,
   author={Hameed, Marawan Gamal Abdel and Tam, Derek and Notsawo, Pascal Jr Tikeng and Raffel, Colin and Rabusseau, Guillaume},
-  booktitle={ICML 2026 Workshop on Continual Adaptation at Scale (CATS)},
+  booktitle={Third Conference on Language Modeling (COLM)},
   title={Model Merging via Data-Free Covariance Estimation},
   year={2026}
 }

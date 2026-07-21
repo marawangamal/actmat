@@ -1,146 +1,0 @@
-[BASH] method=actmat_w subset=FER2013,GTSRB,OxfordIIITPet,RESISC45
-/network/scratch/m/marawan.gamal/actmat/.venv-vl/lib/python3.11/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
-  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
-[actmat_w] m4_07 weights: [0.6067793123772754, 0.4667956569742748, 2.219664468559764, 0.706760562088686]
-Merging task vectors:   0%|          | 0/206 [00:00<?, ?it/s]Merging task vectors:   0%|          | 1/206 [00:00<01:11,  2.86it/s]Merging task vectors:   8%|▊         | 16/206 [00:00<00:04, 39.09it/s]Merging task vectors:  16%|█▌        | 32/206 [00:00<00:02, 62.85it/s]Merging task vectors:  23%|██▎       | 48/206 [00:00<00:02, 77.54it/s]Merging task vectors:  31%|███       | 64/206 [00:00<00:01, 86.99it/s]Merging task vectors:  39%|███▉      | 80/206 [00:01<00:01, 93.23it/s]Merging task vectors:  47%|████▋     | 96/206 [00:01<00:01, 97.91it/s]Merging task vectors:  52%|█████▏    | 108/206 [00:01<00:01, 90.30it/s]Merging task vectors:  66%|██████▌   | 135/206 [00:01<00:00, 130.08it/s]Merging task vectors:  78%|███████▊  | 161/206 [00:01<00:00, 158.66it/s]Merging task vectors:  90%|█████████ | 186/206 [00:01<00:00, 178.98it/s]                                                                        [model.positional_embedding] merging layer with shape torch.Size([77, 512]) (merge_actmat_w)
-[model.visual.positional_embedding] merging layer with shape torch.Size([50, 768]) (merge_actmat_w)
-[model.visual.proj] merging layer with shape torch.Size([768, 512]) (merge_actmat_w)
-[model.visual.transformer.resblocks.0.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.0.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.1.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.1.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.2.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.2.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.3.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.3.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.4.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.4.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.5.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.5.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.6.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.6.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.7.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.7.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.8.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.8.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.9.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.9.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.10.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.10.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.11.mlp.c_fc.weight] merging layer with shape torch.Size([3072, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.11.mlp.c_proj.weight] merging layer with shape torch.Size([768, 3072]) (merge_actmat_w)
-[model.visual.transformer.resblocks.0.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.0.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.0.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.0.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.6.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.6.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.6.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.6.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.3.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.3.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.3.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.3.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.10.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.10.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.10.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.10.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.5.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.5.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.5.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.5.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.11.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.11.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.11.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.11.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.8.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.8.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.8.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.8.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.7.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.7.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.7.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.7.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.2.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.2.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.2.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.2.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.4.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.4.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.4.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.4.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.1.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.1.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.1.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.1.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.9.attn.q.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.9.attn.k.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.9.attn.v.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-[model.visual.transformer.resblocks.9.attn.o.weight] merging layer with shape torch.Size([768, 768]) (merge_actmat_w)
-Merging task vectors took 0.03 minutes
-Evaluating on FER2013
-Classification head for ViT-B-32 on FER2013Val exists at artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/FER2013Val/head.pt
-Loading classification head from artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/FER2013Val/head.pt
-  0%|          | 0/29 [00:00<?, ?it/s]  3%|▎         | 1/29 [00:00<00:19,  1.40it/s] 10%|█         | 3/29 [00:00<00:06,  4.25it/s] 14%|█▍        | 4/29 [00:00<00:04,  5.12it/s] 17%|█▋        | 5/29 [00:01<00:04,  5.26it/s] 21%|██        | 6/29 [00:01<00:04,  5.33it/s] 24%|██▍       | 7/29 [00:01<00:04,  5.38it/s] 28%|██▊       | 8/29 [00:01<00:03,  5.34it/s] 31%|███       | 9/29 [00:01<00:03,  5.34it/s] 34%|███▍      | 10/29 [00:02<00:03,  5.38it/s] 38%|███▊      | 11/29 [00:02<00:03,  5.37it/s] 41%|████▏     | 12/29 [00:02<00:03,  5.22it/s] 45%|████▍     | 13/29 [00:02<00:03,  5.29it/s] 48%|████▊     | 14/29 [00:02<00:02,  5.33it/s] 52%|█████▏    | 15/29 [00:03<00:02,  5.38it/s] 55%|█████▌    | 16/29 [00:03<00:02,  5.38it/s] 59%|█████▊    | 17/29 [00:03<00:02,  5.35it/s] 62%|██████▏   | 18/29 [00:03<00:02,  5.37it/s] 66%|██████▌   | 19/29 [00:03<00:01,  5.36it/s] 69%|██████▉   | 20/29 [00:03<00:01,  5.39it/s] 72%|███████▏  | 21/29 [00:04<00:01,  5.24it/s] 76%|███████▌  | 22/29 [00:04<00:01,  5.29it/s] 79%|███████▉  | 23/29 [00:04<00:01,  5.34it/s] 83%|████████▎ | 24/29 [00:04<00:00,  5.38it/s] 86%|████████▌ | 25/29 [00:04<00:00,  5.34it/s] 90%|████████▉ | 26/29 [00:05<00:00,  5.33it/s] 93%|█████████▎| 27/29 [00:05<00:00,  5.37it/s] 97%|█████████▋| 28/29 [00:05<00:00,  5.40it/s]100%|██████████| 29/29 [00:05<00:00,  5.23it/s]
-Done evaluating on FER2013. Accuracy: 69.13%
-FER2013 Top-1 accuracy: 0.6913
-Evaluating on GTSRB
-Classification head for ViT-B-32 on GTSRBVal exists at artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/GTSRBVal/head.pt
-Loading classification head from artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/GTSRBVal/head.pt
-  0%|          | 0/99 [00:00<?, ?it/s]  1%|          | 1/99 [00:00<00:46,  2.09it/s]  2%|▏         | 2/99 [00:00<00:41,  2.35it/s]  3%|▎         | 3/99 [00:01<00:34,  2.77it/s]  4%|▍         | 4/99 [00:01<00:31,  3.03it/s]  5%|▌         | 5/99 [00:01<00:29,  3.19it/s]  6%|▌         | 6/99 [00:02<00:28,  3.27it/s]  7%|▋         | 7/99 [00:02<00:27,  3.32it/s]  8%|▊         | 8/99 [00:02<00:26,  3.38it/s]  9%|▉         | 9/99 [00:02<00:28,  3.14it/s] 10%|█         | 10/99 [00:03<00:27,  3.19it/s] 11%|█         | 11/99 [00:03<00:27,  3.24it/s] 12%|█▏        | 12/99 [00:03<00:26,  3.33it/s] 13%|█▎        | 13/99 [00:04<00:25,  3.39it/s] 14%|█▍        | 14/99 [00:04<00:24,  3.44it/s] 15%|█▌        | 15/99 [00:04<00:24,  3.46it/s] 16%|█▌        | 16/99 [00:04<00:23,  3.48it/s] 17%|█▋        | 17/99 [00:05<00:23,  3.45it/s] 18%|█▊        | 18/99 [00:05<00:23,  3.50it/s] 19%|█▉        | 19/99 [00:05<00:23,  3.48it/s] 20%|██        | 20/99 [00:06<00:23,  3.40it/s] 21%|██        | 21/99 [00:06<00:22,  3.44it/s] 22%|██▏       | 22/99 [00:06<00:22,  3.45it/s] 23%|██▎       | 23/99 [00:06<00:21,  3.47it/s] 24%|██▍       | 24/99 [00:07<00:21,  3.49it/s] 25%|██▌       | 25/99 [00:07<00:21,  3.51it/s] 26%|██▋       | 26/99 [00:07<00:21,  3.47it/s] 27%|██▋       | 27/99 [00:08<00:20,  3.46it/s] 28%|██▊       | 28/99 [00:08<00:20,  3.50it/s] 29%|██▉       | 29/99 [00:08<00:20,  3.45it/s] 30%|███       | 30/99 [00:09<00:20,  3.45it/s] 31%|███▏      | 31/99 [00:09<00:19,  3.45it/s] 32%|███▏      | 32/99 [00:09<00:19,  3.40it/s] 33%|███▎      | 33/99 [00:09<00:19,  3.39it/s] 34%|███▍      | 34/99 [00:10<00:18,  3.45it/s] 35%|███▌      | 35/99 [00:10<00:18,  3.49it/s] 36%|███▋      | 36/99 [00:10<00:18,  3.32it/s] 37%|███▋      | 37/99 [00:11<00:18,  3.34it/s] 38%|███▊      | 38/99 [00:11<00:17,  3.42it/s] 39%|███▉      | 39/99 [00:11<00:17,  3.44it/s] 40%|████      | 40/99 [00:11<00:17,  3.46it/s] 41%|████▏     | 41/99 [00:12<00:16,  3.51it/s] 42%|████▏     | 42/99 [00:12<00:16,  3.54it/s] 43%|████▎     | 43/99 [00:13<00:19,  2.81it/s] 44%|████▍     | 44/99 [00:13<00:18,  3.00it/s] 45%|████▌     | 45/99 [00:13<00:17,  3.09it/s] 46%|████▋     | 46/99 [00:13<00:16,  3.20it/s] 47%|████▋     | 47/99 [00:14<00:15,  3.27it/s] 48%|████▊     | 48/99 [00:14<00:15,  3.37it/s] 49%|████▉     | 49/99 [00:14<00:14,  3.38it/s] 51%|█████     | 50/99 [00:15<00:14,  3.40it/s] 52%|█████▏    | 51/99 [00:15<00:14,  3.41it/s] 53%|█████▎    | 52/99 [00:15<00:14,  3.35it/s] 54%|█████▎    | 53/99 [00:15<00:14,  3.18it/s] 55%|█████▍    | 54/99 [00:16<00:13,  3.25it/s] 56%|█████▌    | 55/99 [00:16<00:13,  3.28it/s] 57%|█████▋    | 56/99 [00:16<00:12,  3.34it/s] 58%|█████▊    | 57/99 [00:17<00:12,  3.34it/s] 59%|█████▊    | 58/99 [00:17<00:12,  3.40it/s] 60%|█████▉    | 59/99 [00:17<00:11,  3.42it/s] 61%|██████    | 60/99 [00:18<00:11,  3.47it/s] 62%|██████▏   | 61/99 [00:18<00:10,  3.52it/s] 63%|██████▎   | 62/99 [00:18<00:10,  3.49it/s] 64%|██████▎   | 63/99 [00:18<00:10,  3.50it/s] 65%|██████▍   | 64/99 [00:19<00:10,  3.46it/s] 66%|██████▌   | 65/99 [00:19<00:09,  3.46it/s] 67%|██████▋   | 66/99 [00:19<00:09,  3.31it/s] 68%|██████▊   | 67/99 [00:20<00:09,  3.38it/s] 69%|██████▊   | 68/99 [00:20<00:08,  3.46it/s] 70%|██████▉   | 69/99 [00:20<00:08,  3.47it/s] 71%|███████   | 70/99 [00:20<00:08,  3.42it/s] 72%|███████▏  | 71/99 [00:21<00:08,  3.47it/s] 73%|███████▎  | 72/99 [00:21<00:07,  3.49it/s] 74%|███████▎  | 73/99 [00:22<00:11,  2.22it/s] 75%|███████▍  | 74/99 [00:22<00:09,  2.51it/s] 76%|███████▌  | 75/99 [00:22<00:08,  2.74it/s] 77%|███████▋  | 76/99 [00:23<00:07,  2.94it/s] 78%|███████▊  | 77/99 [00:23<00:07,  3.09it/s] 79%|███████▉  | 78/99 [00:23<00:06,  3.22it/s] 80%|███████▉  | 79/99 [00:24<00:06,  3.32it/s] 81%|████████  | 80/99 [00:24<00:06,  3.10it/s] 82%|████████▏ | 81/99 [00:24<00:05,  3.19it/s] 83%|████████▎ | 82/99 [00:24<00:05,  3.31it/s] 84%|████████▍ | 83/99 [00:25<00:04,  3.39it/s] 85%|████████▍ | 84/99 [00:25<00:04,  3.39it/s] 86%|████████▌ | 85/99 [00:25<00:04,  3.43it/s] 87%|████████▋ | 86/99 [00:26<00:03,  3.49it/s] 88%|████████▊ | 87/99 [00:26<00:03,  3.50it/s] 89%|████████▉ | 88/99 [00:26<00:03,  3.43it/s] 90%|████████▉ | 89/99 [00:26<00:02,  3.47it/s] 91%|█████████ | 90/99 [00:27<00:02,  3.46it/s] 92%|█████████▏| 91/99 [00:27<00:02,  3.47it/s] 93%|█████████▎| 92/99 [00:27<00:01,  3.52it/s] 94%|█████████▍| 93/99 [00:28<00:01,  3.56it/s] 95%|█████████▍| 94/99 [00:28<00:01,  3.55it/s] 96%|█████████▌| 95/99 [00:28<00:01,  3.57it/s] 97%|█████████▋| 96/99 [00:28<00:00,  3.55it/s] 98%|█████████▊| 97/99 [00:29<00:00,  3.51it/s] 99%|█████████▉| 98/99 [00:29<00:00,  3.48it/s]100%|██████████| 99/99 [00:29<00:00,  3.96it/s]100%|██████████| 99/99 [00:29<00:00,  3.33it/s]
-Done evaluating on GTSRB. Accuracy: 96.55%
-GTSRB Top-1 accuracy: 0.9655
-Evaluating on OxfordIIITPet
-Classification head for ViT-B-32 on OxfordIIITPetVal exists at artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/OxfordIIITPetVal/head.pt
-Loading classification head from artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/OxfordIIITPetVal/head.pt
-  0%|          | 0/29 [00:00<?, ?it/s]  3%|▎         | 1/29 [00:01<00:28,  1.03s/it]  7%|▋         | 2/29 [00:01<00:24,  1.11it/s] 10%|█         | 3/29 [00:03<00:27,  1.05s/it] 14%|█▍        | 4/29 [00:03<00:24,  1.04it/s] 17%|█▋        | 5/29 [00:04<00:21,  1.11it/s] 21%|██        | 6/29 [00:05<00:19,  1.19it/s] 24%|██▍       | 7/29 [00:06<00:18,  1.20it/s] 28%|██▊       | 8/29 [00:06<00:16,  1.25it/s] 31%|███       | 9/29 [00:08<00:21,  1.09s/it] 34%|███▍      | 10/29 [00:09<00:18,  1.01it/s] 38%|███▊      | 11/29 [00:10<00:16,  1.07it/s] 41%|████▏     | 12/29 [00:11<00:15,  1.11it/s] 45%|████▍     | 13/29 [00:11<00:13,  1.15it/s] 48%|████▊     | 14/29 [00:12<00:12,  1.19it/s] 52%|█████▏    | 15/29 [00:13<00:11,  1.20it/s] 55%|█████▌    | 16/29 [00:14<00:10,  1.24it/s] 59%|█████▊    | 17/29 [00:15<00:10,  1.14it/s] 62%|██████▏   | 18/29 [00:16<00:09,  1.17it/s] 66%|██████▌   | 19/29 [00:16<00:08,  1.21it/s] 69%|██████▉   | 20/29 [00:17<00:07,  1.25it/s] 72%|███████▏  | 21/29 [00:18<00:06,  1.28it/s] 76%|███████▌  | 22/29 [00:19<00:05,  1.30it/s] 79%|███████▉  | 23/29 [00:19<00:04,  1.28it/s] 83%|████████▎ | 24/29 [00:20<00:03,  1.27it/s] 86%|████████▌ | 25/29 [00:21<00:03,  1.18it/s] 90%|████████▉ | 26/29 [00:22<00:02,  1.23it/s] 93%|█████████▎| 27/29 [00:23<00:01,  1.24it/s] 97%|█████████▋| 28/29 [00:23<00:00,  1.24it/s]100%|██████████| 29/29 [00:24<00:00,  1.39it/s]100%|██████████| 29/29 [00:24<00:00,  1.18it/s]
-Done evaluating on OxfordIIITPet. Accuracy: 90.54%
-OxfordIIITPet Top-1 accuracy: 0.9054
-Evaluating on RESISC45
-Classification head for ViT-B-32 on RESISC45Val exists at artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/RESISC45Val/head.pt
-Loading classification head from artifacts/mergeability/checkpoints/ViT-B-32/group-p1/experts/RESISC45Val/head.pt
-  0%|          | 0/50 [00:00<?, ?it/s]  2%|▏         | 1/50 [00:00<00:28,  1.73it/s]  4%|▍         | 2/50 [00:00<00:22,  2.13it/s]  6%|▌         | 3/50 [00:01<00:20,  2.32it/s]  8%|▊         | 4/50 [00:01<00:19,  2.42it/s] 10%|█         | 5/50 [00:02<00:18,  2.40it/s] 12%|█▏        | 6/50 [00:02<00:18,  2.42it/s] 14%|█▍        | 7/50 [00:02<00:17,  2.44it/s] 16%|█▌        | 8/50 [00:03<00:17,  2.44it/s] 18%|█▊        | 9/50 [00:03<00:16,  2.48it/s] 20%|██        | 10/50 [00:04<00:15,  2.52it/s] 22%|██▏       | 11/50 [00:04<00:15,  2.54it/s] 24%|██▍       | 12/50 [00:04<00:15,  2.51it/s] 26%|██▌       | 13/50 [00:05<00:14,  2.53it/s] 28%|██▊       | 14/50 [00:05<00:14,  2.53it/s] 30%|███       | 15/50 [00:06<00:13,  2.54it/s] 32%|███▏      | 16/50 [00:06<00:13,  2.50it/s] 34%|███▍      | 17/50 [00:06<00:13,  2.46it/s] 36%|███▌      | 18/50 [00:07<00:13,  2.46it/s] 38%|███▊      | 19/50 [00:07<00:12,  2.46it/s] 40%|████      | 20/50 [00:08<00:12,  2.46it/s] 42%|████▏     | 21/50 [00:08<00:11,  2.49it/s] 44%|████▍     | 22/50 [00:08<00:11,  2.52it/s] 46%|████▌     | 23/50 [00:09<00:10,  2.54it/s] 48%|████▊     | 24/50 [00:09<00:10,  2.51it/s] 50%|█████     | 25/50 [00:10<00:09,  2.53it/s] 52%|█████▏    | 26/50 [00:10<00:09,  2.51it/s] 54%|█████▍    | 27/50 [00:10<00:09,  2.49it/s] 56%|█████▌    | 28/50 [00:11<00:08,  2.46it/s] 58%|█████▊    | 29/50 [00:11<00:08,  2.48it/s] 60%|██████    | 30/50 [00:12<00:09,  2.15it/s] 62%|██████▏   | 31/50 [00:12<00:09,  2.10it/s] 64%|██████▍   | 32/50 [00:13<00:08,  2.01it/s] 66%|██████▌   | 33/50 [00:13<00:07,  2.15it/s] 68%|██████▊   | 34/50 [00:14<00:07,  2.26it/s] 70%|███████   | 35/50 [00:14<00:06,  2.35it/s] 72%|███████▏  | 36/50 [00:14<00:05,  2.42it/s] 74%|███████▍  | 37/50 [00:15<00:05,  2.46it/s] 76%|███████▌  | 38/50 [00:16<00:07,  1.56it/s] 78%|███████▊  | 39/50 [00:16<00:06,  1.76it/s] 80%|████████  | 40/50 [00:17<00:06,  1.59it/s] 82%|████████▏ | 41/50 [00:18<00:05,  1.80it/s] 84%|████████▍ | 42/50 [00:18<00:04,  1.96it/s] 86%|████████▌ | 43/50 [00:18<00:03,  2.11it/s] 88%|████████▊ | 44/50 [00:19<00:02,  2.22it/s] 90%|█████████ | 45/50 [00:19<00:02,  2.31it/s] 92%|█████████▏| 46/50 [00:20<00:01,  2.37it/s] 94%|█████████▍| 47/50 [00:20<00:01,  2.41it/s] 96%|█████████▌| 48/50 [00:20<00:00,  2.47it/s] 98%|█████████▊| 49/50 [00:21<00:00,  2.52it/s]100%|██████████| 50/50 [00:21<00:00,  2.34it/s]
-Done evaluating on RESISC45. Accuracy: 93.19%
-RESISC45 Top-1 accuracy: 0.9319
-wrote /network/scratch/m/marawan.gamal/actmat/artifacts/mergeability/subsets/ViT-B-32/actmat_w/m4_d35cb82c.json
-
-======== GPU REPORT ========
-
-==============NVSMI LOG==============
-
-Timestamp                                 : Thu Jun 11 05:10:47 2026
-Driver Version                            : 580.95.05
-CUDA Version                              : 13.0
-
-Attached GPUs                             : 1
-GPU 00000000:61:00.0
-    Accounting Mode                       : Enabled
-    Accounting Mode Buffer Size           : 4000
-    Accounted Processes
-        Process ID                        : 3413626
-            GPU Utilization               : 11 %
-            Memory Utilization            : 5 %
-            Max memory usage              : 1622 MiB
-            Time                          : 92903 ms
-            Is Running                    : 0
-
-Thu Jun 11 05:10:47 2026       
-+-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
-+-----------------------------------------+------------------------+----------------------+
-| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
-|                                         |                        |               MIG M. |
-|=========================================+========================+======================|
-|   0  NVIDIA L40S                    On  |   00000000:61:00.0 Off |                    0 |
-| N/A   35C    P0            106W /  325W |       0MiB /  46068MiB |     31%      Default |
-|                                         |                        |                  N/A |
-+-----------------------------------------+------------------------+----------------------+
-
-+-----------------------------------------------------------------------------------------+
-| Processes:                                                                              |
-|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
-|        ID   ID                                                               Usage      |
-|=========================================================================================|
-|  No running processes found                                                             |
-+-----------------------------------------------------------------------------------------+
