@@ -2,7 +2,7 @@ import re
 
 import torch
 
-from src import mergingv2
+from src import merging
 from src.core.experts import Expert
 
 
@@ -24,7 +24,7 @@ def merge_experts(
     merge_device = device or torch.device(
         "cuda" if torch.cuda.is_available() else "cpu"
     )
-    merge_fn = getattr(mergingv2, "merge_" + merge_method)
+    merge_fn = getattr(merging, "merge_" + merge_method)
 
     with torch.no_grad():
         for layer_name in base_expert.get_layers():
@@ -53,6 +53,7 @@ def merge_experts(
                     d = torch.stack([w.to(merge_device).float() - w0 for w in w_list])
                     merged_delta = merge_fn(
                         d=d,
+                        w0=w0,
                         stat_fetcher_maps=stat_fetcher_maps,
                         **(merge_kwargs or {}),
                     )

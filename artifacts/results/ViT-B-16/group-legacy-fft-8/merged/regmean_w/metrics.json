@@ -1,21 +1,21 @@
 {
   "all_primary_scores": [
-    "Cars:top1: 0.798533",
-    "DTD:top1: 0.914362",
-    "EuroSAT:top1: 0.969630",
-    "GTSRB:top1: 0.922724",
-    "MNIST:top1: 0.994600",
-    "RESISC45:top1: 0.893810",
-    "SUN397:top1: 0.728866",
-    "SVHN:top1: 0.938076",
-    "avg_top1: 0.895075"
+    "Cars:top1: 0.493720",
+    "DTD:top1: 0.586702",
+    "EuroSAT:top1: 0.963333",
+    "GTSRB:top1: 0.781314",
+    "MNIST:top1: 0.989300",
+    "RESISC45:top1: 0.797460",
+    "SUN397:top1: 0.435567",
+    "SVHN:top1: 0.935733",
+    "avg_top1: 0.747891"
   ],
   "tasks": [
     {
       "alias": "Cars:top1",
       "metrics": {
-        "top1": 0.7985325208307424,
-        "primary_score": 0.7985325208307424
+        "top1": 0.4937196866061435,
+        "primary_score": 0.4937196866061435
       },
       "task_config": {
         "primary_metric": "top1"
@@ -24,8 +24,8 @@
     {
       "alias": "DTD:top1",
       "metrics": {
-        "top1": 0.9143617021276595,
-        "primary_score": 0.9143617021276595
+        "top1": 0.5867021276595744,
+        "primary_score": 0.5867021276595744
       },
       "task_config": {
         "primary_metric": "top1"
@@ -34,8 +34,8 @@
     {
       "alias": "EuroSAT:top1",
       "metrics": {
-        "top1": 0.9696296296296296,
-        "primary_score": 0.9696296296296296
+        "top1": 0.9633333333333334,
+        "primary_score": 0.9633333333333334
       },
       "task_config": {
         "primary_metric": "top1"
@@ -44,8 +44,8 @@
     {
       "alias": "GTSRB:top1",
       "metrics": {
-        "top1": 0.9227236737925574,
-        "primary_score": 0.9227236737925574
+        "top1": 0.7813143309580364,
+        "primary_score": 0.7813143309580364
       },
       "task_config": {
         "primary_metric": "top1"
@@ -54,8 +54,8 @@
     {
       "alias": "MNIST:top1",
       "metrics": {
-        "top1": 0.9946,
-        "primary_score": 0.9946
+        "top1": 0.9893,
+        "primary_score": 0.9893
       },
       "task_config": {
         "primary_metric": "top1"
@@ -64,8 +64,8 @@
     {
       "alias": "RESISC45:top1",
       "metrics": {
-        "top1": 0.8938095238095238,
-        "primary_score": 0.8938095238095238
+        "top1": 0.7974603174603174,
+        "primary_score": 0.7974603174603174
       },
       "task_config": {
         "primary_metric": "top1"
@@ -74,8 +74,8 @@
     {
       "alias": "SUN397:top1",
       "metrics": {
-        "top1": 0.7288664987405542,
-        "primary_score": 0.7288664987405542
+        "top1": 0.43556675062972294,
+        "primary_score": 0.43556675062972294
       },
       "task_config": {
         "primary_metric": "top1"
@@ -84,8 +84,8 @@
     {
       "alias": "SVHN:top1",
       "metrics": {
-        "top1": 0.9380762138905961,
-        "primary_score": 0.9380762138905961
+        "top1": 0.9357329440688383,
+        "primary_score": 0.9357329440688383
       },
       "task_config": {
         "primary_metric": "top1"
@@ -94,8 +94,8 @@
     {
       "alias": "avg_top1",
       "metrics": {
-        "top1": 0.8950749703526579,
-        "primary_score": 0.8950749703526579
+        "top1": 0.7478911863394958,
+        "primary_score": 0.7478911863394958
       },
       "task_config": {
         "primary_metric": "top1"
@@ -104,10 +104,10 @@
   ],
   "model_config": {
     "model": "ViT-B-16",
-    "merge_method": "actmat",
+    "merge_method": "regmean_w",
     "merge_kwargs": {},
     "expert_kwargs": {},
     "checkpoint_name": "finetuned.pt",
-    "avg_top1": 0.8950749703526579
+    "avg_top1": 0.7478911863394958
   }
 }

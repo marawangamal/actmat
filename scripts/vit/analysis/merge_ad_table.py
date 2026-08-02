@@ -26,7 +26,7 @@ import torch
 REPO_ROOT = osp.dirname(osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
 sys.path.append(REPO_ROOT)
 
-from src.mergingv2 import _interp_cov  # noqa: E402
+from src.merging import _interp_cov  # noqa: E402
 from src.vit.experts import ViTExpert, optional_sidecar  # noqa: E402
 
 cos = lambda a, b: (a * b).sum() / (a.norm() * b.norm())

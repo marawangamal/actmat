@@ -1,11 +1,10 @@
 import argparse
 import json
 import os.path as osp
-import re
 
 import torch
 
-from src import mergingv2
+from src.core.merge import merge_experts
 from src.hf.experts import HFExpert
 from src.utils import sanitize_hf_id
 
@@ -74,38 +73,13 @@ if __name__ == "__main__":
         chat_template_path,
         **args.expert_kwargs,
     )
-    for layer_name in base_hf_dir.get_layers():
-        metadata = base_hf_dir.get_layer_metadata(layer_name)
-        w_list = []
-        stat_fetcher_maps = []
-        w_0 = base_hf_dir.get_layer_params(layer_name)
 
-        if args.ignore_keep_pt and re.search(args.ignore_keep_pt, layer_name):
-            w_merged = w_0
-        else:
-            for expert_hf_dir in expert_hf_dirs:
-                w_t = expert_hf_dir.get_layer_params(layer_name)
-                w_list.append(w_t)
-                stat_fetcher_maps.append(expert_hf_dir.get_stat_fetcher_map(layer_name))
-
-            if w_0.ndim != 2 or (
-                args.ignore_mean and re.search(args.ignore_mean, layer_name)
-            ):
-                print(
-                    f"[IGNORE-MEAN] forcing mean merge for layer: {layer_name}",
-                    flush=True,
-                )
-                # fallback to mean merging
-                w_merged = torch.stack(w_list).mean(0)
-            else:
-                # ** merge ***
-                w0 = w_0.to(_MERGE_DEVICE).float()
-                d = torch.stack([w.to(_MERGE_DEVICE).float() - w0 for w in w_list])
-                merge_fn = getattr(mergingv2, "merge_" + args.merge_method)
-                merged_delta = merge_fn(d=d, stat_fetcher_maps=stat_fetcher_maps)
-                w_merged = (w0 + merged_delta).to(w_0.dtype).cpu()
-
-        merged_model_hf_dir.save_layer_params(w_merged, layer_name, metadata=metadata)
-
-    # save index
-    merged_model_hf_dir.flush()  # saves index
+    merge_experts(
+        base_hf_dir,
+        expert_hf_dirs,
+        merged_model_hf_dir,
+        args.merge_method,
+        ignore_keep_pt=args.ignore_keep_pt,
+        ignore_mean=args.ignore_mean,
+        device=_MERGE_DEVICE,
+    )

@@ -1,27 +1,18 @@
 {
   "all_primary_scores": [
-    "SUN397: 0.804433",
-    "Cars: 0.904863",
-    "DTD: 0.811702",
-    "EuroSAT: 0.981852",
-    "GTSRB: 0.969517",
-    "MNIST: 0.997000",
-    "RESISC45: 0.943333",
-    "SVHN: 0.961163"
+    "Cars:top1: 0.904863",
+    "DTD:top1: 0.811170",
+    "EuroSAT:top1: 0.981852",
+    "GTSRB:top1: 0.969596",
+    "MNIST:top1: 0.997000",
+    "RESISC45:top1: 0.943333",
+    "SUN397:top1: 0.804534",
+    "SVHN:top1: 0.961125",
+    "avg_top1: 0.921684"
   ],
   "tasks": [
     {
-      "alias": "SUN397",
-      "metrics": {
-        "top1": 0.804433249370277,
-        "primary_score": 0.804433249370277
-      },
-      "task_config": {
-        "primary_metric": "top1"
-      }
-    },
-    {
-      "alias": "Cars",
+      "alias": "Cars:top1",
       "metrics": {
         "top1": 0.904862579281184,
         "primary_score": 0.904862579281184
@@ -31,17 +22,17 @@
       }
     },
     {
-      "alias": "DTD",
+      "alias": "DTD:top1",
       "metrics": {
-        "top1": 0.8117021276595745,
-        "primary_score": 0.8117021276595745
+        "top1": 0.8111702127659575,
+        "primary_score": 0.8111702127659575
       },
       "task_config": {
         "primary_metric": "top1"
       }
     },
     {
-      "alias": "EuroSAT",
+      "alias": "EuroSAT:top1",
       "metrics": {
         "top1": 0.9818518518518519,
         "primary_score": 0.9818518518518519
@@ -51,17 +42,17 @@
       }
     },
     {
-      "alias": "GTSRB",
+      "alias": "GTSRB:top1",
       "metrics": {
-        "top1": 0.9695170229612035,
-        "primary_score": 0.9695170229612035
+        "top1": 0.9695961995249406,
+        "primary_score": 0.9695961995249406
       },
       "task_config": {
         "primary_metric": "top1"
       }
     },
     {
-      "alias": "MNIST",
+      "alias": "MNIST:top1",
       "metrics": {
         "top1": 0.997,
         "primary_score": 0.997
@@ -71,7 +62,7 @@
       }
     },
     {
-      "alias": "RESISC45",
+      "alias": "RESISC45:top1",
       "metrics": {
         "top1": 0.9433333333333334,
         "primary_score": 0.9433333333333334
@@ -81,10 +72,30 @@
       }
     },
     {
-      "alias": "SVHN",
+      "alias": "SUN397:top1",
       "metrics": {
-        "top1": 0.9611631837738168,
-        "primary_score": 0.9611631837738168
+        "top1": 0.8045340050377834,
+        "primary_score": 0.8045340050377834
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN:top1",
+      "metrics": {
+        "top1": 0.9611247695144438,
+        "primary_score": 0.9611247695144438
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "avg_top1",
+      "metrics": {
+        "top1": 0.921684118913687,
+        "primary_score": 0.921684118913687
       },
       "task_config": {
         "primary_metric": "top1"
@@ -93,10 +104,10 @@
   ],
   "model_config": {
     "model": "ViT-L-14",
-    "merge_func": "actmat",
-    "finetuning_mode": "standard",
-    "seed": null,
-    "mha": "split",
-    "optimal_merge_hp": {}
+    "merge_method": "actmat",
+    "merge_kwargs": {},
+    "expert_kwargs": {},
+    "checkpoint_name": "finetuned.pt",
+    "avg_top1": 0.921684118913687
   }
 }

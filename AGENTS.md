@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-ACTMat reproduces experiments for model merging via data-free covariance estimation. Core reusable code lives in `src/`: expert abstractions in `src/core/experts.py`, shared merge orchestration in `src/core/merge.py`, tensor merge methods in `src/mergingv2.py`, and artifact path helpers in `src/utils.py`. Pipeline-specific implementations are under `src/vision/`, `src/language/`, `src/vit/`, `src/t5/`, and `src/hf/`.
+ACTMat reproduces experiments for model merging via data-free covariance estimation. Core reusable code lives in `src/`: expert abstractions in `src/core/experts.py`, shared merge orchestration in `src/core/merge.py`, tensor merge methods in `src/merging.py`, and artifact path helpers in `src/utils.py`. Pipeline-specific implementations are under `src/vision/`, `src/language/`, `src/vit/`, `src/t5/`, and `src/hf/`.
 
 Experiment drivers and one-off analysis scripts live in `scripts/`, grouped by pipeline (`scripts/vit/`, `scripts/t5/`, `scripts/olmo_rl_zero/`, `scripts/olmo_polyglot/`, `scripts/medphi/`, etc.). Tests are in `scripts/__tests__/`. Configuration and task definitions are in `configs/`; documentation and figures are in `docs/`. Large generated outputs belong under `artifacts/`, `downloads/`, or external cache paths, not source directories.
 
@@ -23,11 +23,11 @@ export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
 ```
 
-Run focused merge tests with `python -m pytest scripts/__tests__/test_mergingv2.py`. End-to-end smoke tests use SLURM: `sbatch scripts/__tests__/test_vision_e2e.sh` and `sbatch scripts/__tests__/test_language_e2e.sh`. Typical experiment entry points include `sbatch scripts/vit/eval_merged.sh` and `sbatch scripts/t5/eval_merged.sh`.
+Run focused merge tests with `python -m pytest scripts/__tests__/test_merging.py`. End-to-end smoke tests use SLURM: `sbatch scripts/__tests__/test_vision_e2e.sh` and `sbatch scripts/__tests__/test_language_e2e.sh`. Typical experiment entry points include `sbatch scripts/vit/eval_merged.sh` and `sbatch scripts/t5/eval_merged.sh`.
 
 ## Coding Style & Naming Conventions
 
-Write Python 3.10+ code with 4-space indentation and clear snake_case names. Keep script-specific flags close to the corresponding entry point unless a shared helper already exists. Add tensor merge methods as `merge_<name>` functions in `src/mergingv2.py`, matching the `--merge-method` CLI value. Preserve existing artifact path conventions through `src/utils.py` instead of hard-coding paths.
+Write Python 3.10+ code with 4-space indentation and clear snake_case names. Keep script-specific flags close to the corresponding entry point unless a shared helper already exists. Add tensor merge methods as `merge_<name>` functions in `src/merging.py`, matching the `--merge-method` CLI value. Preserve existing artifact path conventions through `src/utils.py` instead of hard-coding paths.
 
 ## Testing Guidelines
 

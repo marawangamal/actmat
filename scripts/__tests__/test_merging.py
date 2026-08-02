@@ -1,7 +1,7 @@
-"""Unit tests for tensor-level merge functions in src.mergingv2.
+"""Unit tests for tensor-level merge functions in src.merging.
 
-Run directly: `python scripts/__tests__/test_mergingv2.py`
-Or with unittest:  `python -m unittest scripts.__tests__.test_mergingv2`
+Run directly: `python scripts/__tests__/test_merging.py`
+Or with unittest:  `python -m unittest scripts.__tests__.test_merging`
 """
 
 import sys
@@ -12,7 +12,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import torch
 
-from src.mergingv2 import _interp_cov, merge_regmean, merge_regmean_interp
+from src.merging import (
+    _interp_cov,
+    merge_actmat_w,
+    merge_actmat_w_fp64,
+    merge_regmean,
+    merge_regmean_interp,
+    merge_regmean_w,
+    merge_regmean_w_fp64,
+)
 
 
 def _angle(a: torch.Tensor, b: torch.Tensor) -> float:
@@ -134,6 +142,94 @@ class TestMergeRegmeanInterp(unittest.TestCase):
         maps[1] = {"covariance": (lambda: None)}
         out = merge_regmean_interp(d, stat_fetcher_maps=maps, angular_distance=0.2)
         self.assertTrue(torch.allclose(out, d.mean(dim=0), atol=1e-6))
+
+
+class TestMergeRegmeanW(unittest.TestCase):
+    def test_merges_full_weights_then_returns_delta(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 4)
+        w0 = torch.randn(4, 4)
+        covs = [_random_psd(4) for _ in range(3)]
+        maps = [{"covariance": (lambda ct=ct: ct)} for ct in covs]
+
+        out = merge_regmean_w(d, w0=w0, stat_fetcher_maps=maps)
+        c = torch.stack(covs)
+        expected = ((d + w0) @ c).sum(dim=0) @ torch.linalg.pinv(c.sum(dim=0)) - w0
+
+        self.assertTrue(torch.allclose(out, expected, atol=1e-5))
+
+    def test_missing_covariance_falls_back_to_delta_mean(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 4)
+        w0 = torch.randn(4, 4)
+        maps = [{"covariance": lambda: None} for _ in range(3)]
+
+        out = merge_regmean_w(d, w0=w0, stat_fetcher_maps=maps)
+
+        self.assertTrue(torch.allclose(out, d.mean(dim=0), atol=1e-6))
+
+
+class TestMergeActmatWFp64(unittest.TestCase):
+    def test_computes_in_float64(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 4)
+        w0 = torch.randn(4, 4)
+
+        out = merge_actmat_w_fp64(d, w0=w0)
+        d_fp64 = d.double()
+        w0_fp64 = w0.double()
+        c = d_fp64.transpose(1, 2) @ d_fp64
+        expected = (
+            ((d_fp64 + w0_fp64) @ c).sum(dim=0)
+            @ torch.linalg.pinv(c.sum(dim=0))
+            - w0_fp64
+        )
+
+        self.assertEqual(out.dtype, torch.float64)
+        self.assertTrue(torch.allclose(out, expected))
+
+    def test_matches_fp32_on_well_conditioned_input(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 4)
+        w0 = torch.randn(4, 4)
+
+        out = merge_actmat_w_fp64(d, w0=w0)
+        expected = merge_actmat_w(d, w0=w0)
+
+        self.assertTrue(torch.allclose(out.float(), expected, atol=1e-4))
+
+
+class TestMergeRegmeanWFp64(unittest.TestCase):
+    def test_computes_weights_covariances_and_solve_in_float64(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 4)
+        w0 = torch.randn(4, 4)
+        covs = [_random_psd(4) for _ in range(3)]
+        maps = [{"covariance": (lambda ct=ct: ct)} for ct in covs]
+
+        out = merge_regmean_w_fp64(d, w0=w0, stat_fetcher_maps=maps)
+        d_fp64 = d.double()
+        w0_fp64 = w0.double()
+        c = torch.stack(covs).double()
+        expected = (
+            ((d_fp64 + w0_fp64) @ c).sum(dim=0)
+            @ torch.linalg.pinv(c.sum(dim=0))
+            - w0_fp64
+        )
+
+        self.assertEqual(out.dtype, torch.float64)
+        self.assertTrue(torch.allclose(out, expected))
+
+    def test_missing_covariance_returns_fp64_delta_mean(self):
+        torch.manual_seed(0)
+        d = torch.randn(3, 4, 4)
+        w0 = torch.randn(4, 4)
+        maps = [{"covariance": lambda: None} for _ in range(3)]
+
+        out = merge_regmean_w_fp64(d, w0=w0, stat_fetcher_maps=maps)
+
+        self.assertEqual(out.dtype, torch.float64)
+        self.assertTrue(torch.allclose(out, d.double().mean(dim=0)))
 
 
 if __name__ == "__main__":
