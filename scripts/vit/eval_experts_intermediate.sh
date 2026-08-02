@@ -1,13 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=eval_vit_merge_intermediate
+#SBATCH --job-name=eval_vit_experts_intermediate
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=03:00:00
-#SBATCH --array=0-3
-#SBATCH --output=artifacts/logs/%x_%A_%a.out
-#SBATCH --error=artifacts/logs/%x_%A_%a.err
+#SBATCH --output=artifacts/logs/%x_%j.out
+#SBATCH --error=artifacts/logs/%x_%j.err
 
 set -euo pipefail
 mkdir -p artifacts/logs
@@ -22,7 +21,6 @@ MODEL="${MODEL:-ViT-B-16}"
 CHECKPOINTS="${CHECKPOINTS:-0 200 400 600 800 1000 1200 1400}"
 GROUP="${GROUP:-$FT_MODE-$NUM_TASKS}"
 
-# Stage datasets to the node-local disk.
 if [ ! -d "$SLURM_TMPDIR/data" ]; then
   cp downloads/data.tar.gz "$SLURM_TMPDIR/"
   tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
@@ -42,13 +40,6 @@ case "$NUM_TASKS" in
   *) echo "Unsupported NUM_TASKS=$NUM_TASKS" >&2; exit 1 ;;
 esac
 EVAL_DATASETS="$(IFS=,; echo "${DATASETS[*]}")"
-
-read -r -a METHODS_ARRAY <<< "${METHODS:-mean isoc tsv actmat}"
-if [ "$SLURM_ARRAY_TASK_ID" -ge "${#METHODS_ARRAY[@]}" ]; then
-  echo "No method for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
-  exit 0
-fi
-METHOD="${METHODS_ARRAY[$SLURM_ARRAY_TASK_ID]}"
 
 # Accept either CHECKPOINTS="0 200 400" or CHECKPOINTS="0,200,400".
 read -r -a CHECKPOINT_ARRAY <<< "${CHECKPOINTS//,/ }"
@@ -81,12 +72,11 @@ for STEP in "${CHECKPOINT_ARRAY[@]}"; do
     exit 1
   fi
 
-  OUT="$RESULTS_ROOT/$MODEL/group-$GROUP/intermediate/checkpoint_$STEP/$METHOD"
-  python scripts/vit/eval_merged.py \
+  OUT="$RESULTS_ROOT/$MODEL/group-$GROUP/intermediate/checkpoint_$STEP/experts"
+  python scripts/vit/eval_experts.py \
     --model "$MODEL" \
     --experts-dir "$EXPERTS_DIR" \
     --eval-datasets "$EVAL_DATASETS" \
-    --merge-method "$METHOD" \
     --checkpoint-name "$CHECKPOINT_NAME" \
     --output-dir "$OUT" \
     --data-location "$DATA_DIR" \
