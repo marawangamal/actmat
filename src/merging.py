@@ -108,6 +108,36 @@ def merge_regmean(d: torch.Tensor, **kwargs):
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
 
+def merge_regmean_w(d: torch.Tensor, w0: torch.Tensor, **kwargs):
+    stat_fetcher_maps = kwargs["stat_fetcher_maps"]
+    c = []
+    for fetchers in stat_fetcher_maps:
+        ct = fetchers["covariance"]()
+        if ct is None:
+            return d.mean(dim=0)
+        if not isinstance(ct, torch.Tensor):
+            ct = torch.as_tensor(ct)
+        c.append(ct)
+    c = torch.stack([x.to(device=d.device, dtype=d.dtype) for x in c])
+    return ((d + w0) @ c).sum(dim=0) @ pinv(c.sum(dim=0)) - w0
+
+
+def merge_regmean_w_fp64(d: torch.Tensor, w0: torch.Tensor, **kwargs):
+    d = d.to(torch.float64)
+    w0 = w0.to(torch.float64)
+    stat_fetcher_maps = kwargs["stat_fetcher_maps"]
+    c = []
+    for fetchers in stat_fetcher_maps:
+        ct = fetchers["covariance"]()
+        if ct is None:
+            return d.mean(dim=0)
+        if not isinstance(ct, torch.Tensor):
+            ct = torch.as_tensor(ct)
+        c.append(ct)
+    c = torch.stack([x.to(device=d.device, dtype=d.dtype) for x in c])
+    return ((d + w0) @ c).sum(dim=0) @ pinv(c.sum(dim=0)) - w0
+
+
 def _interp_cov(c: torch.Tensor, angular_distance: float) -> torch.Tensor:
     """Point on the segment c -> I at `angular_distance` (radians) from c.
 
@@ -145,10 +175,7 @@ def merge_regmean_interp(d: torch.Tensor, **kwargs):
             ct = torch.as_tensor(ct)
         c.append(ct)
     c = torch.stack(
-        [
-            _interp_cov(x.to(device=d.device, dtype=d.dtype), angular_distance)
-            for x in c
-        ]
+        [_interp_cov(x.to(device=d.device, dtype=d.dtype), angular_distance) for x in c]
     )
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
 
@@ -186,6 +213,18 @@ def merge_fisher(
 def merge_actmat(d: torch.Tensor, **kwargs):
     c = d.transpose(1, 2) @ d
     return (d @ c).sum(dim=0) @ pinv(c.sum(dim=0))
+
+
+def merge_actmat_w(d: torch.Tensor, w0: torch.Tensor, **kwargs):
+    c = d.transpose(1, 2) @ d
+    return ((d + w0) @ c).sum(dim=0) @ pinv(c.sum(dim=0)) - w0
+
+
+def merge_actmat_w_fp64(d: torch.Tensor, w0: torch.Tensor, **kwargs):
+    d = d.to(torch.float64)
+    w0 = w0.to(torch.float64)
+    c = d.transpose(1, 2) @ d
+    return ((d + w0) @ c).sum(dim=0) @ pinv(c.sum(dim=0)) - w0
 
 
 def merge_actmat_herm(d: torch.Tensor, **kwargs):

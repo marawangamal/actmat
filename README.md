@@ -38,12 +38,13 @@ UV_PROJECT_ENVIRONMENT=.venv-vl uv sync --group vision-language
 NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-7 scripts/vit/finetune.sh
 # 1b. (Optional) Generate covariance files if they are not in the checkpoints
 NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-7 scripts/vit/covariance.sh
-# 2. Evaluate experts        (NUM_TASKS=8|14|20 selects the suite)
+# 2a. Evaluate experts        (NUM_TASKS=8|14|20 selects the suite)
 NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_experts.sh
 # 2b. Evaluate pretrained ViTs with the explicit-path wrapper
 SINGLE_DIR=pretrained NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_single.sh
 # 3a. Evaluate merged models  (NUM_TASKS=8|14|20 selects the suite)
 METHODS="tsv isoc actmat regmean" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-3 scripts/vit/eval_merged.sh
+METHODS="actmat actmat_w" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch --array=0-3 scripts/vit/eval_merged.sh
 # 3b. Evaluate merged models (packed qkv, actmat performs better on this)
 NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 sbatch scripts/vit/eval_merged_packed.sh
 ```

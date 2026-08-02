@@ -53,6 +53,7 @@ def merge_experts(
                     d = torch.stack([w.to(merge_device).float() - w0 for w in w_list])
                     merged_delta = merge_fn(
                         d=d,
+                        w0=w0,
                         stat_fetcher_maps=stat_fetcher_maps,
                         **(merge_kwargs or {}),
                     )

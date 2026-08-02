@@ -4,157 +4,124 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Source code for the paper **Model Merging via Data-Free Covariance Estimation** (ACTMat). Implements and benchmarks task-vector merging methods (sum/TA, mean, TSV, IsoC, RegMean, Fisher, ACTMat) across three pipelines: vision (OpenCLIP ViTs), language (T5), and OLMo (RL-Zero 7B experts).
+Source code for the paper **Model Merging via Data-Free Covariance Estimation** (ACTMat, COLM 2026). Implements and benchmarks task-vector merging methods (sum/TA, mean, TSV, IsoC, RegMean, Fisher, ACTMat) across three pipelines: vision (OpenCLIP ViTs), language (T5), and OLMo (RL-Zero 7B reasoning experts + a multilingual "polyglot" suite).
+
+ACTMat is **data-free**: `merge_actmat` never touches the covariance/fisher sidecars. Only RegMean (covariance) and Fisher (fisher) consume collected statistics.
 
 ## Environments
 
-Vision/language and OLMo dependency groups **conflict** (declared in `pyproject.toml`); they live in separate uv venvs and must be created/activated separately:
+Each experiment family uses its **own uv venv** because their dependency groups conflict (declared in `pyproject.toml`: `vision-language`, `olmo`, `gemma`, `polyglot-mgsm`, `polyglot-mmlu-mrb`). Create/activate them separately:
 
 ```sh
-UV_PROJECT_ENVIRONMENT=.venv-vl   uv sync --group vision-language
-UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo
+UV_PROJECT_ENVIRONMENT=.venv-vl   uv sync --group vision-language   # ViT + T5
+UV_PROJECT_ENVIRONMENT=.venv-olmo uv sync --group olmo              # OLMo / HF merges
 ```
 
-The **polyglot** (multilingual OLMo3) experiment adds two more conflicting groups,
-each its own venv (their numpy/datasets pins are mutually incompatible):
+Every shell that runs a script needs (repo root is the src root):
 
 ```sh
-# M-GSM (lm-eval) — plain sync
-UV_PROJECT_ENVIRONMENT=.venv-pg-mgsm uv sync --group polyglot-mgsm
-# MMLU+MRB (lighteval fork) — sync the PyPI base, then OVERLAY the ./lighteval
-# submodule with --no-deps (a managed source would fail to resolve numpy>=2/datasets>=4)
-UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv sync --group polyglot-mmlu-mrb
-UV_PROJECT_ENVIRONMENT=.venv-pg-mmlu-mrb uv pip install --python .venv-pg-mmlu-mrb -e ./lighteval --no-deps
-```
-Re-running `uv sync --group polyglot-mmlu-mrb` clobbers the fork — re-run the
-overlay line. See the repo README for full details.
-
-Every shell that runs a script needs:
-
-```sh
-export PYTHONPATH="$PYTHONPATH:$(pwd)"   # repo root is the src root
+export PYTHONPATH="$PYTHONPATH:$(pwd)"
 export HF_HOME=$SCRATCH/huggingface
 export NLTK_DATA=$SCRATCH/nltk_data
-source .venv-vl/bin/activate              # or .venv-olmo / .venv-pg-mmlu-mrb / .venv-pg-mgsm
+source .venv-vl/bin/activate           # or .venv-olmo / .venv-pg-*
 ```
 
-`olmes/` and `lighteval/` are git submodules (olmes path-installed via `ai2-olmes`; lighteval overlaid `--no-deps` into `.venv-pg-mmlu-mrb`). Use `git submodule update --init --recursive` after a fresh clone.
-
-Vision experiments expect `vit_datasets_08.zip` (symlinked from `~/scratch/actmat-2026-05-04/`) to be copied to `$SLURM_TMPDIR/datasets`; this is done by the SLURM scripts.
+`olmes/` and `lighteval/` are git submodules — run `git submodule update --init --recursive` after a fresh clone. See the README for polyglot (M-GSM / MMLU+MRB) venv setup, which overlays the `./lighteval` fork with `--no-deps`.
 
 ## Common commands
 
-End-to-end smoke tests (2 training steps, then eval + merge; verify the grouped
-`group-main` result paths). Vision uses MNIST+SVHN/ViT-B-32; language uses
-paws+wiki_qa/t5-base:
+Full reproduction recipes (finetune → covariance → eval experts → eval merged) are in `README.md`, driven by SLURM env vars `NUM_TASKS`, `FT_MODE={fft,lora}`, `MODEL`, and `METHODS`:
 
 ```sh
-sbatch scripts/tests/test_vision_e2e.sh
-sbatch scripts/tests/test_language_e2e.sh
+# Vision (NUM_TASKS=8|14|20 selects the suite)
+METHODS="tsv isoc actmat regmean" NUM_TASKS=8 FT_MODE=fft MODEL=ViT-B-16 \
+  sbatch --array=0-3 scripts/vit/eval_merged.sh
+# Language
+METHODS="tsv isoc actmat regmean" NUM_TASKS=7 FT_MODE=fft MODEL=t5-base \
+  sbatch --array=0-3 scripts/t5/eval_merged.sh
+# OLMo RL-Zero
+METHODS="tsv isoc actmat" sbatch --array=0-2 scripts/olmo_rl_zero/eval_merged.sh
 ```
 
 Run a single vision merge eval directly (skip SLURM):
 
 ```sh
-python scripts/vision/eval_task_addition.py \
-  --model=ViT-B-32 --finetuning-mode=lora \
-  --merge-func=actmat --merge-mode=d --mha=split
+python scripts/vit/eval_merged.py \
+  --model ViT-B-32 \
+  --experts-dir artifacts/checkpoints/ViT-B-32/group-fft-8/experts \
+  --merge-method actmat \
+  --output-dir /tmp/out \
+  --expert-kwargs '{"mha": "packed"}'
 ```
 
-Driver SLURM scripts loop over `MODELS × METHODS × FT_MODES`:
-- `scripts/vision/finetune.sh`, `scripts/vision/eval_task_addition.sh`
-- `scripts/language/eval_task_addition.sh`
-- `scripts/olmo/eval_task_addition.sh`
+Unit tests (pytest) live in `scripts/__tests__/`:
 
-When a method needs statistics, the driver runs the pipeline covariance script first, then the relevant `eval_merged.py` entry point. Statistics live next to checkpoints as `covariance.pt` and are discovered by the pipeline expert wrappers.
+```sh
+python -m pytest scripts/__tests__/test_merging.py -q      # tensor merge methods
+python -m pytest scripts/__tests__/ -q                     # core/expert/merging suites
+```
+
+Note: `scripts/__tests__/test_{vision,language}_e2e.sh` still reference the pre-refactor `scripts/vision/` / `scripts/language/` paths (removed) and are **stale** — prefer the pytest files and the README recipes.
 
 ## Architecture
 
-### Pipeline Entry Points
+### Merge flow (the core)
 
-Current scripts keep their CLI flags close to the corresponding entry point. ViT and T5 wrappers call `scripts/{vit,t5}/*.py`; HF-style OLMo, Polyglot, MedPhi, and WizardLM scripts call `src/hf/merge.py` directly.
+`src/core/merge.py::merge_experts(base_expert, expert_experts, merged_expert, merge_method, ...)` is the single in-process merge entry point for **all** pipelines. It walks layers through the generic `Expert` interface, stacks the task deltas `d = stack(w_i - w0)`, and dispatches to `getattr(src.merging, "merge_" + merge_method)`, calling it as:
 
-### Expert Core
+```python
+merge_fn(d=d, w0=w0, stat_fetcher_maps=[...], **merge_kwargs)
+```
 
-`src/core/experts.py` defines the `Expert` interface used by current tensor merging. Pipeline wrappers such as `src/vit/experts.py`, `src/t5/experts.py`, and `src/hf/experts.py` provide parameter tensors and optional sidecars such as covariance statistics.
+- Non-2D params (and any layer matching `--ignore-mean`) fall back to a plain mean; layers matching `--ignore-keep-pt` keep the base weights.
+- `stat_fetcher_maps[i]` lazily fetches expert `i`'s `{"covariance": ..., "fisher": ...}`; a method returns `d.mean(0)` if the stat it needs is missing.
 
-### Merging
+### Tensor-level merge methods — `src/merging.py`
 
-`src/core/merge.py::merge_experts(...)` is the shared in-process entry point for ViT/T5 experts. HF folder merges use `src/hf/merge.py`. Tensor-level methods live in `src/merging.py`; add a method as `merge_<name>(d, **kwargs)`, matching the `--merge-method` CLI value.
+Each method is `merge_<name>(d, **kwargs)` and the `<name>` **is** the `--merge-method` CLI value (`sum`, `mean`, `tsv`, `isoc`, `regmean`, `regmean_interp`, `fisher`, `actmat`, `actmat_w`, `actmat_herm`, `actmat_gd`, ...). `d` has shape `(N_experts, Do, Di)`; the return is the merged delta `(Do, Di)`. To add a method, just define the function here. `w0` (base weight) and `stat_fetcher_maps` are always passed in; ignore them via `**kwargs` if unused. `actmat_w` is the weight-space variant that uses `w0`.
+
+### Expert interface — `src/core/experts.py`
+
+`Expert` is the minimal contract merge consumes: `get_layers`, `get_layer_params`, `save_layer_params`, `flush`, plus optional `get_layer_cov` / `get_layer_fish`. Pipeline wrappers implement it over their own weight sources:
+- `src/vit/experts.py::ViTExpert`, `src/t5/experts.py::T5Expert` — load local `.pt` checkpoints + sidecars.
+- `src/hf/experts.py::HFExpert` — pulls weights from the Hub / local HF dirs; stats keyed via `sanitize_hf_id`.
+
+### Pipeline entry points
+
+- **ViT / T5**: `scripts/{vit,t5}/{finetune,covariance,eval_experts,eval_merged,eval_single}.py`, each with a matching `.sh` SLURM driver. Eval scripts take explicit `--experts-dir`, `--output-dir`, `--merge-method`, plus JSON `--merge-kwargs` (forwarded to the merge fn, e.g. `'{"angular_distance": 0.3}'`) and `--expert-kwargs` (forwarded to the Expert, e.g. `'{"mha": "packed"}'`).
+- **HF (OLMo RL-Zero, polyglot, and other HF-style models)**: shell drivers in `scripts/olmo_rl_zero/` and `scripts/olmo_polyglot/` call `src/hf/merge.py` directly (`--base-model-name-or-path`, `--expert-model-names-or-paths`, `--merge-method`, `--expert-stats-dir`, `--output-dir`).
 
 ### Statistics collection
 
-`covariance.py` / `fisher.py` in each pipeline's `scripts/` directory walk the model's linear/attention layers, accumulate (un)centered input second moments or diagonal Fisher over a few batches of training data, and write `covariance.pt` / `fisher.pt` next to the corresponding finetuned checkpoint. Knobs: `--cov-num-batches`, `--cov-batch-size`, `--cov-type {sm,cov}`, `--cov-estimator {full,sampled,avg}`, `--mha {split,packed}` (vision: replaces `nn.MultiheadAttention` with a custom module so Q/K/V cov can be collected per-head).
-
-### Artifacts layout (vision + language)
-
-All pipelines follow a structured, nested convention whose path builders are the
-single source of truth in `src/utils.py` (`group_dir`, `resolve_run_dir`, `expert_dir`,
-`head_path`, `merged_results_path`, `experts_results_path`, `pretrained_results_path`,
-`multitask_results_path`). `[lora_]` is the `get_prefix()` filename prefix; `{mode}`
-is `-w` for weight-space merges (omitted for the default difference merge). `group-{g}`
-is the **experiment-suite path level** (`--group`, default `main`) between `{model}` and
-the `experts|multitask|merged|pretrained` subdirs — vision `group-{8,14,20}`, OLMo
-`group-{rl-zero,polyglot}`, everything else `group-main`. `resolve_run_dir` injects it
-for checkpoints; the `*_results_path` builders take it as the `group=` kwarg.
-
-```
-checkpoints/{model}/group-{g}/experts/{dataset}[Val]/ pretrained.pt, [lora_]finetuned.pt, [lora_]covariance.pt, fisher.pt[, head.pt]
-checkpoints/{model}/group-{g}/multitask/             MTL checkpoint
-checkpoints/{model}/pretrained.pt                    shared base, model-level (above the group)
-
-results/{model}/group-{g}/merged/{method}[-{mode}]/[lora_]metrics.json
-results/{model}/group-{g}/experts/[lora_]metrics.json
-results/{model}/group-{g}/pretrained/[lora_]metrics.json   (zero-shot baseline)
-results/{model}/group-{g}/multitask/[lora_]metrics.json
-```
-
-Vision-only quirks: dataset dirs carry a `Val` split suffix (`expert_dir(..., val_suffix=True)`,
-the default) and each holds a co-located `head.pt`; language passes `val_suffix=False`
-and has neither. The vision task-count (8/14/20) is the `group` value, passed as
-`--group=$NUM_TASKS` by a single `eval_task_addition.sh` / `eval_experts.sh`. Vision
-expert **checkpoints are shared across suites**: they live physically in `group-20`
-(the superset), and `group-8` / `group-14` expert dirs are **symlinks** into it (so
-finetuning runs once; `finetune_mtl.sh` passes `--group=20`).
-Language uses `group-main` throughout. Named experiment buckets (`results-wang`,
-`results-sgd`, `results-mixed`) are exotic and stay on `group-main` by default.
-
-Two migration passes, both dry-run by default with reversible, move-only undo scripts:
-`scripts/vision/migrate_artifacts.py` (old **flat → nested**; `--pipeline {vision,language,olmo}`,
-`--canonical`, undo `artifacts/migrate_undo.sh`) and `scripts/migrate_to_groups.py`
-(**nested → grouped**; `--pipeline {vision,language,olmo,all}`, undo
-`artifacts/migrate_groups_undo.sh`). The grouped pass builds the vision symlink farms and
-**unifies OLMo** `Olmo-3-7b` (rl-zero) + `Olmo-3-7b-polyglot-all` (polyglot) into one
-`Olmo-3-7b` model dir, repointing the merged-view symlinks. Exotic vision buckets
-(sgd/wang/ilharco/mixed/analysis, the dashless `results14`/`results20`), the `t5-*-faulty`
-results, and the `results-polyglot*` buckets are deferred (still pre-group).
-
-An append-only JSON-lines DB (`src/results_db.py`) hashes `(script, args)` into a
-16-char run id so identical configurations are deduped; pass `--results-db <path>`
-to use it, `--overwrite` to ignore the cache.
+`scripts/{vit,t5}/covariance.py` walks the model's linear/attention layers, accumulates (un)centered input second moments over a few batches, and writes `covariance.pt` next to the finetuned checkpoint (discovered later by the Expert wrappers). Knobs: `--cov-num-batches`, `--cov-batch-size`, `--cov-type {sm,cov}`, `--cov-estimator {sampled,full,avg}`.
 
 ### Vision MHA quirk
 
-`--mha=split` (or `packed`) **replaces** `nn.MultiheadAttention` modules with a custom split-QKV implementation so per-head covariances are collectible. Vision covariance collection and any merge that consumes those stats must pass the **same** `--mha` flag as `covariance.py` used; mismatches cause key-set errors during merging.
+Vision covariance collection **replaces** `nn.MultiheadAttention` with a custom split-QKV module (`src/mhas.py::swap_mha` / `MultiHeadAttentionSplit`) so per-head Q/K/V covariances are collectible. A merge that consumes those stats must select the **same** MHA layout the covariance run used (via `--expert-kwargs '{"mha": "split"|"packed"}'`); mismatches cause key-set errors.
+
+### Artifacts layout
+
+Path builders in `src/utils.py` (`resolve_run_dir`, `expert_dir`, `head_path`, `group_dir`, `*_results_path`, `sanitize_hf_id`) define the on-disk convention. The **`group-<g>`** level sits between `{model}` and the `experts|multitask|merged|pretrained` subdirs. Current vision/language shell drivers build paths directly as `group-{ft_mode}-{num_tasks}` (e.g. `group-fft-8`, `group-lora-7`); OLMo uses `group-rl-zero` / `group-polyglot`. A parallel `group-legacy-*` holds an older checkpoint sweep, toggled by commenting the two `EXPERTS_DIR`/`OUT` lines in `eval_merged.sh`.
+
+```
+artifacts/checkpoints/{model}/group-{g}/experts/{dataset}[Val]/  pretrained.pt, [lora_]finetuned.pt, [lora_]covariance.pt[, head.pt]
+artifacts/checkpoints/{model}/group-{g}/multitask/               MTL checkpoint
+artifacts/checkpoints/{model}/pretrained.pt                      shared base (model-level, above the group)
+
+artifacts/results/{model}/group-{g}/merged/{method}[-{mode}]/[lora_]metrics.json
+artifacts/results/{model}/group-{g}/{experts,pretrained,multitask}/[lora_]metrics.json
+```
+
+`[lora_]` is the `get_prefix()` filename prefix. Vision-only quirks: dataset dirs carry a `Val` split suffix and each holds a co-located `head.pt`; language/OLMo use the bare dataset name and have neither. HF (OLMo) merges create **no** `experts/` dir — expert weights are referenced from `$HF_HOME`.
 
 ## Repository conventions
 
-- `src/modeling.py` is a compatibility shim that re-exports `src/vision/modeling.py` — old pickled vision checkpoints reference the original module path. Don't remove it without re-pickling all checkpoints.
-- Reproducing the paper plots: `notebooks/analysis.ipynb` reads from `artifacts/results/` and `artifacts/results-analysis/`.
-- The repo uses `uv` for env management and Python 3.10–3.13 (`.python-version` pin). Don't pull `requirements.txt` — it's a frozen export, the source of truth is `pyproject.toml` + `uv.lock`.
+- `src/modeling.py` is a **compatibility shim** re-exporting `src/vision/modeling.py`; old pickled vision checkpoints reference the original module path. Don't remove it without re-pickling checkpoints.
+- Reproduce paper plots via `scripts/analysis.ipynb` (reads from `artifacts/results/`). Vision analysis helpers live in `scripts/vit/analysis/`.
+- The repo uses `uv` and Python 3.10–3.13 (`.python-version`). Source of truth is `pyproject.toml` + `uv.lock`; `requirements.txt` is a frozen export — don't edit it by hand.
 
 ## Commit Messages
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/): `<Type>: <short description>`. Do **not** use parenthesized scopes in this repo (use `Fix: ...`, not `Fix(test): ...`).
-
-Types used in this repo (Capital case — e.g. `Feat: add x` or `Feat/create-branch-for-x`):
-- `Feat:` — new feature/capability
-- `Fix:` — bug fix
-- `Refactor:` — restructure without behavior change
-- `Perf:` — performance improvement
-- `Test:` — add/update tests
-- `Docs:` — documentation only
-- `Chore:` — tooling, ignores, cleanup, deps
-- `Revert:` — revert a previous commit
-
-Keep the subject ≤ 72 chars, imperative mood ("add X", not "added X"), lowercase after the colon. Add a body only when the *why* isn't obvious from the diff. No Claude co-author trailers.
+Follow [Conventional Commits](https://www.conventionalcommits.org/) with **Capital-case** types and **no** parenthesized scopes (use `Fix: ...`, not `Fix(x): ...`):
+`Feat` · `Fix` · `Refactor` · `Perf` · `Test` · `Docs` · `Chore` · `Revert`.
+Subject ≤ 72 chars, imperative mood, lowercase after the colon. Add a body only when the *why* isn't obvious. No Claude co-author trailers.
