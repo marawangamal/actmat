@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "qasc:top1: 0.921000",
+    "wiki_qa:top1: 0.932000",
+    "quartz:top1: 0.626000",
+    "paws:top1: 0.643000",
+    "story_cloze:top1: 0.535000",
+    "winogrande:top1: 0.512000",
+    "wsc:top1: 0.556000",
+    "avg_top1: 0.675000"
+  ],
+  "tasks": [
+    {
+      "alias": "qasc:top1",
+      "metrics": {
+        "top1": 0.921,
+        "primary_score": 0.921
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wiki_qa:top1",
+      "metrics": {
+        "top1": 0.932,
+        "primary_score": 0.932
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "quartz:top1",
+      "metrics": {
+        "top1": 0.626,
+        "primary_score": 0.626
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "paws:top1",
+      "metrics": {
+        "top1": 0.643,
+        "primary_score": 0.643
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "story_cloze:top1",
+      "metrics": {
+        "top1": 0.535,
+        "primary_score": 0.535
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "winogrande:top1",
+      "metrics": {
+        "top1": 0.512,
+        "primary_score": 0.512
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wsc:top1",
+      "metrics": {
+        "top1": 0.556,
+        "primary_score": 0.556
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "avg_top1",
+      "metrics": {
+        "top1": 0.675,
+        "primary_score": 0.675
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "t5-base",
+    "merge_method": "isoc",
+    "merge_kwargs": {},
+    "checkpoint_name": "checkpoint_800.pt",
+    "eval_split": "test",
+    "avg_top1": 0.675
+  }
+}

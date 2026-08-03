@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=eval_vit_merge_intermediate
+#SBATCH --job-name=eval_t5_merge_intermediate
 #SBATCH --partition=long
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
-#SBATCH --time=03:00:00
+#SBATCH --mem=48G
+#SBATCH --time=12:00:00
 #SBATCH --array=0-4
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
@@ -16,29 +16,19 @@ source ".venv-vl/bin/activate"
 export PYTHONPATH="$PYTHONPATH:$PWD"
 export SSL_CERT_DIR=/etc/ssl/certs
 
-NUM_TASKS="${NUM_TASKS:-8}"
+NUM_TASKS="${NUM_TASKS:-7}"
 FT_MODE="${FT_MODE:-fft}"
-MODEL="${MODEL:-ViT-B-16}"
-CHECKPOINTS="${CHECKPOINTS:-0 200 400 600 800 1000 1200 1400}"
+MODEL="${MODEL:-t5-base}"
 GROUP="${GROUP:-$FT_MODE-$NUM_TASKS}"
-
-# Stage datasets to the node-local disk.
-if [ ! -d "$SLURM_TMPDIR/data" ]; then
-  cp downloads/data.tar.gz "$SLURM_TMPDIR/"
-  tar -xzf "$SLURM_TMPDIR/data.tar.gz" -C "$SLURM_TMPDIR/"
-fi
-DATA_DIR="$SLURM_TMPDIR/data/vision"
-OPENCLIP_DIR="$SCRATCH/openclip"
+CHECKPOINTS="${CHECKPOINTS:-auto}"
+DATA_DIR="data"
+CACHE_DIR="$SCRATCH/huggingface"
 CKPT_ROOT="artifacts/checkpoints"
 RESULTS_ROOT="artifacts/results"
 
-DATASETS_8=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN)
-DATASETS_14=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN CIFAR100 STL10 Flowers102 OxfordIIITPet PCAM FER2013)
-DATASETS_20=(Cars DTD EuroSAT GTSRB MNIST RESISC45 SUN397 SVHN CIFAR100 STL10 Flowers102 OxfordIIITPet PCAM FER2013 EMNIST CIFAR10 Food101 FashionMNIST RenderedSST2 KMNIST)
+DATASETS_7=(qasc wiki_qa quartz paws story_cloze winogrande wsc)
 case "$NUM_TASKS" in
-  8) DATASETS=("${DATASETS_8[@]}") ;;
-  14) DATASETS=("${DATASETS_14[@]}") ;;
-  20) DATASETS=("${DATASETS_20[@]}") ;;
+  7) DATASETS=("${DATASETS_7[@]}") ;;
   *) echo "Unsupported NUM_TASKS=$NUM_TASKS" >&2; exit 1 ;;
 esac
 EVAL_DATASETS="$(IFS=,; echo "${DATASETS[*]}")"
@@ -49,15 +39,37 @@ if [ "$SLURM_ARRAY_TASK_ID" -ge "${#METHODS_ARRAY[@]}" ]; then
   exit 0
 fi
 METHOD="${METHODS_ARRAY[$SLURM_ARRAY_TASK_ID]}"
+EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$GROUP/experts"
 
-# Accept either CHECKPOINTS="0 200 400" or CHECKPOINTS="0,200,400".
-read -r -a CHECKPOINT_ARRAY <<< "${CHECKPOINTS//,/ }"
-if [ "${#CHECKPOINT_ARRAY[@]}" -eq 0 ]; then
-  echo "CHECKPOINTS must contain at least one step" >&2
-  exit 1
+if [ "$CHECKPOINTS" = "auto" ]; then
+  CHECKPOINT_ARRAY=()
+  while IFS= read -r STEP; do
+    SHARED=1
+    for DATASET in "${DATASETS[@]}"; do
+      if [ ! -f "$EXPERTS_DIR/$DATASET/checkpoint_$STEP.pt" ]; then
+        SHARED=0
+        break
+      fi
+    done
+    if [ "$SHARED" = "1" ]; then
+      CHECKPOINT_ARRAY+=("$STEP")
+    fi
+  done < <(
+    find "$EXPERTS_DIR/${DATASETS[0]}" -maxdepth 1 -type f \
+      -name 'checkpoint_*.pt' -printf '%f\n' \
+      | sed -E 's/checkpoint_([0-9]+)\.pt/\1/' \
+      | sort -n
+  )
+else
+  read -r -a CHECKPOINT_ARRAY <<< "${CHECKPOINTS//,/ }"
 fi
 
-EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$GROUP/experts"
+if [ "${#CHECKPOINT_ARRAY[@]}" -eq 0 ]; then
+  echo "No checkpoints are shared by all experts in $EXPERTS_DIR" >&2
+  exit 1
+fi
+echo "Shared checkpoint steps: ${CHECKPOINT_ARRAY[*]}"
+
 OVERWRITE_ARGS=()
 if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
@@ -68,8 +80,7 @@ for STEP in "${CHECKPOINT_ARRAY[@]}"; do
     echo "Invalid checkpoint step '$STEP'; expected a non-negative integer" >&2
     exit 1
   fi
-
-  CHECKPOINT_NAME="checkpoint_${STEP}.pt"
+  CHECKPOINT_NAME="checkpoint_$STEP.pt"
   MISSING=()
   for DATASET in "${DATASETS[@]}"; do
     if [ ! -f "$EXPERTS_DIR/$DATASET/$CHECKPOINT_NAME" ]; then
@@ -82,7 +93,7 @@ for STEP in "${CHECKPOINT_ARRAY[@]}"; do
   fi
 
   OUT="$RESULTS_ROOT/$MODEL/group-$GROUP/intermediate/checkpoint_$STEP/$METHOD"
-  python scripts/vit/eval_merged.py \
+  python scripts/t5/eval_merged.py \
     --model "$MODEL" \
     --experts-dir "$EXPERTS_DIR" \
     --eval-datasets "$EVAL_DATASETS" \
@@ -90,6 +101,6 @@ for STEP in "${CHECKPOINT_ARRAY[@]}"; do
     --checkpoint-name "$CHECKPOINT_NAME" \
     --output-dir "$OUT" \
     --data-location "$DATA_DIR" \
-    --cache-dir "$OPENCLIP_DIR" \
+    --cache-dir "$CACHE_DIR" \
     "${OVERWRITE_ARGS[@]}"
 done
