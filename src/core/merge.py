@@ -40,8 +40,10 @@ def merge_experts(
                     w_list.append(expert.get_layer_params(layer_name))
                     stat_fetcher_maps.append(expert.get_stat_fetcher_map(layer_name))
 
-                if w_0.ndim != 2 or (
-                    ignore_mean and re.search(ignore_mean, layer_name)
+                if (
+                    w_0.ndim != 2
+                    or (ignore_mean and re.search(ignore_mean, layer_name))
+                    or max(w_0.shape) >= 10_000
                 ):
                     print(
                         f"[IGNORE-MEAN] forcing mean merge for layer: {layer_name}",

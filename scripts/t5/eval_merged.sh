@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=12:00:00
-#SBATCH --array=0-3
+#SBATCH --array=0-4
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -29,7 +29,7 @@ case "$NUM_TASKS" in
   *) echo "Unsupported NUM_TASKS=$NUM_TASKS"; exit 1 ;;
 esac
 
-METHODS=(${METHODS:-mean isoc tsv actmat})
+METHODS=(${METHODS:-mean isoc tsv actmat wudi})
 MODEL="${MODEL:-t5-base}"
 
 NUM_METHODS="${#METHODS[@]}"
