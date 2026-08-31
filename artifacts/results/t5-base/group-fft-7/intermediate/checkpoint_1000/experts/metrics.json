@@ -1,0 +1,100 @@
+{
+  "all_primary_scores": [
+    "qasc:top1: 0.979000",
+    "wiki_qa:top1: 0.952000",
+    "quartz:top1: 0.821000",
+    "paws:top1: 0.943000",
+    "story_cloze:top1: 0.844000",
+    "winogrande:top1: 0.594000",
+    "wsc:top1: 0.597000",
+    "avg_top1: 0.818571"
+  ],
+  "tasks": [
+    {
+      "alias": "qasc:top1",
+      "metrics": {
+        "top1": 0.979,
+        "primary_score": 0.979
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wiki_qa:top1",
+      "metrics": {
+        "top1": 0.952,
+        "primary_score": 0.952
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "quartz:top1",
+      "metrics": {
+        "top1": 0.821,
+        "primary_score": 0.821
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "paws:top1",
+      "metrics": {
+        "top1": 0.943,
+        "primary_score": 0.943
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "story_cloze:top1",
+      "metrics": {
+        "top1": 0.844,
+        "primary_score": 0.844
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "winogrande:top1",
+      "metrics": {
+        "top1": 0.594,
+        "primary_score": 0.594
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wsc:top1",
+      "metrics": {
+        "top1": 0.597,
+        "primary_score": 0.597
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "avg_top1",
+      "metrics": {
+        "top1": 0.8185714285714286,
+        "primary_score": 0.8185714285714286
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "t5-base",
+    "checkpoint_name": "checkpoint_1000.pt",
+    "eval_split": "test",
+    "avg_top1": 0.8185714285714286
+  }
+}

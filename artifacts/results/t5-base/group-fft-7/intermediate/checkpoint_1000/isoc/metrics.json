@@ -1,0 +1,102 @@
+{
+  "all_primary_scores": [
+    "qasc:top1: 0.936000",
+    "wiki_qa:top1: 0.925000",
+    "quartz:top1: 0.630000",
+    "paws:top1: 0.650000",
+    "story_cloze:top1: 0.554000",
+    "winogrande:top1: 0.517000",
+    "wsc:top1: 0.486000",
+    "avg_top1: 0.671143"
+  ],
+  "tasks": [
+    {
+      "alias": "qasc:top1",
+      "metrics": {
+        "top1": 0.936,
+        "primary_score": 0.936
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wiki_qa:top1",
+      "metrics": {
+        "top1": 0.925,
+        "primary_score": 0.925
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "quartz:top1",
+      "metrics": {
+        "top1": 0.63,
+        "primary_score": 0.63
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "paws:top1",
+      "metrics": {
+        "top1": 0.65,
+        "primary_score": 0.65
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "story_cloze:top1",
+      "metrics": {
+        "top1": 0.554,
+        "primary_score": 0.554
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "winogrande:top1",
+      "metrics": {
+        "top1": 0.517,
+        "primary_score": 0.517
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "wsc:top1",
+      "metrics": {
+        "top1": 0.486,
+        "primary_score": 0.486
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "avg_top1",
+      "metrics": {
+        "top1": 0.6711428571428572,
+        "primary_score": 0.6711428571428572
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "t5-base",
+    "merge_method": "isoc",
+    "merge_kwargs": {},
+    "checkpoint_name": "checkpoint_1000.pt",
+    "eval_split": "test",
+    "avg_top1": 0.6711428571428572
+  }
+}

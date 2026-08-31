@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=03:00:00
-#SBATCH --array=0-3
+#SBATCH --array=0-4
 #SBATCH --output=artifacts/logs/%x_%A_%a.out
 #SBATCH --error=artifacts/logs/%x_%A_%a.err
 
@@ -20,6 +20,7 @@ NUM_TASKS="${NUM_TASKS:-8}"
 FT_MODE="${FT_MODE:-fft}"
 MODEL="${MODEL:-ViT-B-16}"
 CHECKPOINTS="${CHECKPOINTS:-0 200 400 600 800 1000 1200 1400}"
+GROUP="${GROUP:-$FT_MODE-$NUM_TASKS}"
 
 # Stage datasets to the node-local disk.
 if [ ! -d "$SLURM_TMPDIR/data" ]; then
@@ -42,7 +43,7 @@ case "$NUM_TASKS" in
 esac
 EVAL_DATASETS="$(IFS=,; echo "${DATASETS[*]}")"
 
-read -r -a METHODS_ARRAY <<< "${METHODS:-mean isoc tsv actmat}"
+read -r -a METHODS_ARRAY <<< "${METHODS:-mean isoc tsv actmat wudi}"
 if [ "$SLURM_ARRAY_TASK_ID" -ge "${#METHODS_ARRAY[@]}" ]; then
   echo "No method for SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
   exit 0
@@ -56,7 +57,7 @@ if [ "${#CHECKPOINT_ARRAY[@]}" -eq 0 ]; then
   exit 1
 fi
 
-EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/experts"
+EXPERTS_DIR="$CKPT_ROOT/$MODEL/group-$GROUP/experts"
 OVERWRITE_ARGS=()
 if [ "${OVERWRITE:-0}" = "1" ]; then
   OVERWRITE_ARGS=(--overwrite)
@@ -80,7 +81,7 @@ for STEP in "${CHECKPOINT_ARRAY[@]}"; do
     exit 1
   fi
 
-  OUT="$RESULTS_ROOT/$MODEL/group-$FT_MODE-$NUM_TASKS/intermediate/checkpoint_$STEP/$METHOD"
+  OUT="$RESULTS_ROOT/$MODEL/group-$GROUP/intermediate/checkpoint_$STEP/$METHOD"
   python scripts/vit/eval_merged.py \
     --model "$MODEL" \
     --experts-dir "$EXPERTS_DIR" \

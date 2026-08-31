@@ -1,0 +1,113 @@
+{
+  "all_primary_scores": [
+    "Cars:top1: 0.821788",
+    "DTD:top1: 0.685106",
+    "EuroSAT:top1: 0.933333",
+    "GTSRB:top1: 0.895883",
+    "MNIST:top1: 0.985700",
+    "RESISC45:top1: 0.902857",
+    "SUN397:top1: 0.745239",
+    "SVHN:top1: 0.848148",
+    "avg_top1: 0.852257"
+  ],
+  "tasks": [
+    {
+      "alias": "Cars:top1",
+      "metrics": {
+        "top1": 0.8217883347842309,
+        "primary_score": 0.8217883347842309
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "DTD:top1",
+      "metrics": {
+        "top1": 0.6851063829787234,
+        "primary_score": 0.6851063829787234
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "EuroSAT:top1",
+      "metrics": {
+        "top1": 0.9333333333333333,
+        "primary_score": 0.9333333333333333
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "GTSRB:top1",
+      "metrics": {
+        "top1": 0.895882818685669,
+        "primary_score": 0.895882818685669
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "MNIST:top1",
+      "metrics": {
+        "top1": 0.9857,
+        "primary_score": 0.9857
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "RESISC45:top1",
+      "metrics": {
+        "top1": 0.9028571428571428,
+        "primary_score": 0.9028571428571428
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SUN397:top1",
+      "metrics": {
+        "top1": 0.7452392947103275,
+        "primary_score": 0.7452392947103275
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "SVHN:top1",
+      "metrics": {
+        "top1": 0.8481484326982176,
+        "primary_score": 0.8481484326982176
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    },
+    {
+      "alias": "avg_top1",
+      "metrics": {
+        "top1": 0.8522569675059556,
+        "primary_score": 0.8522569675059556
+      },
+      "task_config": {
+        "primary_metric": "top1"
+      }
+    }
+  ],
+  "model_config": {
+    "model": "ViT-B-16",
+    "merge_method": "isoc",
+    "merge_kwargs": {},
+    "expert_kwargs": {},
+    "checkpoint_name": "checkpoint_1000.pt",
+    "avg_top1": 0.8522569675059556
+  }
+}
